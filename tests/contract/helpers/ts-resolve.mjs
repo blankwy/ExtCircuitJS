@@ -2,7 +2,11 @@
 //   1. cover/core 的 TS 源码用无扩展名相对导入（"./StringTokenizer"），Node ESM 不认 → 补 ".ts" 重试；
 //   2. cover/ts 内的相对导入若 cover 里没有对应文件 → 镜像回落到 core/ts 同位置
 //      （对应 tools/coverOverlay.mjs 规则 3：覆盖文件的未覆盖导入解析到 core 真实路径）。
-//   只在默认解析失败时介入，不改动任何源码，不处理裸模块。
+//   3. load 钩子：file: URL 以 .json 结尾时，把 JSON 文本包成
+//      `export default <json>;` 以 ESM 返回——TS 源里的
+//      `import x from "./y.json"`（无 with {type:"json"} 属性）在 Node ESM
+//      下本会报 ERR_IMPORT_ATTRIBUTE_MISSING，此钩子使其可加载。
+//   只在默认解析失败时介入（load 仅拦 .json），不改动任何源码，不处理裸模块。
 // 用法（测试文件顶部，之后必须动态导入）：
 //   import { register } from "node:module";
 //   register(new URL("./helpers/ts-resolve.mjs", import.meta.url));
@@ -50,4 +54,13 @@ export async function resolve(specifier, context, nextResolve) {
         if (!target) throw err;
         return nextResolve(pathToFileURL(target).href, context);
     }
+}
+
+/** .json → ESM：JSON 文本本身就是合法的 JS 对象字面量，包成默认导出即可 */
+export async function load(url, context, nextLoad) {
+    if (url.startsWith("file:") && url.endsWith(".json")) {
+        const jsonText = fs.readFileSync(fileURLToPath(url), "utf8");
+        return { format: "module", shortCircuit: true, source: `export default ${jsonText};` };
+    }
+    return nextLoad(url, context);
 }
