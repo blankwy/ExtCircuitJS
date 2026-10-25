@@ -1,16 +1,23 @@
-// B01 — Fiber（dispose 栈）四条不变式契约测试 + B03 命令插槽（宿主生命周期类）
+// B01 — Fiber（dispose 栈）四条不变式契约测试 + B03 命令插槽 + B04 面板插槽（宿主生命周期类）
 //   node --test tests/contract/fiber.test.mjs
 // B01 四条断言（docs/task-board.md B01）：
 //   1. dispose 逆序（LIFO）：后注册的清理先执行
 //   2. 重复 dispose 幂等：清理动作只执行一次、状态停在 disposed、不抛
 //   3. dispose 后再 add()：迟到的清理动作立即同步执行（不进栈）
 //   4. 插件拿到的 AbortSignal 在 dispose 时 aborted=true
-// B03 断言（docs/task-board.md B03，见文件尾「命令插槽 + 冲突拒绝」节）：
+// B03 断言（docs/task-board.md B03，见「命令插槽 + 冲突拒绝」节）：
 //   5. ctx.command 注册进调色板、返回的 disposer 可精确撤销、run 经调色板可触发
 //   6. 第二插件抢同 id 被拒：activate 抛 "command conflict"（报错不静默），
 //      先注册者命令原样保留（不被静默顶替）、被拒插件零残留（LIFO 回滚）
 //   7. manifest claims 早拒仍有效；第一插件卸载后槽位释放，后到插件可激活
 //   8. 插件卸载后命令数精确回基线、插件 deactivate 钩子被调用；抢占核心命令 id 也被拒
+// B04 断言（docs/task-board.md B04，见文件尾「面板插槽 + DOM 卸载清理」节）：
+//   9. ctx.panel 把元素挂进宿主 verticalPanel 容器（iFrame 之前），返回的 disposer
+//      精确撤销且幂等；宿主卸载不得让已撤销元素复挂
+//  10. 多插件交错挂面板：逐个卸载后子节点数精确回基线、无残留节点（真实 detach，
+//      且一个插件的卸载不波及其他插件的面板）
+//  11. activate 中途抛错：已挂面板随 LIFO 回滚 detach，零 DOM 残留
+//  12. 插件自行摘除面板后宿主卸载不抛、无错误日志（core 的 parentNode 守卫语义）
 //
 // 被测对象说明：
 //   B01：宿主 cover/ts/ExtPluginHost.ts:71 的 fiber 就是 new Fiber()（@ext/plugin-api）；
@@ -32,7 +39,7 @@
 //   调色板真实集成（core 原实现 + 真实插件 URL）由构建与 boot.browser 浏览器契约覆盖。
 
 import { register, registerHooks } from "node:module";
-import test from "node:test";
+import test, { mock } from "node:test";
 import assert from "node:assert/strict";
 
 // B03 加载基座：同步钩子先注册（in-thread，先于 ts-resolve 生效），再注册共享的
@@ -171,7 +178,12 @@ function servePlugin(id, body) {
 }
 /** 命令路径不触碰 app/api（ctx.panel/ctx.on 才会），最小假对象即可 */
 const fakeApp = {};
-const rec = (globalThis.__b03 = { ctx: {}, ran: [], off: {}, deactivated: [] });
+const rec = (globalThis.__b03 = {
+    ctx: {}, ran: [], off: {}, deactivated: [],
+    el: {},
+    // B04 面板元素工厂：桩容器只读写 tagName/parentNode/marker，普通对象即可当 HTMLElement
+    mkEl: (marker) => ({ tagName: "DIV", marker, parentNode: null }),
+});
 const activate = (host, id, extra = {}) =>
     host.activate({ id, entry: "plugin.mjs", version: "1.0.0", ...extra });
 
@@ -316,4 +328,196 @@ test("B03 卸载回基线：多插件交错注册/卸载命令数精确回落；
         rec.deactivated.includes("p6a") && rec.deactivated.includes("p6b"),
         "卸载时插件自身的 deactivate 钩子应被调用",
     );
+});
+
+// ─────────────────────────────────────────────────────────────────────────
+// B04 — 面板插槽 + DOM 卸载清理（宿主生命周期类，docs/task-board.md B04）
+// 被测对象：真实 cover/ts/ExtPluginHost.ts 的 ctx.panel（ExtPluginHost.ts:203-208）：
+//   挂载走 app.addWidgetToVerticalPanel，disposer 走 app.removeWidgetFromVerticalPanel
+//   并汇入 fiber.add —— 卸载（deactivate / 激活失败回滚）时随 fiber.dispose 自动摘除。
+// DOM 桩（手写最小桩，零第三方依赖）：逐字镜像被用到的 core 表面，不改任何 core 源码：
+//   - verticalPanel 容器：core/ts/UIManager.ts:586-589 创建的 div#painel；
+//     初始化完成后 iFrame 恒在面板内（core/ts/UIManager.ts:820），是可插入锚点。
+//   - ui.addWidgetToVerticalPanel / removeWidgetFromVerticalPanel：逐字镜像
+//     core/ts/UIManager.ts:1879-1897 —— iFrame 存在时插到其前；卸载仅当
+//     w.parentNode === verticalPanel 才摘除（disposer 幂等、插件自摘后宿主不抛的
+//     语义依据）。setiFrameHeight 是纯高度计算，不在 DOM 计数契约内，桩省略。
+//   - app 层：镜像 core/ts/CirSim.ts:614-616 的直通委托，宿主只调 app 层。
+
+/** 构造最小 DOM 桩：返回 { app, panel, iFrame, childCount, indexOf, childAt } */
+function makeStubPanelDom(baselineWidgets = 3) {
+    const mkNode = (tag) => ({ tagName: String(tag).toUpperCase(), parentNode: null });
+
+    // verticalPanel 容器节点（core/ts/UIManager.ts:586-589）
+    const panel = mkNode("div");
+    panel.id = "painel";
+    const children = [];
+    Object.assign(panel, {
+        appendChild(w) { children.push(w); w.parentNode = panel; return w; },
+        insertBefore(w, ref) {
+            const i = children.indexOf(ref);
+            if (i === -1) throw new Error("stub DOM: insertBefore ref is not a child");
+            children.splice(i, 0, w);
+            w.parentNode = panel;
+            return w;
+        },
+        removeChild(w) {
+            const i = children.indexOf(w);
+            if (i === -1) throw new Error("stub DOM: removeChild target is not a child");
+            children.splice(i, 1);
+            w.parentNode = null;
+            return w;
+        },
+    });
+
+    // 基线子节点：若干核心控件 + iFrame 收尾（UIManager 初始化完成后的面板形态）
+    for (let i = 0; i < baselineWidgets; i++) panel.appendChild(mkNode("div"));
+    const iFrame = mkNode("iframe");
+    panel.appendChild(iFrame);
+
+    // core/ts/UIManager.ts:1879-1897（逐字镜像；setiFrameHeight 省略）
+    const ui = {
+        verticalPanel: panel,
+        iFrame,
+        addWidgetToVerticalPanel(w) {
+            if (this.verticalPanel == null) return;
+            if (this.iFrame != null) this.verticalPanel.insertBefore(w, this.iFrame);
+            else this.verticalPanel.appendChild(w);
+        },
+        removeWidgetFromVerticalPanel(w) {
+            if (this.verticalPanel == null) return;
+            if (w.parentNode === this.verticalPanel) this.verticalPanel.removeChild(w);
+        },
+    };
+    // core/ts/CirSim.ts:614-616（app 层直通委托）
+    const app = {
+        ui,
+        addWidgetToVerticalPanel(w) { this.ui.addWidgetToVerticalPanel(w); },
+        removeWidgetFromVerticalPanel(w) { this.ui.removeWidgetFromVerticalPanel(w); },
+    };
+
+    return {
+        app,
+        panel,
+        iFrame,
+        get childCount() { return children.length; },
+        indexOf: (w) => children.indexOf(w),
+        childAt: (i) => children[i],
+    };
+}
+
+test("B04 面板插槽：ctx.panel 把元素挂进宿主 verticalPanel（iFrame 之前），disposer 精确撤销且幂等", async () => {
+    servePlugin("p7a", [
+        'rec.el["p7a.panel"] = rec.mkEl("p7a-panel");',
+        'rec.off["p7a.panel"] = ctx.panel(rec.el["p7a.panel"]);',
+    ].join("\n"));
+    const dom = makeStubPanelDom();
+    const host = new PluginHost(dom.app, {});
+    const baseline = dom.childCount;
+
+    await activate(host, "p7a");
+    assert.equal(host.list()[0].state, "ready", "插件应激活到 ready");
+
+    // 挂载：元素真的进了 verticalPanel 容器，且插在 iFrame 之前（core 的 iFrame 分支）
+    const el = rec.el["p7a.panel"];
+    assert.equal(el.parentNode, dom.panel, "ctx.panel 应把元素挂到宿主 verticalPanel 容器");
+    assert.equal(dom.childCount, baseline + 1, "挂载后子节点数 = 基线 + 1");
+    assert.equal(dom.indexOf(el), dom.childCount - 2, "插件面板应插在 iFrame 之前");
+    assert.equal(dom.childAt(dom.childCount - 1), dom.iFrame, "iFrame 仍是面板最后一个子节点");
+
+    // ctx.panel 返回的 disposer：精确撤销自身
+    const off = rec.off["p7a.panel"];
+    assert.equal(typeof off, "function", "ctx.panel 应返回 disposer");
+    off();
+    assert.equal(el.parentNode, null, "撤销后元素应从容器真实 detach");
+    assert.equal(dom.childCount, baseline, "撤销后子节点数回基线");
+    assert.doesNotThrow(() => off(), "disposer 重复调用应幂等不抛（core 的 parentNode 守卫）");
+    assert.equal(dom.childCount, baseline, "重复撤销后子节点数仍为基线");
+
+    // off() 已手动撤销，宿主卸载再跑同一 disposer 也不得复挂/抛错
+    await host.dispose();
+    assert.equal(dom.childCount, baseline, "宿主卸载后子节点数仍为基线");
+    assert.equal(el.parentNode, null, "宿主卸载不得让已撤销元素复挂");
+});
+
+test("B04 DOM 卸载清理：多插件交错挂面板，逐个卸载后子节点数精确回基线、无残留节点", async () => {
+    servePlugin("p8a", [
+        'rec.el["p8a.1"] = rec.mkEl("p8a-1");',
+        'rec.el["p8a.2"] = rec.mkEl("p8a-2");',
+        'ctx.panel(rec.el["p8a.1"]); ctx.panel(rec.el["p8a.2"]);',
+    ].join("\n"));
+    servePlugin("p8b", [
+        'rec.el["p8b.1"] = rec.mkEl("p8b-1");',
+        'ctx.panel(rec.el["p8b.1"]);',
+    ].join("\n"));
+    const dom = makeStubPanelDom();
+    const host = new PluginHost(dom.app, {});
+    const baseline = dom.childCount;
+
+    await activate(host, "p8a");
+    await activate(host, "p8b");
+    assert.equal(dom.childCount, baseline + 3, "两插件共 3 块面板挂载");
+    assert.equal(dom.indexOf(rec.el["p8b.1"]), dom.childCount - 2, "后挂面板同样在 iFrame 之前");
+
+    // 卸载是精确的：p8b 只摘除自己的 1 块，p8a 的 2 块原样保留
+    await host.deactivate("p8b");
+    assert.equal(dom.childCount, baseline + 2, "卸载 p8b 后只余 p8a 的 2 块面板");
+    assert.equal(rec.el["p8b.1"].parentNode, null, "p8b 的面板节点已真实 detach");
+    assert.equal(rec.el["p8a.1"].parentNode, dom.panel, "p8a 面板 1 不受其他插件卸载波及");
+    assert.equal(rec.el["p8a.2"].parentNode, dom.panel, "p8a 面板 2 不受其他插件卸载波及");
+
+    await host.deactivate("p8a");
+    assert.equal(dom.childCount, baseline, "全部卸载后子节点数精确回基线");
+    for (let i = 0; i < dom.childCount; i++) {
+        assert.equal(dom.childAt(i).marker, undefined, `容器槽位 ${i} 无插件节点残留`);
+    }
+});
+
+test("B04 激活失败回滚：activate 中途抛错，已挂面板随 LIFO 回滚 detach，零 DOM 残留", async () => {
+    servePlugin("p9a", [
+        'rec.el["p9a.1"] = rec.mkEl("p9a-1");',
+        'ctx.panel(rec.el["p9a.1"]);',
+        'throw new Error("boom after panel");',
+    ].join("\n"));
+    const dom = makeStubPanelDom();
+    const host = new PluginHost(dom.app, {});
+    const baseline = dom.childCount;
+
+    await assert.rejects(
+        () => activate(host, "p9a"),
+        /boom after panel/,
+        "activate 中途抛错应向外传播（宿主 rethrow）",
+    );
+    assert.equal(host.list().some((s) => s.id === "p9a"), false, "失败插件不留在 fiber 表");
+    assert.equal(rec.el["p9a.1"].parentNode, null, "失败插件已挂的面板必须随回滚 detach");
+    assert.equal(dom.childCount, baseline, "回滚后子节点数回基线（零 DOM 残留）");
+
+    await host.dispose();
+    assert.equal(dom.childCount, baseline, "宿主卸载后仍为基线");
+});
+
+test("B04 清理弹性：插件自行摘除面板后，宿主卸载不抛、无错误日志、容器计数不变", async () => {
+    servePlugin("p10a", [
+        'const el = rec.mkEl("p10a-1");',
+        'ctx.panel(el);',
+        'el.parentNode.removeChild(el); // 插件自行摘除（桩容器带 DOM 方法）',
+    ].join("\n"));
+    const dom = makeStubPanelDom();
+    const host = new PluginHost(dom.app, {});
+    const baseline = dom.childCount;
+
+    await activate(host, "p10a");
+    assert.equal(dom.childCount, baseline, "插件挂了又自摘，计数停在基线");
+
+    const errMock = mock.method(console, "error", () => {});
+    try {
+        await assert.doesNotReject(() => host.deactivate("p10a"), "宿主卸载不得因面板已被摘而抛错");
+        assert.equal(
+            errMock.mock.calls.length, 0,
+            "卸载路径应零错误日志（disposer 在 core 的 parentNode 守卫下不得失败）",
+        );
+    } finally {
+        errMock.mock.restore();
+    }
+    assert.equal(dom.childCount, baseline, "卸载后子节点数仍为基线");
 });
