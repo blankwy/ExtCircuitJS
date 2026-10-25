@@ -3,12 +3,15 @@
 // 设计要点（见 docs/format-strategy.md）：
 //  - 真源是引擎对象（app.elmList + app.sim.nodeList），**不解析 XML 文本**；
 //  - 坐标默认不输出；layout:true 时才带 x1 y1 x2 y2；
-//  - 写入走 ops（set/delete/probe），add 的增量布局留待 v0.2（接口已定）。
+//  - 写入走 ops（set/delete/add）；add 的增量布局在 place.ts（C04，导线分裂放置）；
+//    probe 映射到 ScopeElm 留待 v0.2。
 //
-// TODO(v0.2)：add between nets（WireElm.split + 正交补线）；probe 映射到 ScopeElm。
+// TODO(v0.2)：probe 映射到 ScopeElm。
 
 import registryJson from "./registry.json";
 import { assignStableIds, elmOf, idOf } from "./ids";
+import { placeElement } from "./place";
+import type { PlaceFail } from "./place";
 export { resetIds, idOf, elmOf } from "./ids";
 
 type AttrDef = { attr: string; field: string | null; kind: string };
@@ -219,13 +222,21 @@ export function applyOps(app: any, ops: NetlistOp[]): ApplyResult {
                 case "probe":
                     result.unsupported.push({ op, reason: "probe mapping not implemented (v0.2)" });
                     break;
-                case "add":
-                    result.unsupported.push({
-                        op,
-                        reason: "incremental placement not implemented; see docs/format-strategy.md §5",
-                    });
-                    result.ok = false;
+                case "add": {
+                    // 增量放置（C04）：委托 placeElement；成功记 created/atoms，
+                    // 失败进 unsupported（结构化返回，不抛——与 C03 错误语义一致）
+                    const r = placeElement(app, op);
+                    if (r.ok === true) {
+                        result.applied++;
+                        result.created[`${op.type}#${Object.keys(result.created).length + 1}`] = r.elementId;
+                        result.atoms.push({ add: { id: r.elementId, type: op.type }, splits: r.splits, wires: r.wires });
+                    } else {
+                        const fail = r as PlaceFail;
+                        result.unsupported.push({ op, reason: fail.reason });
+                        result.ok = false;
+                    }
                     break;
+                }
                 default:
                     throw new Error(`unknown op ${(op as any).op}`);
             }

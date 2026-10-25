@@ -3,7 +3,8 @@
 // 三种错误情况都必须返回 { ok:false, unsupported:[...] }，绝不向外抛异常：
 //   1. unknown target（c99 越界）
 //   2. unknown prop（registry xmlAttrs 里不存在的属性）
-//   3. add 未实现（增量布局留待 v0.2）
+//   3. add 在假 app 上结构化失败（真实 add 已由 C04 place.ts 实现，
+//      正向断言见 place.test.mjs；本条保持 C03 错误语义契约）
 // 另加一条正向对照证明假对象驱动是正确的。
 //
 // 用最小假对象驱动，不需要真引擎；通过共享 helper 加载 TS 源
@@ -60,17 +61,27 @@ test("unknown prop：set 指向 registry 没有的属性 → ok:false、unsuppor
     );
 });
 
-test("add 未实现：→ ok:false、unsupported 含 not implemented、没有元件被创建", () => {
+// add 占位断言按 Lead 裁决更新（docs/handoffs/stage4-design.md §9.1，2026-10-26）：
+// C04 落地 add 后，"not implemented" 文案过时；本子测试保持 C03 契约意图不变——
+// 假 app 上结构化失败（ok:false、不抛异常、不创建元件），add 的正向断言在 place.test.mjs。
+test("add 假 app：结构化失败（ok:false、不抛异常、不创建元件）", () => {
     const app = makeApp();
-    const result = applyOps(app, [{ op: "add", type: "ResistorElm", between: ["GND", "n1"] }]);
+    let result;
+    assert.doesNotThrow(() => {
+        result = applyOps(app, [{ op: "add", type: "ResistorElm", between: ["GND", "n1"] }]);
+    }, "applyOps 对 add 失败不得向外抛异常");
 
     assert.equal(result.ok, false);
     assert.equal(result.applied, 0);
     assert.ok(
-        result.unsupported.some((u) => String(u.reason).includes("not implemented")),
-        `unsupported 里应有 "not implemented"，实际：${JSON.stringify(result.unsupported)}`,
+        Array.isArray(result.unsupported) && result.unsupported.length >= 1,
+        "失败应进 unsupported",
     );
-    assert.equal(app.elmList.length, 1, "add 未实现时不得创建元件");
+    assert.ok(
+        typeof result.unsupported[0].reason === "string" && result.unsupported[0].reason.length > 0,
+        `reason 应为非空字符串，实际：${JSON.stringify(result.unsupported[0])}`,
+    );
+    assert.equal(app.elmList.length, 1, "add 失败时不得创建元件");
 });
 
 test("正向对照：合法 set 生效 —— value 字符串数字转 number、needAnalyze 恰好调 1 次", () => {
