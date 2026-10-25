@@ -1,0 +1,10 @@
+{
+  "schema": "extcore/1",
+  "repo": "pfalstad/circuitjs1",
+  "commit": "e952e788a4135a693bfd4cee7883f9b3314e3e76",
+  "versionString": "5.0.3ts",
+  "syncedAt": "2026-10-25",
+  "mode": "vendored-copy",
+  "fileCount": 730,
+  "note": "core/ 是上游 ts/ + war/ 的只读副本（无 node_modules/.git）。ext core sync 会重新拉取并刷新本文件；任何人工修改都必须进 cover/。"
+}

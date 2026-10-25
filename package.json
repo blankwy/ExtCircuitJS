@@ -1,0 +1,19 @@
+{
+  "name": "ext-circuitjs",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "ExtCircuitJS — CircuitJS1 二开：Core / Cover / Plugin / App 四层 + AI 友好网表",
+  "license": "GPL-2.0-or-later",
+  "workspaces": ["packages/*"],
+  "scripts": {
+    "doctor": "node tools/ext.mjs doctor",
+    "dev": "node tools/ext.mjs dev",
+    "build": "node tools/ext.mjs build",
+    "test": "node tools/ext.mjs test",
+    "cover": "node tools/ext.mjs cover status",
+    "core:install": "node tools/ext.mjs core install",
+    "core:sync": "node tools/ext.mjs core sync"
+  },
+  "engines": { "node": ">=22" }
+}

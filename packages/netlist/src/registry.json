@@ -1,0 +1,7980 @@
+{
+ "generatedFrom": "V:\\Vibe\\circuitjs1\\_scratch\\core\\ts",
+ "elements": {
+  "AboutBox": {
+   "cls": "AboutBox",
+   "parent": "Dialog",
+   "file": "AboutBox.ts",
+   "txtType": null,
+   "xmlType": "AboutBox",
+   "xmlTypeDeclared": false,
+   "postCountExpr": null,
+   "traits": {},
+   "txtSlots": [],
+   "xmlAttrs": [],
+   "staticArity": 0,
+   "maxArity": 0
+  },
+  "ACRailElm": {
+   "cls": "ACRailElm",
+   "parent": "RailElm",
+   "file": "ACRailElm.ts",
+   "txtType": null,
+   "xmlType": "ACRail",
+   "xmlTypeDeclared": false,
+   "postCountExpr": null,
+   "traits": {},
+   "txtSlots": [],
+   "xmlAttrs": [],
+   "staticArity": 0,
+   "maxArity": 0
+  },
+  "ACVoltageElm": {
+   "cls": "ACVoltageElm",
+   "parent": "VoltageElm",
+   "file": "ACVoltageElm.ts",
+   "txtType": null,
+   "xmlType": "ACVoltage",
+   "xmlTypeDeclared": false,
+   "postCountExpr": null,
+   "traits": {},
+   "txtSlots": [],
+   "xmlAttrs": [],
+   "staticArity": 0,
+   "maxArity": 0
+  },
+  "ADCElm": {
+   "cls": "ADCElm",
+   "parent": "ChipElm",
+   "file": "ADCElm.ts",
+   "txtType": 167,
+   "xmlType": "ADC",
+   "xmlTypeDeclared": false,
+   "postCountExpr": "this.bits + 2",
+   "traits": {},
+   "txtSlots": [],
+   "xmlAttrs": [],
+   "staticArity": 0,
+   "maxArity": 0
+  },
+  "Adjustable": {
+   "cls": "Adjustable",
+   "parent": null,
+   "file": "Adjustable.ts",
+   "txtType": null,
+   "xmlType": "Adjustable",
+   "xmlTypeDeclared": false,
+   "postCountExpr": null,
+   "traits": {},
+   "txtSlots": [
+    {
+     "field": "e",
+     "kind": "string",
+     "conditional": false
+    },
+    {
+     "field": "ei",
+     "kind": "string",
+     "conditional": false
+    },
+    {
+     "field": null,
+     "kind": "int",
+     "conditional": false
+    },
+    {
+     "field": "minValue",
+     "kind": "float",
+     "conditional": false
+    },
+    {
+     "field": "maxValue",
+     "kind": "string",
+     "conditional": false
+    },
+    {
+     "field": "ano",
+     "kind": "string",
+     "conditional": false
+    },
+    {
+     "field": "sliderText",
+     "kind": "string",
+     "conditional": false
+    },
+    {
+     "field": "sliderStep",
+     "kind": "string",
+     "conditional": false
+    }
+   ],
+   "xmlAttrs": [
+    {
+     "attr": "e",
+     "field": null,
+     "dumpExpr": null,
+     "kind": "int"
+    },
+    {
+     "attr": "ei",
+     "field": null,
+     "dumpExpr": null,
+     "kind": "int"
+    },
+    {
+     "attr": "en",
+     "field": null,
+     "dumpExpr": null,
+     "kind": "string"
+    },
+    {
+     "attr": "mn",
+     "field": null,
+     "dumpExpr": null,
+     "kind": "float"
+    },
+    {
+     "attr": "mx",
+     "field": null,
+     "dumpExpr": null,
+     "kind": "float"
+    },
+    {
+     "attr": "st",
+     "field": null,
+     "dumpExpr": null,
+     "kind": "string"
+    },
+    {
+     "attr": "stp",
+     "field": null,
+     "dumpExpr": null,
+     "kind": "float"
+    },
+    {
+     "attr": "ss",
+     "field": null,
+     "dumpExpr": null,
+     "kind": "int"
+    },
+    {
+     "attr": "log",
+     "field": null,
+     "dumpExpr": null,
+     "kind": "int"
+    }
+   ],
+   "staticArity": 8,
+   "maxArity": 8
+  },
+  "AMElm": {
+   "cls": "AMElm",
+   "parent": "CircuitElm",
+   "file": "AMElm.ts",
+   "txtType": 200,
+   "xmlType": "AM",
+   "xmlTypeDeclared": false,
+   "postCountExpr": "1",
+   "traits": {},
+   "txtSlots": [
+    {
+     "field": "carrierfreq",
+     "kind": "float",
+     "conditional": false
+    },
+    {
+     "field": "signalfreq",
+     "kind": "float",
+     "conditional": false
+    },
+    {
+     "field": "maxVoltage",
+     "kind": "string",
+     "conditional": false
+    }
+   ],
+   "xmlAttrs": [
+    {
+     "attr": "cf",
+     "field": "carrierfreq",
+     "dumpExpr": "this.carrierfreq",
+     "kind": "float"
+    },
+    {
+     "attr": "sf",
+     "field": "signalfreq",
+     "dumpExpr": "this.signalfreq",
+     "kind": "float"
+    },
+    {
+     "attr": "mv",
+     "field": "maxVoltage",
+     "dumpExpr": "this.maxVoltage",
+     "kind": "float"
+    }
+   ],
+   "staticArity": 3,
+   "maxArity": 3
+  },
+  "AmmeterElm": {
+   "cls": "AmmeterElm",
+   "parent": "CircuitElm",
+   "file": "AmmeterElm.ts",
+   "txtType": 370,
+   "xmlType": "Ammeter",
+   "xmlTypeDeclared": false,
+   "postCountExpr": null,
+   "traits": {},
+   "txtSlots": [
+    {
+     "field": "meter",
+     "kind": "int",
+     "conditional": false
+    },
+    {
+     "field": "scale",
+     "kind": "string",
+     "conditional": false
+    }
+   ],
+   "xmlAttrs": [
+    {
+     "attr": "me",
+     "field": "meter",
+     "dumpExpr": "this.meter",
+     "kind": "int"
+    },
+    {
+     "attr": "sc",
+     "field": "scale",
+     "dumpExpr": "this.scale",
+     "kind": "int"
+    },
+    {
+     "attr": "lb",
+     "field": "label",
+     "dumpExpr": "this.label",
+     "kind": "string"
+    }
+   ],
+   "staticArity": 2,
+   "maxArity": 2
+  },
+  "AnalogMuxElm": {
+   "cls": "AnalogMuxElm",
+   "parent": "ChipElm",
+   "file": "AnalogMuxElm.ts",
+   "txtType": 432,
+   "xmlType": "AnalogMux",
+   "xmlTypeDeclared": false,
+   "postCountExpr": "0",
+   "traits": {},
+   "txtSlots": [
+    {
+     "field": "selectBitCount",
+     "kind": "float",
+     "conditional": false
+    },
+    {
+     "field": "r_on",
+     "kind": "float",
+     "conditional": false
+    },
+    {
+     "field": "r_off",
+     "kind": "float",
+     "conditional": false
+    },
+    {
+     "field": "threshold",
+     "kind": "string",
+     "conditional": false
+    }
+   ],
+   "xmlAttrs": [
+    {
+     "attr": "sb",
+     "field": "selectBitCount",
+     "dumpExpr": "this.selectBitCount",
+     "kind": "int"
+    },
+    {
+     "attr": "ron",
+     "field": "r_on",
+     "dumpExpr": "this.r_on",
+     "kind": "float"
+    },
+    {
+     "attr": "rof",
+     "field": "r_off",
+     "dumpExpr": "this.r_off",
+     "kind": "float"
+    },
+    {
+     "attr": "thr",
+     "field": "threshold",
+     "dumpExpr": "this.threshold",
+     "kind": "float"
+    }
+   ],
+   "staticArity": 4,
+   "maxArity": 4
+  },
+  "AnalogSwitch2Elm": {
+   "cls": "AnalogSwitch2Elm",
+   "parent": "AnalogSwitchElm",
+   "file": "AnalogSwitch2Elm.ts",
+   "txtType": 160,
+   "xmlType": "as2",
+   "xmlTypeDeclared": true,
+   "postCountExpr": "4",
+   "traits": {},
+   "txtSlots": [],
+   "xmlAttrs": [],
+   "staticArity": 0,
+   "maxArity": 0
+  },
+  "AnalogSwitchElm": {
+   "cls": "AnalogSwitchElm",
+   "parent": "CircuitElm",
+   "file": "AnalogSwitchElm.ts",
+   "txtType": 159,
+   "xmlType": "as",
+   "xmlTypeDeclared": true,
+   "postCountExpr": "3",
+   "traits": {},
+   "txtSlots": [
+    {
+     "field": "r_on",
+     "kind": "float",
+     "conditional": false
+    },
+    {
+     "field": "r_off",
+     "kind": "float",
+     "conditional": false
+    },
+    {
+     "field": "threshold",
+     "kind": "string",
+     "conditional": false
+    }
+   ],
+   "xmlAttrs": [
+    {
+     "attr": "ron",
+     "field": "r_on",
+     "dumpExpr": "this.r_on",
+     "kind": "float"
+    },
+    {
+     "attr": "roff",
+     "field": "r_off",
+     "dumpExpr": "this.r_off",
+     "kind": "float"
+    },
+    {
+     "attr": "th",
+     "field": "threshold",
+     "dumpExpr": "this.threshold",
+     "kind": "float"
+    }
+   ],
+   "staticArity": 3,
+   "maxArity": 3
+  },
+  "AntennaElm": {
+   "cls": "AntennaElm",
+   "parent": "RailElm",
+   "file": "AntennaElm.ts",
+   "txtType": 65,
+   "xmlType": "A",
+   "xmlTypeDeclared": false,
+   "postCountExpr": null,
+   "traits": {},
+   "txtSlots": [],
+   "xmlAttrs": [],
+   "staticArity": 0,
+   "maxArity": 0
+  },
+  "AudioInputElm": {
+   "cls": "AudioInputElm",
+   "parent": "RailElm",
+   "file": "AudioInputElm.ts",
+   "txtType": 411,
+   "xmlType": "ain",
+   "xmlTypeDeclared": true,
+   "postCountExpr": null,
+   "traits": {},
+   "txtSlots": [
+    {
+     "field": "maxVoltage",
+     "kind": "float",
+     "conditional": false
+    },
+    {
+     "field": "startPosition",
+     "kind": "int",
+     "conditional": false
+    },
+    {
+     "field": "fileNum",
+     "kind": "string",
+     "conditional": false
+    }
+   ],
+   "xmlAttrs": [
+    {
+     "attr": "ma",
+     "field": "maxVoltage",
+     "dumpExpr": "this.maxVoltage",
+     "kind": "float"
+    },
+    {
+     "attr": "st",
+     "field": "startPosition",
+     "dumpExpr": "this.startPosition",
+     "kind": "float"
+    },
+    {
+     "attr": "fi",
+     "field": "fileNum",
+     "dumpExpr": "this.fileNum",
+     "kind": "int"
+    }
+   ],
+   "staticArity": 3,
+   "maxArity": 3
+  },
+  "AudioOutputElm": {
+   "cls": "AudioOutputElm",
+   "parent": "CircuitElm",
+   "file": "AudioOutputElm.ts",
+   "txtType": 211,
+   "xmlType": "aout",
+   "xmlTypeDeclared": true,
+   "postCountExpr": "1",
+   "traits": {},
+   "txtSlots": [
+    {
+     "field": "duration",
+     "kind": "int",
+     "conditional": false
+    },
+    {
+     "field": "samplingRate",
+     "kind": "int",
+     "conditional": false
+    },
+    {
+     "field": "labelNum",
+     "kind": "string",
+     "conditional": false
+    }
+   ],
+   "xmlAttrs": [
+    {
+     "attr": "du",
+     "field": "duration",
+     "dumpExpr": "this.duration",
+     "kind": "float"
+    },
+    {
+     "attr": "sa",
+     "field": "samplingRate",
+     "dumpExpr": "this.samplingRate",
+     "kind": "int"
+    },
+    {
+     "attr": "la",
+     "field": "labelNum",
+     "dumpExpr": "this.labelNum",
+     "kind": "int"
+    }
+   ],
+   "staticArity": 3,
+   "maxArity": 3
+  },
+  "BatteryElm": {
+   "cls": "BatteryElm",
+   "parent": "CircuitElm",
+   "file": "BatteryElm.ts",
+   "txtType": null,
+   "xmlType": "Battery",
+   "xmlTypeDeclared": false,
+   "postCountExpr": null,
+   "traits": {
+    "isBatteryElm": true
+   },
+   "txtSlots": [],
+   "xmlAttrs": [
+    {
+     "attr": "r0",
+     "field": "r0",
+     "dumpExpr": "this.r0",
+     "kind": "float"
+    },
+    {
+     "attr": "r1",
+     "field": "r1",
+     "dumpExpr": "this.r1",
+     "kind": "float"
+    },
+    {
+     "attr": "c1",
+     "field": "c1",
+     "dumpExpr": "this.c1",
+     "kind": "float"
+    },
+    {
+     "attr": "cap",
+     "field": "capacityAh",
+     "dumpExpr": "this.capacityAh",
+     "kind": "float"
+    },
+    {
+     "attr": "isoc",
+     "field": "initialSoc",
+     "dumpExpr": "this.initialSoc",
+     "kind": "float"
+    },
+    {
+     "attr": "bt",
+     "field": "batteryType",
+     "dumpExpr": "this.batteryType",
+     "kind": "int"
+    },
+    {
+     "attr": "soc",
+     "field": null,
+     "dumpExpr": null,
+     "kind": "float"
+    }
+   ],
+   "staticArity": 0,
+   "maxArity": 0
+  },
+  "BoxElm": {
+   "cls": "BoxElm",
+   "parent": "GraphicElm",
+   "file": "BoxElm.ts",
+   "txtType": 98,
+   "xmlType": "b",
+   "xmlTypeDeclared": false,
+   "postCountExpr": null,
+   "traits": {},
+   "txtSlots": [],
+   "xmlAttrs": [],
+   "staticArity": 0,
+   "maxArity": 0
+  },
+  "BusLogicInputElm": {
+   "cls": "BusLogicInputElm",
+   "parent": "SwitchElm",
+   "file": "BusLogicInputElm.ts",
+   "txtType": 0,
+   "xmlType": "bli",
+   "xmlTypeDeclared": true,
+   "postCountExpr": "this.busWidth",
+   "traits": {},
+   "txtSlots": [],
+   "xmlAttrs": [
+    {
+     "attr": "bw",
+     "field": "busWidth",
+     "dumpExpr": "this.busWidth",
+     "kind": "int"
+    },
+    {
+     "attr": "va",
+     "field": "value",
+     "dumpExpr": "this.value",
+     "kind": "int"
+    },
+    {
+     "attr": "hi",
+     "field": "hiV",
+     "dumpExpr": "this.hiV",
+     "kind": "float"
+    },
+    {
+     "attr": "lo",
+     "field": "loV",
+     "dumpExpr": "this.loV",
+     "kind": "float"
+    }
+   ],
+   "staticArity": 0,
+   "maxArity": 0
+  },
+  "BusSplitterElm": {
+   "cls": "BusSplitterElm",
+   "parent": "ChipElm",
+   "file": "BusSplitterElm.ts",
+   "txtType": 433,
+   "xmlType": "bs",
+   "xmlTypeDeclared": true,
+   "postCountExpr": "this.bits * 2",
+   "traits": {
+    "isRemovableWire": true
+   },
+   "txtSlots": [],
+   "xmlAttrs": [],
+   "staticArity": 0,
+   "maxArity": 0
+  },
+  "BusTransceiverElm": {
+   "cls": "BusTransceiverElm",
+   "parent": "ChipElm",
+   "file": "BusTransceiverElm.ts",
+   "txtType": null,
+   "xmlType": "BusTransceiver",
+   "xmlTypeDeclared": false,
+   "postCountExpr": "2 + 2 * this.dataBits",
+   "traits": {},
+   "txtSlots": [],
+   "xmlAttrs": [
+    {
+     "attr": "db",
+     "field": "dataBits",
+     "dumpExpr": "this.dataBits",
+     "kind": "int"
+    }
+   ],
+   "staticArity": 0,
+   "maxArity": 0
+  },
+  "CapacitorElm": {
+   "cls": "CapacitorElm",
+   "parent": "CircuitElm",
+   "file": "CapacitorElm.ts",
+   "txtType": 99,
+   "xmlType": "c",
+   "xmlTypeDeclared": false,
+   "postCountExpr": null,
+   "traits": {
+    "isCapacitorElm": true
+   },
+   "txtSlots": [
+    {
+     "field": "capacitance",
+     "kind": "float",
+     "conditional": false
+    },
+    {
+     "field": "voltdiff",
+     "kind": "string",
+     "conditional": false
+    },
+    {
+     "field": "initialVoltage",
+     "kind": "string",
+     "conditional": false
+    },
+    {
+     "field": "seriesResistance",
+     "kind": "string",
+     "conditional": true
+    }
+   ],
+   "xmlAttrs": [
+    {
+     "attr": "c",
+     "field": "capacitance",
+     "dumpExpr": "this.capacitance",
+     "kind": "float"
+    },
+    {
+     "attr": "iv",
+     "field": "initialVoltage",
+     "dumpExpr": "this.initialVoltage",
+     "kind": "float"
+    },
+    {
+     "attr": "sr",
+     "field": "seriesResistance",
+     "dumpExpr": "this.seriesResistance",
+     "kind": "float"
+    },
+    {
+     "attr": "vd",
+     "field": null,
+     "dumpExpr": null,
+     "kind": "float"
+    }
+   ],
+   "staticArity": 3,
+   "maxArity": 4
+  },
+  "CC2Elm": {
+   "cls": "CC2Elm",
+   "parent": "ChipElm",
+   "file": "CC2Elm.ts",
+   "txtType": 179,
+   "xmlType": "CC2",
+   "xmlTypeDeclared": false,
+   "postCountExpr": "3",
+   "traits": {},
+   "txtSlots": [
+    {
+     "field": "gain",
+     "kind": "string",
+     "conditional": false
+    }
+   ],
+   "xmlAttrs": [
+    {
+     "attr": "ga",
+     "field": "gain",
+     "dumpExpr": "this.gain",
+     "kind": "float"
+    }
+   ],
+   "staticArity": 1,
+   "maxArity": 1
+  },
+  "CC2NegElm": {
+   "cls": "CC2NegElm",
+   "parent": "CC2Elm",
+   "file": "CC2NegElm.ts",
+   "txtType": null,
+   "xmlType": "CC2Neg",
+   "xmlTypeDeclared": false,
+   "postCountExpr": null,
+   "traits": {},
+   "txtSlots": [],
+   "xmlAttrs": [],
+   "staticArity": 0,
+   "maxArity": 0
+  },
+  "CCCSElm": {
+   "cls": "CCCSElm",
+   "parent": "VCCSElm",
+   "file": "CCCSElm.ts",
+   "txtType": 215,
+   "xmlType": "CCCS",
+   "xmlTypeDeclared": false,
+   "postCountExpr": "(this.inputCount ?? 0) + 2",
+   "traits": {},
+   "txtSlots": [],
+   "xmlAttrs": [],
+   "staticArity": 0,
+   "maxArity": 0
+  },
+  "CCVSElm": {
+   "cls": "CCVSElm",
+   "parent": "VCCSElm",
+   "file": "CCVSElm.ts",
+   "txtType": 214,
+   "xmlType": "CCVS",
+   "xmlTypeDeclared": false,
+   "postCountExpr": "this.inputCount + 2",
+   "traits": {},
+   "txtSlots": [],
+   "xmlAttrs": [],
+   "staticArity": 0,
+   "maxArity": 0
+  },
+  "Checkbox": {
+   "cls": "Checkbox",
+   "parent": null,
+   "file": "Checkbox.ts",
+   "txtType": null,
+   "xmlType": "Checkbox",
+   "xmlTypeDeclared": false,
+   "postCountExpr": null,
+   "traits": {},
+   "txtSlots": [],
+   "xmlAttrs": [],
+   "staticArity": 0,
+   "maxArity": 0
+  },
+  "Pin": {
+   "cls": "Pin",
+   "parent": null,
+   "file": "ChipElm.ts",
+   "txtType": null,
+   "xmlType": "Pin",
+   "xmlTypeDeclared": false,
+   "postCountExpr": null,
+   "traits": {},
+   "txtSlots": [],
+   "xmlAttrs": [],
+   "staticArity": 0,
+   "maxArity": 0
+  },
+  "ChipElm": {
+   "cls": "ChipElm",
+   "parent": "CircuitElm",
+   "file": "ChipElm.ts",
+   "txtType": null,
+   "xmlType": "Chip",
+   "xmlTypeDeclared": false,
+   "postCountExpr": null,
+   "traits": {},
+   "txtSlots": [
+    {
+     "field": "bits",
+     "kind": "string",
+     "conditional": true
+    },
+    {
+     "field": "highVoltage",
+     "kind": "string",
+     "conditional": false
+    },
+    {
+     "field": null,
+     "kind": "string",
+     "conditional": true
+    },
+    {
+     "field": "v",
+     "kind": "string",
+     "conditional": false
+    }
+   ],
+   "xmlAttrs": [
+    {
+     "attr": "bi",
+     "field": "bits",
+     "dumpExpr": "this.bits",
+     "kind": "int"
+    },
+    {
+     "attr": "hv",
+     "field": "highVoltage",
+     "dumpExpr": "this.highVoltage",
+     "kind": "float"
+    },
+    {
+     "attr": "bo",
+     "field": "bitOrder",
+     "dumpExpr": "this.bitOrder",
+     "kind": "int"
+    },
+    {
+     "attr": "ix",
+     "field": null,
+     "dumpExpr": null,
+     "kind": "string"
+    },
+    {
+     "attr": "v",
+     "field": null,
+     "dumpExpr": null,
+     "kind": "float"
+    }
+   ],
+   "staticArity": 2,
+   "maxArity": 4
+  },
+  "Choice": {
+   "cls": "Choice",
+   "parent": null,
+   "file": "Choice.ts",
+   "txtType": null,
+   "xmlType": "Choice",
+   "xmlTypeDeclared": false,
+   "postCountExpr": null,
+   "traits": {},
+   "txtSlots": [],
+   "xmlAttrs": [],
+   "staticArity": 0,
+   "maxArity": 0
+  },
+  "CircuitElm": {
+   "cls": "CircuitElm",
+   "parent": null,
+   "file": "CircuitElm.ts",
+   "txtType": 0,
+   "xmlType": "Circuit",
+   "xmlTypeDeclared": true,
+   "postCountExpr": "2",
+   "traits": {},
+   "txtSlots": [],
+   "xmlAttrs": [
+    {
+     "attr": "x",
+     "field": "x",
+     "dumpExpr": "this.x + \" \" + this.y + \" \" + this.x2 + \" \" + this.y2",
+     "kind": null
+    },
+    {
+     "attr": "f",
+     "field": "flags",
+     "dumpExpr": "this.flags",
+     "kind": "int"
+    }
+   ],
+   "staticArity": 0,
+   "maxArity": 0
+  },
+  "CircuitLoader": {
+   "cls": "CircuitLoader",
+   "parent": null,
+   "file": "CircuitLoader.ts",
+   "txtType": null,
+   "xmlType": "CircuitLoader",
+   "xmlTypeDeclared": false,
+   "postCountExpr": null,
+   "traits": {},
+   "txtSlots": [],
+   "xmlAttrs": [],
+   "staticArity": 0,
+   "maxArity": 0
+  },
+  "CircuitMatrix": {
+   "cls": "CircuitMatrix",
+   "parent": null,
+   "file": "CircuitMatrix.ts",
+   "txtType": null,
+   "xmlType": "CircuitMatrix",
+   "xmlTypeDeclared": false,
+   "postCountExpr": null,
+   "traits": {},
+   "txtSlots": [],
+   "xmlAttrs": [],
+   "staticArity": 0,
+   "maxArity": 0
+  },
+  "CircuitNode": {
+   "cls": "CircuitNode",
+   "parent": null,
+   "file": "CircuitNode.ts",
+   "txtType": null,
+   "xmlType": "CircuitNode",
+   "xmlTypeDeclared": false,
+   "postCountExpr": null,
+   "traits": {},
+   "txtSlots": [],
+   "xmlAttrs": [],
+   "staticArity": 0,
+   "maxArity": 0
+  },
+  "CircuitNodeLink": {
+   "cls": "CircuitNodeLink",
+   "parent": null,
+   "file": "CircuitNodeLink.ts",
+   "txtType": null,
+   "xmlType": "CircuitNodeLink",
+   "xmlTypeDeclared": false,
+   "postCountExpr": null,
+   "traits": {},
+   "txtSlots": [],
+   "xmlAttrs": [],
+   "staticArity": 0,
+   "maxArity": 0
+  },
+  "CircuitXMLDeserializer": {
+   "cls": "CircuitXMLDeserializer",
+   "parent": null,
+   "file": "CircuitXMLDeserializer.ts",
+   "txtType": null,
+   "xmlType": "CircuitXMLDeserializer",
+   "xmlTypeDeclared": false,
+   "postCountExpr": null,
+   "traits": {},
+   "txtSlots": [],
+   "xmlAttrs": [],
+   "staticArity": 0,
+   "maxArity": 0
+  },
+  "CircuitXMLSerializer": {
+   "cls": "CircuitXMLSerializer",
+   "parent": null,
+   "file": "CircuitXMLSerializer.ts",
+   "txtType": null,
+   "xmlType": "CircuitXMLSerializer",
+   "xmlTypeDeclared": false,
+   "postCountExpr": null,
+   "traits": {},
+   "txtSlots": [],
+   "xmlAttrs": [],
+   "staticArity": 0,
+   "maxArity": 0
+  },
+  "CirSim": {
+   "cls": "CirSim",
+   "parent": null,
+   "file": "CirSim.ts",
+   "txtType": null,
+   "xmlType": "CirSim",
+   "xmlTypeDeclared": false,
+   "postCountExpr": null,
+   "traits": {},
+   "txtSlots": [],
+   "xmlAttrs": [],
+   "staticArity": 0,
+   "maxArity": 0
+  },
+  "CircuitContext": {
+   "cls": "CircuitContext",
+   "parent": null,
+   "file": "CirSim.ts",
+   "txtType": null,
+   "xmlType": "CircuitContext",
+   "xmlTypeDeclared": false,
+   "postCountExpr": null,
+   "traits": {},
+   "txtSlots": [],
+   "xmlAttrs": [],
+   "staticArity": 0,
+   "maxArity": 0
+  },
+  "ClockElm": {
+   "cls": "ClockElm",
+   "parent": "RailElm",
+   "file": "ClockElm.ts",
+   "txtType": null,
+   "xmlType": "Clock",
+   "xmlTypeDeclared": false,
+   "postCountExpr": null,
+   "traits": {},
+   "txtSlots": [],
+   "xmlAttrs": [],
+   "staticArity": 0,
+   "maxArity": 0
+  },
+  "Color": {
+   "cls": "Color",
+   "parent": null,
+   "file": "Color.ts",
+   "txtType": null,
+   "xmlType": "Color",
+   "xmlTypeDeclared": false,
+   "postCountExpr": null,
+   "traits": {},
+   "txtSlots": [],
+   "xmlAttrs": [],
+   "staticArity": 0,
+   "maxArity": 0
+  },
+  "CommandManager": {
+   "cls": "CommandManager",
+   "parent": null,
+   "file": "CommandManager.ts",
+   "txtType": null,
+   "xmlType": "CommandManager",
+   "xmlTypeDeclared": false,
+   "postCountExpr": null,
+   "traits": {},
+   "txtSlots": [],
+   "xmlAttrs": [],
+   "staticArity": 0,
+   "maxArity": 0
+  },
+  "CommandPalette": {
+   "cls": "CommandPalette",
+   "parent": null,
+   "file": "CommandPalette.ts",
+   "txtType": null,
+   "xmlType": "CommandPalette",
+   "xmlTypeDeclared": false,
+   "postCountExpr": null,
+   "traits": {},
+   "txtSlots": [],
+   "xmlAttrs": [],
+   "staticArity": 0,
+   "maxArity": 0
+  },
+  "CommandPaletteHistory": {
+   "cls": "CommandPaletteHistory",
+   "parent": null,
+   "file": "CommandPaletteHistory.ts",
+   "txtType": null,
+   "xmlType": "CommandPaletteHistory",
+   "xmlTypeDeclared": false,
+   "postCountExpr": null,
+   "traits": {},
+   "txtSlots": [],
+   "xmlAttrs": [],
+   "staticArity": 0,
+   "maxArity": 0
+  },
+  "PaletteCommand": {
+   "cls": "PaletteCommand",
+   "parent": null,
+   "file": "CommandPaletteRegistry.ts",
+   "txtType": null,
+   "xmlType": "PaletteCommand",
+   "xmlTypeDeclared": false,
+   "postCountExpr": null,
+   "traits": {},
+   "txtSlots": [],
+   "xmlAttrs": [],
+   "staticArity": 0,
+   "maxArity": 0
+  },
+  "CommandPaletteRegistry": {
+   "cls": "CommandPaletteRegistry",
+   "parent": null,
+   "file": "CommandPaletteRegistry.ts",
+   "txtType": null,
+   "xmlType": "CommandPaletteRegistry",
+   "xmlTypeDeclared": false,
+   "postCountExpr": null,
+   "traits": {},
+   "txtSlots": [],
+   "xmlAttrs": [],
+   "staticArity": 0,
+   "maxArity": 0
+  },
+  "ComparatorElm": {
+   "cls": "ComparatorElm",
+   "parent": "CompositeElm",
+   "file": "ComparatorElm.ts",
+   "txtType": 401,
+   "xmlType": "Comparator",
+   "xmlTypeDeclared": false,
+   "postCountExpr": null,
+   "traits": {},
+   "txtSlots": [],
+   "xmlAttrs": [],
+   "staticArity": 0,
+   "maxArity": 0
+  },
+  "CompositeElm": {
+   "cls": "CompositeElm",
+   "parent": "CircuitElm",
+   "file": "CompositeElm.ts",
+   "txtType": null,
+   "xmlType": "Composite",
+   "xmlTypeDeclared": false,
+   "postCountExpr": "this.numPosts",
+   "traits": {},
+   "txtSlots": [],
+   "xmlAttrs": [
+    {
+     "attr": "ix",
+     "field": null,
+     "dumpExpr": null,
+     "kind": "int"
+    }
+   ],
+   "staticArity": 0,
+   "maxArity": 0
+  },
+  "VoltageSourceRecord": {
+   "cls": "VoltageSourceRecord",
+   "parent": null,
+   "file": "CompositeElm.ts",
+   "txtType": null,
+   "xmlType": "VoltageSourceRecord",
+   "xmlTypeDeclared": false,
+   "postCountExpr": null,
+   "traits": {},
+   "txtSlots": [],
+   "xmlAttrs": [],
+   "staticArity": 0,
+   "maxArity": 0
+  },
+  "ControlledCurrentElm": {
+   "cls": "ControlledCurrentElm",
+   "parent": "ControlledSourceElm",
+   "file": "ControlledCurrentElm.ts",
+   "txtType": 0,
+   "xmlType": "ci",
+   "xmlTypeDeclared": true,
+   "postCountExpr": null,
+   "traits": {},
+   "txtSlots": [],
+   "xmlAttrs": [],
+   "staticArity": 0,
+   "maxArity": 0
+  },
+  "ControlledSourceElm": {
+   "cls": "ControlledSourceElm",
+   "parent": "CircuitElm",
+   "file": "ControlledSourceElm.ts",
+   "txtType": null,
+   "xmlType": "ControlledSource",
+   "xmlTypeDeclared": false,
+   "postCountExpr": "2",
+   "traits": {},
+   "txtSlots": [],
+   "xmlAttrs": [
+    {
+     "attr": "ex",
+     "field": "engine",
+     "dumpExpr": "this.engine.exprString",
+     "kind": "string"
+    }
+   ],
+   "staticArity": 0,
+   "maxArity": 0
+  },
+  "ControlledVoltageElm": {
+   "cls": "ControlledVoltageElm",
+   "parent": "ControlledSourceElm",
+   "file": "ControlledVoltageElm.ts",
+   "txtType": 0,
+   "xmlType": "cv",
+   "xmlTypeDeclared": true,
+   "postCountExpr": null,
+   "traits": {},
+   "txtSlots": [],
+   "xmlAttrs": [],
+   "staticArity": 0,
+   "maxArity": 0
+  },
+  "Counter2Elm": {
+   "cls": "Counter2Elm",
+   "parent": "ChipElm",
+   "file": "Counter2Elm.ts",
+   "txtType": 421,
+   "xmlType": "ctr2",
+   "xmlTypeDeclared": true,
+   "postCountExpr": "this.bits * 2 + 6",
+   "traits": {},
+   "txtSlots": [
+    {
+     "field": "modulus",
+     "kind": "string",
+     "conditional": false
+    }
+   ],
+   "xmlAttrs": [
+    {
+     "attr": "mo",
+     "field": "modulus",
+     "dumpExpr": "this.modulus",
+     "kind": "int"
+    }
+   ],
+   "staticArity": 1,
+   "maxArity": 1
+  },
+  "CounterElm": {
+   "cls": "CounterElm",
+   "parent": "ChipElm",
+   "file": "CounterElm.ts",
+   "txtType": 164,
+   "xmlType": "ctr",
+   "xmlTypeDeclared": true,
+   "postCountExpr": "this.hasUpDown() ? this.bits + 3 : this.bits + 2",
+   "traits": {},
+   "txtSlots": [
+    {
+     "field": "invertreset",
+     "kind": "int",
+     "conditional": false
+    },
+    {
+     "field": "modulus",
+     "kind": "string",
+     "conditional": false
+    }
+   ],
+   "xmlAttrs": [
+    {
+     "attr": "in",
+     "field": "invertreset",
+     "dumpExpr": "this.invertreset",
+     "kind": "bool"
+    },
+    {
+     "attr": "mo",
+     "field": "modulus",
+     "dumpExpr": "this.modulus",
+     "kind": "int"
+    }
+   ],
+   "staticArity": 2,
+   "maxArity": 2
+  },
+  "CrossSwitchElm": {
+   "cls": "CrossSwitchElm",
+   "parent": "SwitchElm",
+   "file": "CrossSwitchElm.ts",
+   "txtType": 430,
+   "xmlType": "CrossSwitch",
+   "xmlTypeDeclared": false,
+   "postCountExpr": "2 * this.poleCount",
+   "traits": {},
+   "txtSlots": [],
+   "xmlAttrs": [],
+   "staticArity": 0,
+   "maxArity": 0
+  },
+  "CrystalElm": {
+   "cls": "CrystalElm",
+   "parent": "CompositeElm",
+   "file": "CrystalElm.ts",
+   "txtType": 412,
+   "xmlType": "cr",
+   "xmlTypeDeclared": true,
+   "postCountExpr": null,
+   "traits": {},
+   "txtSlots": [],
+   "xmlAttrs": [
+    {
+     "attr": "pc",
+     "field": "parallelCapacitance",
+     "dumpExpr": "this.parallelCapacitance",
+     "kind": "float"
+    },
+    {
+     "attr": "sc",
+     "field": "seriesCapacitance",
+     "dumpExpr": "this.seriesCapacitance",
+     "kind": "float"
+    },
+    {
+     "attr": "in",
+     "field": "inductance",
+     "dumpExpr": "this.inductance",
+     "kind": "float"
+    },
+    {
+     "attr": "r",
+     "field": "resistance",
+     "dumpExpr": "this.resistance",
+     "kind": "float"
+    }
+   ],
+   "staticArity": 0,
+   "maxArity": 0
+  },
+  "CurrentElm": {
+   "cls": "CurrentElm",
+   "parent": "CircuitElm",
+   "file": "CurrentElm.ts",
+   "txtType": 105,
+   "xmlType": "i",
+   "xmlTypeDeclared": false,
+   "postCountExpr": null,
+   "traits": {},
+   "txtSlots": [
+    {
+     "field": "currentValue",
+     "kind": "float",
+     "conditional": false
+    },
+    {
+     "field": "maxVoltage",
+     "kind": "string",
+     "conditional": false
+    }
+   ],
+   "xmlAttrs": [
+    {
+     "attr": "cu",
+     "field": "currentValue",
+     "dumpExpr": "this.currentValue",
+     "kind": "float"
+    },
+    {
+     "attr": "mv",
+     "field": "maxVoltage",
+     "dumpExpr": "this.maxVoltage",
+     "kind": "float"
+    }
+   ],
+   "staticArity": 2,
+   "maxArity": 2
+  },
+  "CustomLogicElm": {
+   "cls": "CustomLogicElm",
+   "parent": "ChipElm",
+   "file": "CustomLogicElm.ts",
+   "txtType": 208,
+   "xmlType": "cl",
+   "xmlTypeDeclared": true,
+   "postCountExpr": "this.postCount",
+   "traits": {},
+   "txtSlots": [
+    {
+     "field": "modelName",
+     "kind": "string",
+     "conditional": false
+    },
+    {
+     "field": "v",
+     "kind": "string",
+     "conditional": false
+    }
+   ],
+   "xmlAttrs": [
+    {
+     "attr": "mo",
+     "field": "modelName",
+     "dumpExpr": "this.modelName",
+     "kind": "string"
+    }
+   ],
+   "staticArity": 2,
+   "maxArity": 2
+  },
+  "CustomLogicModel": {
+   "cls": "CustomLogicModel",
+   "parent": null,
+   "file": "CustomLogicModel.ts",
+   "txtType": null,
+   "xmlType": "CustomLogicModel",
+   "xmlTypeDeclared": false,
+   "postCountExpr": null,
+   "traits": {},
+   "txtSlots": [],
+   "xmlAttrs": [
+    {
+     "attr": "nm",
+     "field": "name",
+     "dumpExpr": "this.name",
+     "kind": null
+    },
+    {
+     "attr": "f",
+     "field": "flags",
+     "dumpExpr": "this.flags",
+     "kind": "int"
+    },
+    {
+     "attr": "in",
+     "field": "arrayToList",
+     "dumpExpr": "this.arrayToList(this.inputs",
+     "kind": "string"
+    },
+    {
+     "attr": "o",
+     "field": "arrayToList",
+     "dumpExpr": "this.arrayToList(this.outputs",
+     "kind": "string"
+    },
+    {
+     "attr": "if",
+     "field": "infoText",
+     "dumpExpr": "this.infoText",
+     "kind": "string"
+    }
+   ],
+   "staticArity": 0,
+   "maxArity": 0
+  },
+  "CustomTransformerElm": {
+   "cls": "CustomTransformerElm",
+   "parent": "CircuitElm",
+   "file": "CustomTransformerElm.ts",
+   "txtType": 406,
+   "xmlType": "CustomTransformer",
+   "xmlTypeDeclared": false,
+   "postCountExpr": "this.nodeCount",
+   "traits": {},
+   "txtSlots": [
+    {
+     "field": "inductance",
+     "kind": "float",
+     "conditional": false
+    },
+    {
+     "field": "couplingCoef",
+     "kind": "string",
+     "conditional": false
+    },
+    {
+     "field": "description",
+     "kind": "int",
+     "conditional": false
+    },
+    {
+     "field": "coilCount",
+     "kind": "string",
+     "conditional": false
+    },
+    {
+     "field": null,
+     "kind": "string",
+     "conditional": false
+    }
+   ],
+   "xmlAttrs": [
+    {
+     "attr": "in",
+     "field": "inductance",
+     "dumpExpr": "this.inductance",
+     "kind": "float"
+    },
+    {
+     "attr": "cc",
+     "field": "couplingCoef",
+     "dumpExpr": "this.couplingCoef",
+     "kind": "float"
+    },
+    {
+     "attr": "ds",
+     "field": "description",
+     "dumpExpr": "this.description",
+     "kind": "string"
+    },
+    {
+     "attr": "nc",
+     "field": "coilCount",
+     "dumpExpr": "this.coilCount",
+     "kind": "int"
+    },
+    {
+     "attr": "ci",
+     "field": null,
+     "dumpExpr": null,
+     "kind": "string"
+    }
+   ],
+   "staticArity": 5,
+   "maxArity": 5
+  },
+  "DACElm": {
+   "cls": "DACElm",
+   "parent": "ChipElm",
+   "file": "DACElm.ts",
+   "txtType": 166,
+   "xmlType": "DAC",
+   "xmlTypeDeclared": false,
+   "postCountExpr": "this.bits + 2",
+   "traits": {},
+   "txtSlots": [],
+   "xmlAttrs": [],
+   "staticArity": 0,
+   "maxArity": 0
+  },
+  "DarlingtonElm": {
+   "cls": "DarlingtonElm",
+   "parent": "CompositeElm",
+   "file": "DarlingtonElm.ts",
+   "txtType": 400,
+   "xmlType": "dar",
+   "xmlTypeDeclared": true,
+   "postCountExpr": null,
+   "traits": {},
+   "txtSlots": [
+    {
+     "field": "pnp",
+     "kind": "string",
+     "conditional": false
+    }
+   ],
+   "xmlAttrs": [
+    {
+     "attr": "pnp",
+     "field": "pnp",
+     "dumpExpr": "this.pnp",
+     "kind": "int"
+    }
+   ],
+   "staticArity": 1,
+   "maxArity": 1
+  },
+  "DataInputElm": {
+   "cls": "DataInputElm",
+   "parent": "RailElm",
+   "file": "DataInputElm.ts",
+   "txtType": 424,
+   "xmlType": "DataInput",
+   "xmlTypeDeclared": false,
+   "postCountExpr": null,
+   "traits": {},
+   "txtSlots": [
+    {
+     "field": "sampleLength",
+     "kind": "float",
+     "conditional": false
+    },
+    {
+     "field": "scaleFactor",
+     "kind": "int",
+     "conditional": false
+    },
+    {
+     "field": "fileNum",
+     "kind": "string",
+     "conditional": false
+    }
+   ],
+   "xmlAttrs": [
+    {
+     "attr": "sl",
+     "field": "sampleLength",
+     "dumpExpr": "this.sampleLength",
+     "kind": "float"
+    },
+    {
+     "attr": "sf",
+     "field": "scaleFactor",
+     "dumpExpr": "this.scaleFactor",
+     "kind": "float"
+    },
+    {
+     "attr": "fn",
+     "field": null,
+     "dumpExpr": null,
+     "kind": "int"
+    }
+   ],
+   "staticArity": 3,
+   "maxArity": 3
+  },
+  "DataRecorderElm": {
+   "cls": "DataRecorderElm",
+   "parent": "CircuitElm",
+   "file": "DataRecorderElm.ts",
+   "txtType": 210,
+   "xmlType": "DataRecorder",
+   "xmlTypeDeclared": false,
+   "postCountExpr": "1",
+   "traits": {},
+   "txtSlots": [
+    {
+     "field": null,
+     "kind": "string",
+     "conditional": false
+    }
+   ],
+   "xmlAttrs": [
+    {
+     "attr": "dc",
+     "field": "dataCount",
+     "dumpExpr": "this.dataCount",
+     "kind": "int"
+    }
+   ],
+   "staticArity": 1,
+   "maxArity": 1
+  },
+  "DCMotorElm": {
+   "cls": "DCMotorElm",
+   "parent": "CircuitElm",
+   "file": "DCMotorElm.ts",
+   "txtType": 415,
+   "xmlType": "DCMotor",
+   "xmlTypeDeclared": false,
+   "postCountExpr": "2",
+   "traits": {},
+   "txtSlots": [
+    {
+     "field": "inductance",
+     "kind": "float",
+     "conditional": false
+    },
+    {
+     "field": "resistance",
+     "kind": "float",
+     "conditional": false
+    },
+    {
+     "field": "K",
+     "kind": "float",
+     "conditional": false
+    },
+    {
+     "field": "Kb",
+     "kind": "float",
+     "conditional": false
+    },
+    {
+     "field": "J",
+     "kind": "float",
+     "conditional": false
+    },
+    {
+     "field": "b",
+     "kind": "float",
+     "conditional": false
+    },
+    {
+     "field": "gearRatio",
+     "kind": "float",
+     "conditional": false
+    },
+    {
+     "field": "tau",
+     "kind": "string",
+     "conditional": false
+    }
+   ],
+   "xmlAttrs": [
+    {
+     "attr": "in",
+     "field": "inductance",
+     "dumpExpr": "this.inductance",
+     "kind": "float"
+    },
+    {
+     "attr": "rs",
+     "field": "resistance",
+     "dumpExpr": "this.resistance",
+     "kind": "float"
+    },
+    {
+     "attr": "k",
+     "field": "K",
+     "dumpExpr": "this.K",
+     "kind": "float"
+    },
+    {
+     "attr": "kb",
+     "field": "Kb",
+     "dumpExpr": "this.Kb",
+     "kind": "float"
+    },
+    {
+     "attr": "j",
+     "field": "J",
+     "dumpExpr": "this.J",
+     "kind": "float"
+    },
+    {
+     "attr": "b",
+     "field": "b",
+     "dumpExpr": "this.b",
+     "kind": "float"
+    },
+    {
+     "attr": "gr",
+     "field": "gearRatio",
+     "dumpExpr": "this.gearRatio",
+     "kind": "float"
+    },
+    {
+     "attr": "ta",
+     "field": "tau",
+     "dumpExpr": "this.tau",
+     "kind": "float"
+    }
+   ],
+   "staticArity": 8,
+   "maxArity": 8
+  },
+  "DCVoltageElm": {
+   "cls": "DCVoltageElm",
+   "parent": "VoltageElm",
+   "file": "DCVoltageElm.ts",
+   "txtType": null,
+   "xmlType": "DCVoltage",
+   "xmlTypeDeclared": false,
+   "postCountExpr": null,
+   "traits": {},
+   "txtSlots": [],
+   "xmlAttrs": [],
+   "staticArity": 0,
+   "maxArity": 0
+  },
+  "DecimalDisplayElm": {
+   "cls": "DecimalDisplayElm",
+   "parent": "ChipElm",
+   "file": "DecimalDisplayElm.ts",
+   "txtType": 419,
+   "xmlType": "dd",
+   "xmlTypeDeclared": true,
+   "postCountExpr": "this.bitCount ?? 0",
+   "traits": {},
+   "txtSlots": [
+    {
+     "field": "bitCount",
+     "kind": "int",
+     "conditional": false
+    },
+    {
+     "field": "displayMode",
+     "kind": "string",
+     "conditional": false
+    }
+   ],
+   "xmlAttrs": [
+    {
+     "attr": "bc",
+     "field": "bitCount",
+     "dumpExpr": "this.bitCount",
+     "kind": "int"
+    },
+    {
+     "attr": "dm",
+     "field": "displayMode",
+     "dumpExpr": "this.displayMode",
+     "kind": "int"
+    }
+   ],
+   "staticArity": 2,
+   "maxArity": 2
+  },
+  "DelayBufferElm": {
+   "cls": "DelayBufferElm",
+   "parent": "CircuitElm",
+   "file": "DelayBufferElm.ts",
+   "txtType": 422,
+   "xmlType": "DelayBuffer",
+   "xmlTypeDeclared": false,
+   "postCountExpr": null,
+   "traits": {},
+   "txtSlots": [
+    {
+     "field": "delay",
+     "kind": "string",
+     "conditional": false
+    },
+    {
+     "field": "threshold",
+     "kind": "float",
+     "conditional": false
+    },
+    {
+     "field": "highVoltage",
+     "kind": "string",
+     "conditional": false
+    }
+   ],
+   "xmlAttrs": [
+    {
+     "attr": "dl",
+     "field": "delay",
+     "dumpExpr": "this.delay",
+     "kind": "float"
+    },
+    {
+     "attr": "th",
+     "field": "threshold",
+     "dumpExpr": "this.threshold",
+     "kind": "float"
+    },
+    {
+     "attr": "hv",
+     "field": "highVoltage",
+     "dumpExpr": "this.highVoltage",
+     "kind": "float"
+    }
+   ],
+   "staticArity": 3,
+   "maxArity": 3
+  },
+  "DeMultiplexerElm": {
+   "cls": "DeMultiplexerElm",
+   "parent": "ChipElm",
+   "file": "DeMultiplexerElm.ts",
+   "txtType": 185,
+   "xmlType": "dmux",
+   "xmlTypeDeclared": true,
+   "postCountExpr": "0",
+   "traits": {},
+   "txtSlots": [
+    {
+     "field": "selectBitCount",
+     "kind": "string",
+     "conditional": false
+    }
+   ],
+   "xmlAttrs": [
+    {
+     "attr": "se",
+     "field": "selectBitCount",
+     "dumpExpr": "this.selectBitCount",
+     "kind": "int"
+    },
+    {
+     "attr": "om",
+     "field": "outputMode",
+     "dumpExpr": "this.outputMode",
+     "kind": "int"
+    },
+    {
+     "attr": "dw",
+     "field": "dataBusWidth",
+     "dumpExpr": "this.dataBusWidth",
+     "kind": "int"
+    }
+   ],
+   "staticArity": 1,
+   "maxArity": 1
+  },
+  "DFlipFlopElm": {
+   "cls": "DFlipFlopElm",
+   "parent": "ChipElm",
+   "file": "DFlipFlopElm.ts",
+   "txtType": 155,
+   "xmlType": "DFlipFlop",
+   "xmlTypeDeclared": false,
+   "postCountExpr": "4 + (this.hasReset() ? 1 : 0) + (this.hasSet() ? 1 : 0)",
+   "traits": {},
+   "txtSlots": [],
+   "xmlAttrs": [],
+   "staticArity": 0,
+   "maxArity": 0
+  },
+  "DiacElm": {
+   "cls": "DiacElm",
+   "parent": "CircuitElm",
+   "file": "DiacElm.ts",
+   "txtType": 203,
+   "xmlType": "Diac",
+   "xmlTypeDeclared": false,
+   "postCountExpr": null,
+   "traits": {},
+   "txtSlots": [
+    {
+     "field": "onresistance",
+     "kind": "float",
+     "conditional": false
+    },
+    {
+     "field": "offresistance",
+     "kind": "float",
+     "conditional": false
+    },
+    {
+     "field": "breakdown",
+     "kind": "float",
+     "conditional": false
+    },
+    {
+     "field": "holdcurrent",
+     "kind": "string",
+     "conditional": false
+    }
+   ],
+   "xmlAttrs": [
+    {
+     "attr": "ron",
+     "field": "onresistance",
+     "dumpExpr": "this.onresistance",
+     "kind": "float"
+    },
+    {
+     "attr": "roff",
+     "field": "offresistance",
+     "dumpExpr": "this.offresistance",
+     "kind": "float"
+    },
+    {
+     "attr": "bd",
+     "field": "breakdown",
+     "dumpExpr": "this.breakdown",
+     "kind": "float"
+    },
+    {
+     "attr": "hc",
+     "field": "holdcurrent",
+     "dumpExpr": "this.holdcurrent",
+     "kind": "float"
+    }
+   ],
+   "staticArity": 4,
+   "maxArity": 4
+  },
+  "Dialog": {
+   "cls": "Dialog",
+   "parent": null,
+   "file": "Dialog.ts",
+   "txtType": null,
+   "xmlType": "Dialog",
+   "xmlTypeDeclared": false,
+   "postCountExpr": null,
+   "traits": {},
+   "txtSlots": [],
+   "xmlAttrs": [],
+   "staticArity": 0,
+   "maxArity": 0
+  },
+  "Diode": {
+   "cls": "Diode",
+   "parent": null,
+   "file": "Diode.ts",
+   "txtType": null,
+   "xmlType": "Diode",
+   "xmlTypeDeclared": false,
+   "postCountExpr": null,
+   "traits": {},
+   "txtSlots": [],
+   "xmlAttrs": [],
+   "staticArity": 0,
+   "maxArity": 0
+  },
+  "DiodeElm": {
+   "cls": "DiodeElm",
+   "parent": "CircuitElm",
+   "file": "DiodeElm.ts",
+   "txtType": 100,
+   "xmlType": "d",
+   "xmlTypeDeclared": false,
+   "postCountExpr": null,
+   "traits": {},
+   "txtSlots": [
+    {
+     "field": "modelName",
+     "kind": "string",
+     "conditional": false
+    },
+    {
+     "field": null,
+     "kind": "string",
+     "conditional": false
+    }
+   ],
+   "xmlAttrs": [
+    {
+     "attr": "mo",
+     "field": "modelName",
+     "dumpExpr": "this.modelName",
+     "kind": "string"
+    }
+   ],
+   "staticArity": 2,
+   "maxArity": 2
+  },
+  "DiodeModel": {
+   "cls": "DiodeModel",
+   "parent": null,
+   "file": "DiodeModel.ts",
+   "txtType": null,
+   "xmlType": "DiodeModel",
+   "xmlTypeDeclared": false,
+   "postCountExpr": null,
+   "traits": {},
+   "txtSlots": [],
+   "xmlAttrs": [
+    {
+     "attr": "nm",
+     "field": "name",
+     "dumpExpr": "this.name",
+     "kind": null
+    },
+    {
+     "attr": "f",
+     "field": "flags",
+     "dumpExpr": "this.flags",
+     "kind": "int"
+    },
+    {
+     "attr": "is",
+     "field": "saturationCurrent",
+     "dumpExpr": "this.saturationCurrent",
+     "kind": "float"
+    },
+    {
+     "attr": "rs",
+     "field": "seriesResistance",
+     "dumpExpr": "this.seriesResistance",
+     "kind": "float"
+    },
+    {
+     "attr": "n",
+     "field": "emissionCoefficient",
+     "dumpExpr": "this.emissionCoefficient",
+     "kind": "float"
+    },
+    {
+     "attr": "bv",
+     "field": "breakdownVoltage",
+     "dumpExpr": "this.breakdownVoltage",
+     "kind": "float"
+    },
+    {
+     "attr": "fi",
+     "field": "forwardCurrent",
+     "dumpExpr": "this.forwardCurrent",
+     "kind": "float"
+    }
+   ],
+   "staticArity": 0,
+   "maxArity": 0
+  },
+  "DPDTSwitchElm": {
+   "cls": "DPDTSwitchElm",
+   "parent": "SwitchElm",
+   "file": "DPDTSwitchElm.ts",
+   "txtType": 429,
+   "xmlType": "dpdt",
+   "xmlTypeDeclared": true,
+   "postCountExpr": "3 * this.poleCount",
+   "traits": {},
+   "txtSlots": [
+    {
+     "field": "poleCount",
+     "kind": "string",
+     "conditional": false
+    }
+   ],
+   "xmlAttrs": [
+    {
+     "attr": "po",
+     "field": "poleCount",
+     "dumpExpr": "this.poleCount",
+     "kind": "int"
+    }
+   ],
+   "staticArity": 1,
+   "maxArity": 1
+  },
+  "EditDialog": {
+   "cls": "EditDialog",
+   "parent": "Dialog",
+   "file": "EditDialog.ts",
+   "txtType": null,
+   "xmlType": "EditDialog",
+   "xmlTypeDeclared": false,
+   "postCountExpr": null,
+   "traits": {},
+   "txtSlots": [],
+   "xmlAttrs": [],
+   "staticArity": 0,
+   "maxArity": 0
+  },
+  "EditDiodeModelDialog": {
+   "cls": "EditDiodeModelDialog",
+   "parent": "EditDialog",
+   "file": "EditDiodeModelDialog.ts",
+   "txtType": null,
+   "xmlType": "EditDiodeModelDialog",
+   "xmlTypeDeclared": false,
+   "postCountExpr": null,
+   "traits": {},
+   "txtSlots": [],
+   "xmlAttrs": [],
+   "staticArity": 0,
+   "maxArity": 0
+  },
+  "EditInfo": {
+   "cls": "EditInfo",
+   "parent": null,
+   "file": "EditInfo.ts",
+   "txtType": null,
+   "xmlType": "EditInfo",
+   "xmlTypeDeclared": false,
+   "postCountExpr": null,
+   "traits": {},
+   "txtSlots": [],
+   "xmlAttrs": [],
+   "staticArity": 0,
+   "maxArity": 0
+  },
+  "EditMosfetModelDialog": {
+   "cls": "EditMosfetModelDialog",
+   "parent": "EditDialog",
+   "file": "EditMosfetModelDialog.ts",
+   "txtType": null,
+   "xmlType": "EditMosfetModelDialog",
+   "xmlTypeDeclared": false,
+   "postCountExpr": null,
+   "traits": {},
+   "txtSlots": [],
+   "xmlAttrs": [],
+   "staticArity": 0,
+   "maxArity": 0
+  },
+  "EditOptions": {
+   "cls": "EditOptions",
+   "parent": null,
+   "file": "EditOptions.ts",
+   "txtType": null,
+   "xmlType": "EditOptions",
+   "xmlTypeDeclared": false,
+   "postCountExpr": null,
+   "traits": {},
+   "txtSlots": [],
+   "xmlAttrs": [],
+   "staticArity": 0,
+   "maxArity": 0
+  },
+  "EditRelayModelDialog": {
+   "cls": "EditRelayModelDialog",
+   "parent": "EditDialog",
+   "file": "EditRelayModelDialog.ts",
+   "txtType": null,
+   "xmlType": "EditRelayModelDialog",
+   "xmlTypeDeclared": false,
+   "postCountExpr": null,
+   "traits": {},
+   "txtSlots": [],
+   "xmlAttrs": [],
+   "staticArity": 0,
+   "maxArity": 0
+  },
+  "EditSubcircuitModelDialog": {
+   "cls": "EditSubcircuitModelDialog",
+   "parent": "Dialog",
+   "file": "EditSubcircuitModelDialog.ts",
+   "txtType": null,
+   "xmlType": "EditSubcircuitModelDialog",
+   "xmlTypeDeclared": false,
+   "postCountExpr": null,
+   "traits": {},
+   "txtSlots": [],
+   "xmlAttrs": [],
+   "staticArity": 0,
+   "maxArity": 0
+  },
+  "EditTransistorModelDialog": {
+   "cls": "EditTransistorModelDialog",
+   "parent": "EditDialog",
+   "file": "EditTransistorModelDialog.ts",
+   "txtType": null,
+   "xmlType": "EditTransistorModelDialog",
+   "xmlTypeDeclared": false,
+   "postCountExpr": null,
+   "traits": {},
+   "txtSlots": [],
+   "xmlAttrs": [],
+   "staticArity": 0,
+   "maxArity": 0
+  },
+  "ElementFactory": {
+   "cls": "ElementFactory",
+   "parent": null,
+   "file": "ElementFactory.ts",
+   "txtType": null,
+   "xmlType": "ElementFactory",
+   "xmlTypeDeclared": false,
+   "postCountExpr": null,
+   "traits": {},
+   "txtSlots": [],
+   "xmlAttrs": [],
+   "staticArity": 0,
+   "maxArity": 0
+  },
+  "ExportAsImageDialog": {
+   "cls": "ExportAsImageDialog",
+   "parent": "Dialog",
+   "file": "ExportAsImageDialog.ts",
+   "txtType": null,
+   "xmlType": "ExportAsImageDialog",
+   "xmlTypeDeclared": false,
+   "postCountExpr": null,
+   "traits": {},
+   "txtSlots": [],
+   "xmlAttrs": [],
+   "staticArity": 0,
+   "maxArity": 0
+  },
+  "ExportAsLocalFileDialog": {
+   "cls": "ExportAsLocalFileDialog",
+   "parent": "Dialog",
+   "file": "ExportAsLocalFileDialog.ts",
+   "txtType": null,
+   "xmlType": "ExportAsLocalFileDialog",
+   "xmlTypeDeclared": false,
+   "postCountExpr": null,
+   "traits": {},
+   "txtSlots": [],
+   "xmlAttrs": [],
+   "staticArity": 0,
+   "maxArity": 0
+  },
+  "ExportAsTextDialog": {
+   "cls": "ExportAsTextDialog",
+   "parent": "Dialog",
+   "file": "ExportAsTextDialog.ts",
+   "txtType": null,
+   "xmlType": "ExportAsTextDialog",
+   "xmlTypeDeclared": false,
+   "postCountExpr": null,
+   "traits": {},
+   "txtSlots": [],
+   "xmlAttrs": [],
+   "staticArity": 0,
+   "maxArity": 0
+  },
+  "ExportAsUrlDialog": {
+   "cls": "ExportAsUrlDialog",
+   "parent": "Dialog",
+   "file": "ExportAsUrlDialog.ts",
+   "txtType": null,
+   "xmlType": "ExportAsUrlDialog",
+   "xmlTypeDeclared": false,
+   "postCountExpr": null,
+   "traits": {},
+   "txtSlots": [],
+   "xmlAttrs": [],
+   "staticArity": 0,
+   "maxArity": 0
+  },
+  "ExprNodeRef": {
+   "cls": "ExprNodeRef",
+   "parent": null,
+   "file": "Expr.ts",
+   "txtType": null,
+   "xmlType": "ExprNodeRef",
+   "xmlTypeDeclared": false,
+   "postCountExpr": null,
+   "traits": {},
+   "txtSlots": [],
+   "xmlAttrs": [],
+   "staticArity": 0,
+   "maxArity": 0
+  },
+  "ExprState": {
+   "cls": "ExprState",
+   "parent": null,
+   "file": "Expr.ts",
+   "txtType": null,
+   "xmlType": "ExprState",
+   "xmlTypeDeclared": false,
+   "postCountExpr": null,
+   "traits": {},
+   "txtSlots": [],
+   "xmlAttrs": [],
+   "staticArity": 0,
+   "maxArity": 0
+  },
+  "Expr": {
+   "cls": "Expr",
+   "parent": null,
+   "file": "Expr.ts",
+   "txtType": null,
+   "xmlType": "Expr",
+   "xmlTypeDeclared": false,
+   "postCountExpr": null,
+   "traits": {},
+   "txtSlots": [],
+   "xmlAttrs": [],
+   "staticArity": 0,
+   "maxArity": 0
+  },
+  "ExprParser": {
+   "cls": "ExprParser",
+   "parent": null,
+   "file": "Expr.ts",
+   "txtType": null,
+   "xmlType": "ExprParser",
+   "xmlTypeDeclared": false,
+   "postCountExpr": null,
+   "traits": {},
+   "txtSlots": [],
+   "xmlAttrs": [],
+   "staticArity": 0,
+   "maxArity": 0
+  },
+  "ExprEngine": {
+   "cls": "ExprEngine",
+   "parent": null,
+   "file": "ExprEngine.ts",
+   "txtType": null,
+   "xmlType": "ExprEngine",
+   "xmlTypeDeclared": false,
+   "postCountExpr": null,
+   "traits": {},
+   "txtSlots": [],
+   "xmlAttrs": [],
+   "staticArity": 0,
+   "maxArity": 0
+  },
+  "ExtListEntry": {
+   "cls": "ExtListEntry",
+   "parent": null,
+   "file": "ExtListEntry.ts",
+   "txtType": null,
+   "xmlType": "ExtListEntry",
+   "xmlTypeDeclared": false,
+   "postCountExpr": null,
+   "traits": {},
+   "txtSlots": [],
+   "xmlAttrs": [],
+   "staticArity": 0,
+   "maxArity": 0
+  },
+  "ExtVoltageElm": {
+   "cls": "ExtVoltageElm",
+   "parent": "RailElm",
+   "file": "ExtVoltageElm.ts",
+   "txtType": 418,
+   "xmlType": "ExtVoltage",
+   "xmlTypeDeclared": false,
+   "postCountExpr": null,
+   "traits": {},
+   "txtSlots": [
+    {
+     "field": "name",
+     "kind": "string",
+     "conditional": false
+    }
+   ],
+   "xmlAttrs": [
+    {
+     "attr": "nm",
+     "field": "name",
+     "dumpExpr": "this.name",
+     "kind": "string"
+    }
+   ],
+   "staticArity": 1,
+   "maxArity": 1
+  },
+  "FFT": {
+   "cls": "FFT",
+   "parent": null,
+   "file": "FFT.ts",
+   "txtType": null,
+   "xmlType": "FFT",
+   "xmlTypeDeclared": false,
+   "postCountExpr": null,
+   "traits": {},
+   "txtSlots": [],
+   "xmlAttrs": [],
+   "staticArity": 0,
+   "maxArity": 0
+  },
+  "FindPathInfo": {
+   "cls": "FindPathInfo",
+   "parent": null,
+   "file": "FindPathInfo.ts",
+   "txtType": null,
+   "xmlType": "FindPathInfo",
+   "xmlTypeDeclared": false,
+   "postCountExpr": null,
+   "traits": {},
+   "txtSlots": [],
+   "xmlAttrs": [],
+   "staticArity": 0,
+   "maxArity": 0
+  },
+  "FMElm": {
+   "cls": "FMElm",
+   "parent": "CircuitElm",
+   "file": "FMElm.ts",
+   "txtType": 201,
+   "xmlType": "FM",
+   "xmlTypeDeclared": false,
+   "postCountExpr": "1",
+   "traits": {},
+   "txtSlots": [
+    {
+     "field": "carrierfreq",
+     "kind": "float",
+     "conditional": false
+    },
+    {
+     "field": "signalfreq",
+     "kind": "float",
+     "conditional": false
+    },
+    {
+     "field": "maxVoltage",
+     "kind": "float",
+     "conditional": false
+    },
+    {
+     "field": "deviation",
+     "kind": "string",
+     "conditional": false
+    }
+   ],
+   "xmlAttrs": [
+    {
+     "attr": "cf",
+     "field": "carrierfreq",
+     "dumpExpr": "this.carrierfreq",
+     "kind": "float"
+    },
+    {
+     "attr": "sf",
+     "field": "signalfreq",
+     "dumpExpr": "this.signalfreq",
+     "kind": "float"
+    },
+    {
+     "attr": "mv",
+     "field": "maxVoltage",
+     "dumpExpr": "this.maxVoltage",
+     "kind": "float"
+    },
+    {
+     "attr": "dv",
+     "field": "deviation",
+     "dumpExpr": "this.deviation",
+     "kind": "float"
+    }
+   ],
+   "staticArity": 4,
+   "maxArity": 4
+  },
+  "Font": {
+   "cls": "Font",
+   "parent": null,
+   "file": "Font.ts",
+   "txtType": null,
+   "xmlType": "Font",
+   "xmlTypeDeclared": false,
+   "postCountExpr": null,
+   "traits": {},
+   "txtSlots": [],
+   "xmlAttrs": [],
+   "staticArity": 0,
+   "maxArity": 0
+  },
+  "FullAdderElm": {
+   "cls": "FullAdderElm",
+   "parent": "ChipElm",
+   "file": "FullAdderElm.ts",
+   "txtType": 196,
+   "xmlType": "FullAdder",
+   "xmlTypeDeclared": false,
+   "postCountExpr": "this.bits * 3 + 2",
+   "traits": {},
+   "txtSlots": [],
+   "xmlAttrs": [],
+   "staticArity": 0,
+   "maxArity": 0
+  },
+  "FuseElm": {
+   "cls": "FuseElm",
+   "parent": "CircuitElm",
+   "file": "FuseElm.ts",
+   "txtType": 404,
+   "xmlType": "Fuse",
+   "xmlTypeDeclared": false,
+   "postCountExpr": null,
+   "traits": {},
+   "txtSlots": [
+    {
+     "field": "resistance",
+     "kind": "float",
+     "conditional": false
+    },
+    {
+     "field": "i2t",
+     "kind": "float",
+     "conditional": false
+    },
+    {
+     "field": "heat",
+     "kind": "string",
+     "conditional": false
+    },
+    {
+     "field": "blown",
+     "kind": "string",
+     "conditional": false
+    }
+   ],
+   "xmlAttrs": [
+    {
+     "attr": "re",
+     "field": "resistance",
+     "dumpExpr": "this.resistance",
+     "kind": "float"
+    },
+    {
+     "attr": "i2",
+     "field": "i2t",
+     "dumpExpr": "this.i2t",
+     "kind": "float"
+    },
+    {
+     "attr": "he",
+     "field": "heat",
+     "dumpExpr": "this.heat",
+     "kind": "float"
+    },
+    {
+     "attr": "bl",
+     "field": "blown",
+     "dumpExpr": "this.blown",
+     "kind": "bool"
+    }
+   ],
+   "staticArity": 4,
+   "maxArity": 4
+  },
+  "GateElm": {
+   "cls": "GateElm",
+   "parent": "CircuitElm",
+   "file": "GateElm.ts",
+   "txtType": null,
+   "xmlType": "",
+   "xmlTypeDeclared": true,
+   "postCountExpr": "this.inputCount + 1",
+   "traits": {},
+   "txtSlots": [
+    {
+     "field": "inputCount",
+     "kind": "float",
+     "conditional": false
+    },
+    {
+     "field": "lastOutputVoltage",
+     "kind": "string",
+     "conditional": false
+    },
+    {
+     "field": "highVoltage",
+     "kind": "string",
+     "conditional": false
+    }
+   ],
+   "xmlAttrs": [
+    {
+     "attr": "hi",
+     "field": "highVoltage",
+     "dumpExpr": "this.highVoltage",
+     "kind": "float"
+    },
+    {
+     "attr": "in",
+     "field": "inputCount",
+     "dumpExpr": "this.inputCount",
+     "kind": "int"
+    },
+    {
+     "attr": "pd",
+     "field": "propagationDelay",
+     "dumpExpr": "this.propagationDelay",
+     "kind": "float"
+    },
+    {
+     "attr": "ix",
+     "field": null,
+     "dumpExpr": null,
+     "kind": "string"
+    },
+    {
+     "attr": "o",
+     "field": null,
+     "dumpExpr": null,
+     "kind": "float"
+    }
+   ],
+   "staticArity": 3,
+   "maxArity": 3
+  },
+  "AndGateElm": {
+   "cls": "AndGateElm",
+   "parent": "GateElm",
+   "file": "GateElm.ts",
+   "txtType": 150,
+   "xmlType": "AndGate",
+   "xmlTypeDeclared": false,
+   "postCountExpr": null,
+   "traits": {},
+   "txtSlots": [],
+   "xmlAttrs": [],
+   "staticArity": 0,
+   "maxArity": 0
+  },
+  "NandGateElm": {
+   "cls": "NandGateElm",
+   "parent": "AndGateElm",
+   "file": "GateElm.ts",
+   "txtType": 151,
+   "xmlType": "NandGate",
+   "xmlTypeDeclared": false,
+   "postCountExpr": null,
+   "traits": {},
+   "txtSlots": [],
+   "xmlAttrs": [],
+   "staticArity": 0,
+   "maxArity": 0
+  },
+  "OrGateElm": {
+   "cls": "OrGateElm",
+   "parent": "GateElm",
+   "file": "GateElm.ts",
+   "txtType": 152,
+   "xmlType": "OrGate",
+   "xmlTypeDeclared": false,
+   "postCountExpr": null,
+   "traits": {},
+   "txtSlots": [],
+   "xmlAttrs": [],
+   "staticArity": 0,
+   "maxArity": 0
+  },
+  "NorGateElm": {
+   "cls": "NorGateElm",
+   "parent": "OrGateElm",
+   "file": "GateElm.ts",
+   "txtType": 153,
+   "xmlType": "NorGate",
+   "xmlTypeDeclared": false,
+   "postCountExpr": null,
+   "traits": {},
+   "txtSlots": [],
+   "xmlAttrs": [],
+   "staticArity": 0,
+   "maxArity": 0
+  },
+  "XorGateElm": {
+   "cls": "XorGateElm",
+   "parent": "OrGateElm",
+   "file": "GateElm.ts",
+   "txtType": 154,
+   "xmlType": "XorGate",
+   "xmlTypeDeclared": false,
+   "postCountExpr": null,
+   "traits": {},
+   "txtSlots": [],
+   "xmlAttrs": [],
+   "staticArity": 0,
+   "maxArity": 0
+  },
+  "XnorGateElm": {
+   "cls": "XnorGateElm",
+   "parent": "XorGateElm",
+   "file": "GateElm.ts",
+   "txtType": 431,
+   "xmlType": "XnorGate",
+   "xmlTypeDeclared": false,
+   "postCountExpr": null,
+   "traits": {},
+   "txtSlots": [],
+   "xmlAttrs": [],
+   "staticArity": 0,
+   "maxArity": 0
+  },
+  "GraphicElm": {
+   "cls": "GraphicElm",
+   "parent": "CircuitElm",
+   "file": "GraphicElm.ts",
+   "txtType": null,
+   "xmlType": "Graphic",
+   "xmlTypeDeclared": false,
+   "postCountExpr": "0",
+   "traits": {},
+   "txtSlots": [],
+   "xmlAttrs": [],
+   "staticArity": 0,
+   "maxArity": 0
+  },
+  "Graphics": {
+   "cls": "Graphics",
+   "parent": null,
+   "file": "Graphics.ts",
+   "txtType": null,
+   "xmlType": "Graphics",
+   "xmlTypeDeclared": false,
+   "postCountExpr": null,
+   "traits": {},
+   "txtSlots": [],
+   "xmlAttrs": [],
+   "staticArity": 0,
+   "maxArity": 0
+  },
+  "GroundElm": {
+   "cls": "GroundElm",
+   "parent": "CircuitElm",
+   "file": "GroundElm.ts",
+   "txtType": 103,
+   "xmlType": "g",
+   "xmlTypeDeclared": false,
+   "postCountExpr": "1",
+   "traits": {
+    "isGroundElm": true,
+    "isRemovableWire": true
+   },
+   "txtSlots": [
+    {
+     "field": "symbolType",
+     "kind": "string",
+     "conditional": false
+    }
+   ],
+   "xmlAttrs": [
+    {
+     "attr": "sy",
+     "field": "symbolType",
+     "dumpExpr": "this.symbolType",
+     "kind": "int"
+    }
+   ],
+   "staticArity": 1,
+   "maxArity": 1
+  },
+  "GyratorElm": {
+   "cls": "GyratorElm",
+   "parent": "CircuitElm",
+   "file": "GyratorElm.ts",
+   "txtType": null,
+   "xmlType": "Gyrator",
+   "xmlTypeDeclared": false,
+   "postCountExpr": "4",
+   "traits": {},
+   "txtSlots": [],
+   "xmlAttrs": [
+    {
+     "attr": "r",
+     "field": "gyrResistance",
+     "dumpExpr": "this.gyrResistance",
+     "kind": "float"
+    },
+    {
+     "attr": "wi",
+     "field": "width",
+     "dumpExpr": "this.width",
+     "kind": "int"
+    }
+   ],
+   "staticArity": 0,
+   "maxArity": 0
+  },
+  "HalfAdderElm": {
+   "cls": "HalfAdderElm",
+   "parent": "ChipElm",
+   "file": "HalfAdderElm.ts",
+   "txtType": 195,
+   "xmlType": "HalfAdder",
+   "xmlTypeDeclared": false,
+   "postCountExpr": "4",
+   "traits": {},
+   "txtSlots": [],
+   "xmlAttrs": [],
+   "staticArity": 0,
+   "maxArity": 0
+  },
+  "ImageExporter": {
+   "cls": "ImageExporter",
+   "parent": null,
+   "file": "ImageExporter.ts",
+   "txtType": null,
+   "xmlType": "ImageExporter",
+   "xmlTypeDeclared": false,
+   "postCountExpr": null,
+   "traits": {},
+   "txtSlots": [],
+   "xmlAttrs": [],
+   "staticArity": 0,
+   "maxArity": 0
+  },
+  "ImportFromDropbox": {
+   "cls": "ImportFromDropbox",
+   "parent": null,
+   "file": "ImportFromDropbox.ts",
+   "txtType": null,
+   "xmlType": "ImportFromDropbox",
+   "xmlTypeDeclared": false,
+   "postCountExpr": null,
+   "traits": {},
+   "txtSlots": [],
+   "xmlAttrs": [],
+   "staticArity": 0,
+   "maxArity": 0
+  },
+  "ImportFromDropboxDialog": {
+   "cls": "ImportFromDropboxDialog",
+   "parent": "Dialog",
+   "file": "ImportFromDropboxDialog.ts",
+   "txtType": null,
+   "xmlType": "ImportFromDropboxDialog",
+   "xmlTypeDeclared": false,
+   "postCountExpr": null,
+   "traits": {},
+   "txtSlots": [],
+   "xmlAttrs": [],
+   "staticArity": 0,
+   "maxArity": 0
+  },
+  "ImportFromTextDialog": {
+   "cls": "ImportFromTextDialog",
+   "parent": "Dialog",
+   "file": "ImportFromTextDialog.ts",
+   "txtType": null,
+   "xmlType": "ImportFromTextDialog",
+   "xmlTypeDeclared": false,
+   "postCountExpr": null,
+   "traits": {},
+   "txtSlots": [],
+   "xmlAttrs": [],
+   "staticArity": 0,
+   "maxArity": 0
+  },
+  "Inductor": {
+   "cls": "Inductor",
+   "parent": null,
+   "file": "Inductor.ts",
+   "txtType": null,
+   "xmlType": "Inductor",
+   "xmlTypeDeclared": false,
+   "postCountExpr": null,
+   "traits": {},
+   "txtSlots": [],
+   "xmlAttrs": [],
+   "staticArity": 0,
+   "maxArity": 0
+  },
+  "InductorElm": {
+   "cls": "InductorElm",
+   "parent": "CircuitElm",
+   "file": "InductorElm.ts",
+   "txtType": 108,
+   "xmlType": "l",
+   "xmlTypeDeclared": false,
+   "postCountExpr": null,
+   "traits": {
+    "isInductorElm": true
+   },
+   "txtSlots": [
+    {
+     "field": "inductance",
+     "kind": "float",
+     "conditional": false
+    },
+    {
+     "field": "current",
+     "kind": "string",
+     "conditional": false
+    },
+    {
+     "field": "initialCurrent",
+     "kind": "float",
+     "conditional": false
+    },
+    {
+     "field": "saturationCurrent",
+     "kind": "string",
+     "conditional": false
+    }
+   ],
+   "xmlAttrs": [
+    {
+     "attr": "l",
+     "field": "inductance",
+     "dumpExpr": "this.inductance",
+     "kind": "float"
+    },
+    {
+     "attr": "ic",
+     "field": "initialCurrent",
+     "dumpExpr": "this.initialCurrent",
+     "kind": "float"
+    },
+    {
+     "attr": "isat",
+     "field": "saturationCurrent",
+     "dumpExpr": "this.saturationCurrent",
+     "kind": "float"
+    },
+    {
+     "attr": "sr",
+     "field": "seriesResistance",
+     "dumpExpr": "this.seriesResistance",
+     "kind": "float"
+    },
+    {
+     "attr": "i",
+     "field": null,
+     "dumpExpr": null,
+     "kind": "float"
+    },
+    {
+     "attr": "ix",
+     "field": null,
+     "dumpExpr": null,
+     "kind": "string"
+    }
+   ],
+   "staticArity": 4,
+   "maxArity": 4
+  },
+  "InstructionDisplayElm": {
+   "cls": "InstructionDisplayElm",
+   "parent": "CircuitElm",
+   "file": "InstructionDisplayElm.ts",
+   "txtType": null,
+   "xmlType": "ins",
+   "xmlTypeDeclared": true,
+   "postCountExpr": "this.busWidth",
+   "traits": {},
+   "txtSlots": [],
+   "xmlAttrs": [
+    {
+     "attr": "bw",
+     "field": "busWidth",
+     "dumpExpr": "this.busWidth",
+     "kind": "int"
+    },
+    {
+     "attr": "th",
+     "field": "threshold",
+     "dumpExpr": "this.threshold",
+     "kind": "float"
+    }
+   ],
+   "staticArity": 0,
+   "maxArity": 0
+  },
+  "InverterElm": {
+   "cls": "InverterElm",
+   "parent": "CircuitElm",
+   "file": "InverterElm.ts",
+   "txtType": 73,
+   "xmlType": "I",
+   "xmlTypeDeclared": false,
+   "postCountExpr": null,
+   "traits": {},
+   "txtSlots": [
+    {
+     "field": "slewRate",
+     "kind": "float",
+     "conditional": false
+    },
+    {
+     "field": "highVoltage",
+     "kind": "string",
+     "conditional": false
+    }
+   ],
+   "xmlAttrs": [
+    {
+     "attr": "sl",
+     "field": "slewRate",
+     "dumpExpr": "this.slewRate",
+     "kind": "float"
+    },
+    {
+     "attr": "hi",
+     "field": "highVoltage",
+     "dumpExpr": "this.highVoltage",
+     "kind": "float"
+    }
+   ],
+   "staticArity": 2,
+   "maxArity": 2
+  },
+  "InvertingSchmittElm": {
+   "cls": "InvertingSchmittElm",
+   "parent": "CircuitElm",
+   "file": "InvertingSchmittElm.ts",
+   "txtType": 183,
+   "xmlType": "InvertingSchmitt",
+   "xmlTypeDeclared": false,
+   "postCountExpr": null,
+   "traits": {},
+   "txtSlots": [
+    {
+     "field": "slewRate",
+     "kind": "float",
+     "conditional": false
+    },
+    {
+     "field": "lowerTrigger",
+     "kind": "float",
+     "conditional": false
+    },
+    {
+     "field": "upperTrigger",
+     "kind": "float",
+     "conditional": false
+    },
+    {
+     "field": "logicOnLevel",
+     "kind": "float",
+     "conditional": false
+    },
+    {
+     "field": "logicOffLevel",
+     "kind": "string",
+     "conditional": false
+    }
+   ],
+   "xmlAttrs": [
+    {
+     "attr": "slr",
+     "field": "slewRate",
+     "dumpExpr": "this.slewRate",
+     "kind": "float"
+    },
+    {
+     "attr": "lt",
+     "field": "lowerTrigger",
+     "dumpExpr": "this.lowerTrigger",
+     "kind": "float"
+    },
+    {
+     "attr": "ut",
+     "field": "upperTrigger",
+     "dumpExpr": "this.upperTrigger",
+     "kind": "float"
+    },
+    {
+     "attr": "lon",
+     "field": "logicOnLevel",
+     "dumpExpr": "this.logicOnLevel",
+     "kind": "float"
+    },
+    {
+     "attr": "loff",
+     "field": "logicOffLevel",
+     "dumpExpr": "this.logicOffLevel",
+     "kind": "float"
+    }
+   ],
+   "staticArity": 5,
+   "maxArity": 5
+  },
+  "JfetElm": {
+   "cls": "JfetElm",
+   "parent": "MosfetElm",
+   "file": "JfetElm.ts",
+   "txtType": 106,
+   "xmlType": "j",
+   "xmlTypeDeclared": false,
+   "postCountExpr": null,
+   "traits": {},
+   "txtSlots": [],
+   "xmlAttrs": [],
+   "staticArity": 0,
+   "maxArity": 0
+  },
+  "NJfetElm": {
+   "cls": "NJfetElm",
+   "parent": "JfetElm",
+   "file": "JfetElm.ts",
+   "txtType": null,
+   "xmlType": "NJfet",
+   "xmlTypeDeclared": false,
+   "postCountExpr": null,
+   "traits": {},
+   "txtSlots": [],
+   "xmlAttrs": [],
+   "staticArity": 0,
+   "maxArity": 0
+  },
+  "PJfetElm": {
+   "cls": "PJfetElm",
+   "parent": "JfetElm",
+   "file": "JfetElm.ts",
+   "txtType": null,
+   "xmlType": "PJfet",
+   "xmlTypeDeclared": false,
+   "postCountExpr": null,
+   "traits": {},
+   "txtSlots": [],
+   "xmlAttrs": [],
+   "staticArity": 0,
+   "maxArity": 0
+  },
+  "JKFlipFlopElm": {
+   "cls": "JKFlipFlopElm",
+   "parent": "ChipElm",
+   "file": "JKFlipFlopElm.ts",
+   "txtType": 156,
+   "xmlType": "JKFlipFlop",
+   "xmlTypeDeclared": false,
+   "postCountExpr": "5 + (this.hasReset() ? 1 : 0)",
+   "traits": {},
+   "txtSlots": [],
+   "xmlAttrs": [],
+   "staticArity": 0,
+   "maxArity": 0
+  },
+  "JSInterface": {
+   "cls": "JSInterface",
+   "parent": null,
+   "file": "JSInterface.ts",
+   "txtType": null,
+   "xmlType": "JSInterface",
+   "xmlTypeDeclared": false,
+   "postCountExpr": null,
+   "traits": {},
+   "txtSlots": [],
+   "xmlAttrs": [],
+   "staticArity": 0,
+   "maxArity": 0
+  },
+  "KeyNames": {
+   "cls": "KeyNames",
+   "parent": null,
+   "file": "KeyNames.ts",
+   "txtType": null,
+   "xmlType": "KeyNames",
+   "xmlTypeDeclared": false,
+   "postCountExpr": null,
+   "traits": {},
+   "txtSlots": [],
+   "xmlAttrs": [],
+   "staticArity": 0,
+   "maxArity": 0
+  },
+  "LabeledNodeElm": {
+   "cls": "LabeledNodeElm",
+   "parent": "CircuitElm",
+   "file": "LabeledNodeElm.ts",
+   "txtType": 207,
+   "xmlType": "ln",
+   "xmlTypeDeclared": true,
+   "postCountExpr": "this.busWidth",
+   "traits": {
+    "isRemovableWire": true,
+    "isLabeledNodeElm": true
+   },
+   "txtSlots": [
+    {
+     "field": "text",
+     "kind": "string",
+     "conditional": false
+    },
+    {
+     "field": "text",
+     "kind": "string",
+     "conditional": false
+    }
+   ],
+   "xmlAttrs": [
+    {
+     "attr": "te",
+     "field": "text",
+     "dumpExpr": "this.text",
+     "kind": "string"
+    }
+   ],
+   "staticArity": 2,
+   "maxArity": 2
+  },
+  "LampElm": {
+   "cls": "LampElm",
+   "parent": "CircuitElm",
+   "file": "LampElm.ts",
+   "txtType": 181,
+   "xmlType": "Lamp",
+   "xmlTypeDeclared": false,
+   "postCountExpr": null,
+   "traits": {},
+   "txtSlots": [
+    {
+     "field": "temp",
+     "kind": "string",
+     "conditional": false
+    },
+    {
+     "field": "nom_pow",
+     "kind": "float",
+     "conditional": false
+    },
+    {
+     "field": "nom_v",
+     "kind": "float",
+     "conditional": false
+    },
+    {
+     "field": "warmTime",
+     "kind": "float",
+     "conditional": false
+    },
+    {
+     "field": "coolTime",
+     "kind": "string",
+     "conditional": false
+    }
+   ],
+   "xmlAttrs": [
+    {
+     "attr": "te",
+     "field": "temp",
+     "dumpExpr": "this.temp",
+     "kind": "float"
+    },
+    {
+     "attr": "np",
+     "field": "nom_pow",
+     "dumpExpr": "this.nom_pow",
+     "kind": "float"
+    },
+    {
+     "attr": "nv",
+     "field": "nom_v",
+     "dumpExpr": "this.nom_v",
+     "kind": "float"
+    },
+    {
+     "attr": "wa",
+     "field": "warmTime",
+     "dumpExpr": "this.warmTime",
+     "kind": "float"
+    },
+    {
+     "attr": "co",
+     "field": "coolTime",
+     "dumpExpr": "this.coolTime",
+     "kind": "float"
+    }
+   ],
+   "staticArity": 5,
+   "maxArity": 5
+  },
+  "LatchElm": {
+   "cls": "LatchElm",
+   "parent": "ChipElm",
+   "file": "LatchElm.ts",
+   "txtType": 168,
+   "xmlType": "Latch",
+   "xmlTypeDeclared": false,
+   "postCountExpr": "this.bits * 2 + 1\r\n            + (this.hasReset() ? 1 : 0) + (this.hasSet() ? 1 : 0)\r\n            + this.inputEnableCount() + this.outputEnableCount()",
+   "traits": {},
+   "txtSlots": [],
+   "xmlAttrs": [],
+   "staticArity": 0,
+   "maxArity": 0
+  },
+  "LDRElm": {
+   "cls": "LDRElm",
+   "parent": "CircuitElm",
+   "file": "LDRElm.ts",
+   "txtType": 374,
+   "xmlType": "LDR",
+   "xmlTypeDeclared": false,
+   "postCountExpr": "2",
+   "traits": {},
+   "txtSlots": [
+    {
+     "field": "position",
+     "kind": "string",
+     "conditional": false
+    },
+    {
+     "field": "sliderText",
+     "kind": "string",
+     "conditional": false
+    }
+   ],
+   "xmlAttrs": [
+    {
+     "attr": "ps",
+     "field": "position",
+     "dumpExpr": "this.position",
+     "kind": "float"
+    },
+    {
+     "attr": "st",
+     "field": "sliderText",
+     "dumpExpr": "this.sliderText",
+     "kind": "string"
+    }
+   ],
+   "staticArity": 2,
+   "maxArity": 2
+  },
+  "LEDArrayElm": {
+   "cls": "LEDArrayElm",
+   "parent": "ChipElm",
+   "file": "LEDArrayElm.ts",
+   "txtType": 405,
+   "xmlType": "LEDArray",
+   "xmlTypeDeclared": false,
+   "postCountExpr": "this.sizeX + this.sizeY",
+   "traits": {},
+   "txtSlots": [
+    {
+     "field": "sizeX",
+     "kind": "int",
+     "conditional": false
+    },
+    {
+     "field": "sizeY",
+     "kind": "string",
+     "conditional": false
+    }
+   ],
+   "xmlAttrs": [
+    {
+     "attr": "sx",
+     "field": "sizeX",
+     "dumpExpr": "this.sizeX",
+     "kind": "int"
+    },
+    {
+     "attr": "sy",
+     "field": "sizeY",
+     "dumpExpr": "this.sizeY",
+     "kind": "int"
+    }
+   ],
+   "staticArity": 2,
+   "maxArity": 2
+  },
+  "LEDElm": {
+   "cls": "LEDElm",
+   "parent": "DiodeElm",
+   "file": "LEDElm.ts",
+   "txtType": 162,
+   "xmlType": "LED",
+   "xmlTypeDeclared": false,
+   "postCountExpr": null,
+   "traits": {},
+   "txtSlots": [
+    {
+     "field": "colorR",
+     "kind": "float",
+     "conditional": false
+    },
+    {
+     "field": "colorG",
+     "kind": "float",
+     "conditional": false
+    },
+    {
+     "field": "colorB",
+     "kind": "string",
+     "conditional": false
+    },
+    {
+     "field": "maxBrightnessCurrent",
+     "kind": "string",
+     "conditional": false
+    }
+   ],
+   "xmlAttrs": [
+    {
+     "attr": "cr",
+     "field": "colorR",
+     "dumpExpr": "this.colorR",
+     "kind": "float"
+    },
+    {
+     "attr": "cg",
+     "field": "colorG",
+     "dumpExpr": "this.colorG",
+     "kind": "float"
+    },
+    {
+     "attr": "cb",
+     "field": "colorB",
+     "dumpExpr": "this.colorB",
+     "kind": "float"
+    },
+    {
+     "attr": "mbc",
+     "field": "maxBrightnessCurrent",
+     "dumpExpr": "this.maxBrightnessCurrent",
+     "kind": "float"
+    }
+   ],
+   "staticArity": 4,
+   "maxArity": 4
+  },
+  "LineElm": {
+   "cls": "LineElm",
+   "parent": "GraphicElm",
+   "file": "LineElm.ts",
+   "txtType": 423,
+   "xmlType": "Line",
+   "xmlTypeDeclared": false,
+   "postCountExpr": null,
+   "traits": {},
+   "txtSlots": [],
+   "xmlAttrs": [],
+   "staticArity": 0,
+   "maxArity": 0
+  },
+  "Locale": {
+   "cls": "Locale",
+   "parent": null,
+   "file": "Locale.ts",
+   "txtType": null,
+   "xmlType": "Locale",
+   "xmlTypeDeclared": false,
+   "postCountExpr": null,
+   "traits": {},
+   "txtSlots": [],
+   "xmlAttrs": [],
+   "staticArity": 0,
+   "maxArity": 0
+  },
+  "LogicInputElm": {
+   "cls": "LogicInputElm",
+   "parent": "SwitchElm",
+   "file": "LogicInputElm.ts",
+   "txtType": 76,
+   "xmlType": "L",
+   "xmlTypeDeclared": false,
+   "postCountExpr": "1",
+   "traits": {},
+   "txtSlots": [
+    {
+     "field": "hiV",
+     "kind": "float",
+     "conditional": false
+    },
+    {
+     "field": "loV",
+     "kind": "string",
+     "conditional": false
+    }
+   ],
+   "xmlAttrs": [
+    {
+     "attr": "hi",
+     "field": "hiV",
+     "dumpExpr": "this.hiV",
+     "kind": "float"
+    },
+    {
+     "attr": "lo",
+     "field": "loV",
+     "dumpExpr": "this.loV",
+     "kind": "float"
+    }
+   ],
+   "staticArity": 2,
+   "maxArity": 2
+  },
+  "LogicOutputElm": {
+   "cls": "LogicOutputElm",
+   "parent": "CircuitElm",
+   "file": "LogicOutputElm.ts",
+   "txtType": 77,
+   "xmlType": "M",
+   "xmlTypeDeclared": false,
+   "postCountExpr": "1",
+   "traits": {},
+   "txtSlots": [
+    {
+     "field": "threshold",
+     "kind": "string",
+     "conditional": false
+    }
+   ],
+   "xmlAttrs": [
+    {
+     "attr": "th",
+     "field": "threshold",
+     "dumpExpr": "this.threshold",
+     "kind": "float"
+    }
+   ],
+   "staticArity": 1,
+   "maxArity": 1
+  },
+  "MBBSwitchElm": {
+   "cls": "MBBSwitchElm",
+   "parent": "SwitchElm",
+   "file": "MBBSwitchElm.ts",
+   "txtType": 416,
+   "xmlType": "MBBSwitch",
+   "xmlTypeDeclared": false,
+   "postCountExpr": "3",
+   "traits": {},
+   "txtSlots": [
+    {
+     "field": "link",
+     "kind": "string",
+     "conditional": false
+    }
+   ],
+   "xmlAttrs": [
+    {
+     "attr": "li",
+     "field": "link",
+     "dumpExpr": "this.link",
+     "kind": "int"
+    }
+   ],
+   "staticArity": 1,
+   "maxArity": 1
+  },
+  "MemristorElm": {
+   "cls": "MemristorElm",
+   "parent": "CircuitElm",
+   "file": "MemristorElm.ts",
+   "txtType": 109,
+   "xmlType": "m",
+   "xmlTypeDeclared": false,
+   "postCountExpr": null,
+   "traits": {},
+   "txtSlots": [
+    {
+     "field": "r_on",
+     "kind": "float",
+     "conditional": false
+    },
+    {
+     "field": "r_off",
+     "kind": "float",
+     "conditional": false
+    },
+    {
+     "field": "dopeWidth",
+     "kind": "float",
+     "conditional": false
+    },
+    {
+     "field": "totalWidth",
+     "kind": "float",
+     "conditional": false
+    },
+    {
+     "field": "mobility",
+     "kind": "float",
+     "conditional": false
+    },
+    {
+     "field": "current",
+     "kind": "string",
+     "conditional": false
+    }
+   ],
+   "xmlAttrs": [
+    {
+     "attr": "ron",
+     "field": "r_on",
+     "dumpExpr": "this.r_on",
+     "kind": "float"
+    },
+    {
+     "attr": "rof",
+     "field": "r_off",
+     "dumpExpr": "this.r_off",
+     "kind": "float"
+    },
+    {
+     "attr": "do",
+     "field": "dopeWidth",
+     "dumpExpr": "this.dopeWidth",
+     "kind": "float"
+    },
+    {
+     "attr": "to",
+     "field": "totalWidth",
+     "dumpExpr": "this.totalWidth",
+     "kind": "float"
+    },
+    {
+     "attr": "mo",
+     "field": "mobility",
+     "dumpExpr": "this.mobility",
+     "kind": "float"
+    }
+   ],
+   "staticArity": 6,
+   "maxArity": 6
+  },
+  "CheckItem": {
+   "cls": "CheckItem",
+   "parent": null,
+   "file": "Menus.ts",
+   "txtType": null,
+   "xmlType": "CheckItem",
+   "xmlTypeDeclared": false,
+   "postCountExpr": null,
+   "traits": {},
+   "txtSlots": [],
+   "xmlAttrs": [],
+   "staticArity": 0,
+   "maxArity": 0
+  },
+  "MenuItem": {
+   "cls": "MenuItem",
+   "parent": null,
+   "file": "Menus.ts",
+   "txtType": null,
+   "xmlType": "MenuItem",
+   "xmlTypeDeclared": false,
+   "postCountExpr": null,
+   "traits": {},
+   "txtSlots": [],
+   "xmlAttrs": [],
+   "staticArity": 0,
+   "maxArity": 0
+  },
+  "Menus": {
+   "cls": "Menus",
+   "parent": null,
+   "file": "Menus.ts",
+   "txtType": null,
+   "xmlType": "Menus",
+   "xmlTypeDeclared": false,
+   "postCountExpr": null,
+   "traits": {},
+   "txtSlots": [],
+   "xmlAttrs": [],
+   "staticArity": 0,
+   "maxArity": 0
+  },
+  "MonostableElm": {
+   "cls": "MonostableElm",
+   "parent": "ChipElm",
+   "file": "MonostableElm.ts",
+   "txtType": 194,
+   "xmlType": "Monostable",
+   "xmlTypeDeclared": false,
+   "postCountExpr": "3",
+   "traits": {},
+   "txtSlots": [
+    {
+     "field": "retriggerable",
+     "kind": "float",
+     "conditional": false
+    },
+    {
+     "field": "delay",
+     "kind": "string",
+     "conditional": false
+    }
+   ],
+   "xmlAttrs": [
+    {
+     "attr": "rt",
+     "field": "retriggerable",
+     "dumpExpr": "this.retriggerable",
+     "kind": "bool"
+    },
+    {
+     "attr": "dl",
+     "field": "delay",
+     "dumpExpr": "this.delay",
+     "kind": "float"
+    }
+   ],
+   "staticArity": 2,
+   "maxArity": 2
+  },
+  "MosfetElm": {
+   "cls": "MosfetElm",
+   "parent": "CircuitElm",
+   "file": "MosfetElm.ts",
+   "txtType": 102,
+   "xmlType": "f",
+   "xmlTypeDeclared": false,
+   "postCountExpr": "this.hasBodyTerminal() ? 4 : 3",
+   "traits": {},
+   "txtSlots": [
+    {
+     "field": null,
+     "kind": "float",
+     "conditional": false
+    },
+    {
+     "field": null,
+     "kind": "string",
+     "conditional": false
+    }
+   ],
+   "xmlAttrs": [
+    {
+     "attr": "mo",
+     "field": "modelName",
+     "dumpExpr": "this.modelName",
+     "kind": "string"
+    },
+    {
+     "attr": "vt",
+     "field": null,
+     "dumpExpr": null,
+     "kind": "float"
+    },
+    {
+     "attr": "be",
+     "field": null,
+     "dumpExpr": null,
+     "kind": "float"
+    }
+   ],
+   "staticArity": 2,
+   "maxArity": 2
+  },
+  "NMosfetElm": {
+   "cls": "NMosfetElm",
+   "parent": "MosfetElm",
+   "file": "MosfetElm.ts",
+   "txtType": null,
+   "xmlType": "NMosfet",
+   "xmlTypeDeclared": false,
+   "postCountExpr": null,
+   "traits": {},
+   "txtSlots": [],
+   "xmlAttrs": [],
+   "staticArity": 0,
+   "maxArity": 0
+  },
+  "PMosfetElm": {
+   "cls": "PMosfetElm",
+   "parent": "MosfetElm",
+   "file": "MosfetElm.ts",
+   "txtType": null,
+   "xmlType": "PMosfet",
+   "xmlTypeDeclared": false,
+   "postCountExpr": null,
+   "traits": {},
+   "txtSlots": [],
+   "xmlAttrs": [],
+   "staticArity": 0,
+   "maxArity": 0
+  },
+  "MosfetModel": {
+   "cls": "MosfetModel",
+   "parent": null,
+   "file": "MosfetModel.ts",
+   "txtType": null,
+   "xmlType": "MosfetModel",
+   "xmlTypeDeclared": false,
+   "postCountExpr": null,
+   "traits": {},
+   "txtSlots": [],
+   "xmlAttrs": [
+    {
+     "attr": "nm",
+     "field": "name",
+     "dumpExpr": "this.name",
+     "kind": null
+    },
+    {
+     "attr": "f",
+     "field": "flags",
+     "dumpExpr": "this.flags",
+     "kind": "int"
+    },
+    {
+     "attr": "vt",
+     "field": "threshold",
+     "dumpExpr": "this.threshold",
+     "kind": "float"
+    },
+    {
+     "attr": "be",
+     "field": "beta",
+     "dumpExpr": "this.beta",
+     "kind": "float"
+    },
+    {
+     "attr": "la",
+     "field": "lambda",
+     "dumpExpr": "this.lambda",
+     "kind": "float"
+    },
+    {
+     "attr": "cgs",
+     "field": "capGS",
+     "dumpExpr": "this.capGS",
+     "kind": "float"
+    },
+    {
+     "attr": "cgd",
+     "field": "capGD",
+     "dumpExpr": "this.capGD",
+     "kind": "float"
+    },
+    {
+     "attr": "sb",
+     "field": "showBulk",
+     "dumpExpr": "this.showBulk ? 1 : 0",
+     "kind": "int"
+    },
+    {
+     "attr": "dsy",
+     "field": "digitalSymbol",
+     "dumpExpr": "this.digitalSymbol ? 1 : 0",
+     "kind": "int"
+    },
+    {
+     "attr": "bd",
+     "field": "bodyDiode",
+     "dumpExpr": "this.bodyDiode ? 1 : 0",
+     "kind": "int"
+    },
+    {
+     "attr": "bt",
+     "field": "bodyTerminal",
+     "dumpExpr": "this.bodyTerminal ? 1 : 0",
+     "kind": "int"
+    },
+    {
+     "attr": "sbd",
+     "field": "showBodyDiodeSymbol",
+     "dumpExpr": "this.showBodyDiodeSymbol ? 1 : 0",
+     "kind": "int"
+    }
+   ],
+   "staticArity": 0,
+   "maxArity": 0
+  },
+  "MotorProtectionSwitchElm": {
+   "cls": "MotorProtectionSwitchElm",
+   "parent": "CircuitElm",
+   "file": "MotorProtectionSwitchElm.ts",
+   "txtType": 428,
+   "xmlType": "MotorProtectionSwitch",
+   "xmlTypeDeclared": false,
+   "postCountExpr": "6",
+   "traits": {},
+   "txtSlots": [
+    {
+     "field": "resistance",
+     "kind": "float",
+     "conditional": false
+    },
+    {
+     "field": "i2t",
+     "kind": "string",
+     "conditional": false
+    },
+    {
+     "field": "blown",
+     "kind": "string",
+     "conditional": false
+    },
+    {
+     "field": "label",
+     "kind": "string",
+     "conditional": false
+    }
+   ],
+   "xmlAttrs": [
+    {
+     "attr": "re",
+     "field": "resistance",
+     "dumpExpr": "this.resistance",
+     "kind": "float"
+    },
+    {
+     "attr": "i2",
+     "field": "i2t",
+     "dumpExpr": "this.i2t",
+     "kind": "float"
+    },
+    {
+     "attr": "bl",
+     "field": "blown",
+     "dumpExpr": "this.blown",
+     "kind": "bool"
+    },
+    {
+     "attr": "la",
+     "field": "label",
+     "dumpExpr": "this.label",
+     "kind": "string"
+    }
+   ],
+   "staticArity": 4,
+   "maxArity": 4
+  },
+  "MouseManager": {
+   "cls": "MouseManager",
+   "parent": null,
+   "file": "MouseManager.ts",
+   "txtType": null,
+   "xmlType": "MouseManager",
+   "xmlTypeDeclared": false,
+   "postCountExpr": null,
+   "traits": {},
+   "txtSlots": [],
+   "xmlAttrs": [],
+   "staticArity": 0,
+   "maxArity": 0
+  },
+  "MultiplexerElm": {
+   "cls": "MultiplexerElm",
+   "parent": "ChipElm",
+   "file": "MultiplexerElm.ts",
+   "txtType": 184,
+   "xmlType": "mux",
+   "xmlTypeDeclared": true,
+   "postCountExpr": "this.outputCount * this.dataBusWidth + this.selectBitCount + this.dataBusWidth + invertedCount + strobeCount",
+   "traits": {},
+   "txtSlots": [
+    {
+     "field": "selectBitCount",
+     "kind": "string",
+     "conditional": false
+    }
+   ],
+   "xmlAttrs": [
+    {
+     "attr": "se",
+     "field": "selectBitCount",
+     "dumpExpr": "this.selectBitCount",
+     "kind": "int"
+    },
+    {
+     "attr": "im",
+     "field": "inputMode",
+     "dumpExpr": "this.inputMode",
+     "kind": "int"
+    },
+    {
+     "attr": "dw",
+     "field": "dataBusWidth",
+     "dumpExpr": "this.dataBusWidth",
+     "kind": "int"
+    }
+   ],
+   "staticArity": 1,
+   "maxArity": 1
+  },
+  "MyCommand": {
+   "cls": "MyCommand",
+   "parent": null,
+   "file": "MyCommand.ts",
+   "txtType": null,
+   "xmlType": "MyCommand",
+   "xmlTypeDeclared": false,
+   "postCountExpr": null,
+   "traits": {},
+   "txtSlots": [],
+   "xmlAttrs": [],
+   "staticArity": 0,
+   "maxArity": 0
+  },
+  "NDarlingtonElm": {
+   "cls": "NDarlingtonElm",
+   "parent": "DarlingtonElm",
+   "file": "NDarlingtonElm.ts",
+   "txtType": null,
+   "xmlType": "NDarlington",
+   "xmlTypeDeclared": false,
+   "postCountExpr": null,
+   "traits": {},
+   "txtSlots": [],
+   "xmlAttrs": [],
+   "staticArity": 0,
+   "maxArity": 0
+  },
+  "NoiseElm": {
+   "cls": "NoiseElm",
+   "parent": "RailElm",
+   "file": "NoiseElm.ts",
+   "txtType": null,
+   "xmlType": "Noise",
+   "xmlTypeDeclared": false,
+   "postCountExpr": null,
+   "traits": {},
+   "txtSlots": [],
+   "xmlAttrs": [],
+   "staticArity": 0,
+   "maxArity": 0
+  },
+  "NortonAmpElm": {
+   "cls": "NortonAmpElm",
+   "parent": "CompositeElm",
+   "file": "NortonAmpElm.ts",
+   "txtType": null,
+   "xmlType": "nor",
+   "xmlTypeDeclared": true,
+   "postCountExpr": null,
+   "traits": {},
+   "txtSlots": [],
+   "xmlAttrs": [],
+   "staticArity": 0,
+   "maxArity": 0
+  },
+  "NumberFormat": {
+   "cls": "NumberFormat",
+   "parent": null,
+   "file": "NumberFormat.ts",
+   "txtType": null,
+   "xmlType": "NumberFormat",
+   "xmlTypeDeclared": false,
+   "postCountExpr": null,
+   "traits": {},
+   "txtSlots": [],
+   "xmlAttrs": [],
+   "staticArity": 0,
+   "maxArity": 0
+  },
+  "OhmMeterElm": {
+   "cls": "OhmMeterElm",
+   "parent": "CurrentElm",
+   "file": "OhmMeterElm.ts",
+   "txtType": 216,
+   "xmlType": "OhmMeter",
+   "xmlTypeDeclared": false,
+   "postCountExpr": null,
+   "traits": {},
+   "txtSlots": [],
+   "xmlAttrs": [],
+   "staticArity": 0,
+   "maxArity": 0
+  },
+  "OpAmpElm": {
+   "cls": "OpAmpElm",
+   "parent": "CircuitElm",
+   "file": "OpAmpElm.ts",
+   "txtType": 97,
+   "xmlType": "a",
+   "xmlTypeDeclared": false,
+   "postCountExpr": "3",
+   "traits": {},
+   "txtSlots": [
+    {
+     "field": "maxOut",
+     "kind": "float",
+     "conditional": false
+    },
+    {
+     "field": "minOut",
+     "kind": "float",
+     "conditional": false
+    },
+    {
+     "field": "gbw",
+     "kind": "float",
+     "conditional": false
+    },
+    {
+     "field": "v0",
+     "kind": "float",
+     "conditional": false
+    },
+    {
+     "field": "v1",
+     "kind": "string",
+     "conditional": false
+    },
+    {
+     "field": "gain",
+     "kind": "string",
+     "conditional": false
+    }
+   ],
+   "xmlAttrs": [
+    {
+     "attr": "ma",
+     "field": "maxOut",
+     "dumpExpr": "this.maxOut",
+     "kind": "float"
+    },
+    {
+     "attr": "mi",
+     "field": "minOut",
+     "dumpExpr": "this.minOut",
+     "kind": "float"
+    },
+    {
+     "attr": "gb",
+     "field": "gbw",
+     "dumpExpr": "this.gbw",
+     "kind": "float"
+    },
+    {
+     "attr": "ga",
+     "field": "gain",
+     "dumpExpr": "this.gain",
+     "kind": "float"
+    }
+   ],
+   "staticArity": 6,
+   "maxArity": 6
+  },
+  "OpAmpRealElm": {
+   "cls": "OpAmpRealElm",
+   "parent": "CompositeElm",
+   "file": "OpAmpRealElm.ts",
+   "txtType": 409,
+   "xmlType": "OpAmpReal",
+   "xmlTypeDeclared": false,
+   "postCountExpr": null,
+   "traits": {},
+   "txtSlots": [
+    {
+     "field": "slewRate",
+     "kind": "float",
+     "conditional": false
+    },
+    {
+     "field": "capValue",
+     "kind": "string",
+     "conditional": false
+    },
+    {
+     "field": "currentLimit",
+     "kind": "int",
+     "conditional": false
+    },
+    {
+     "field": "modelType",
+     "kind": "string",
+     "conditional": false
+    }
+   ],
+   "xmlAttrs": [
+    {
+     "attr": "slr",
+     "field": "slewRate",
+     "dumpExpr": "this.slewRate",
+     "kind": "float"
+    },
+    {
+     "attr": "cl",
+     "field": "currentLimit",
+     "dumpExpr": "this.currentLimit",
+     "kind": "float"
+    },
+    {
+     "attr": "mt",
+     "field": "modelType",
+     "dumpExpr": "this.modelType",
+     "kind": "int"
+    },
+    {
+     "attr": "vd",
+     "field": null,
+     "dumpExpr": null,
+     "kind": "float"
+    }
+   ],
+   "staticArity": 4,
+   "maxArity": 4
+  },
+  "OpAmpSwapElm": {
+   "cls": "OpAmpSwapElm",
+   "parent": "OpAmpElm",
+   "file": "OpAmpSwapElm.ts",
+   "txtType": null,
+   "xmlType": "OpAmpSwap",
+   "xmlTypeDeclared": false,
+   "postCountExpr": null,
+   "traits": {},
+   "txtSlots": [],
+   "xmlAttrs": [],
+   "staticArity": 0,
+   "maxArity": 0
+  },
+  "OptocouplerElm": {
+   "cls": "OptocouplerElm",
+   "parent": "CompositeElm",
+   "file": "OptocouplerElm.ts",
+   "txtType": 407,
+   "xmlType": "Optocoupler",
+   "xmlTypeDeclared": false,
+   "postCountExpr": null,
+   "traits": {},
+   "txtSlots": [],
+   "xmlAttrs": [
+    {
+     "attr": "ctr",
+     "field": "ctr",
+     "dumpExpr": "this.ctr",
+     "kind": "float"
+    },
+    {
+     "attr": "dmo",
+     "field": "diode",
+     "dumpExpr": "this.diode.modelName",
+     "kind": "string"
+    },
+    {
+     "attr": "ix",
+     "field": null,
+     "dumpExpr": null,
+     "kind": "string"
+    }
+   ],
+   "staticArity": 0,
+   "maxArity": 0
+  },
+  "OTAElm": {
+   "cls": "OTAElm",
+   "parent": "CompositeElm",
+   "file": "OTAElm.ts",
+   "txtType": 402,
+   "xmlType": "OTA",
+   "xmlTypeDeclared": false,
+   "postCountExpr": null,
+   "traits": {},
+   "txtSlots": [],
+   "xmlAttrs": [
+    {
+     "attr": "pv",
+     "field": "posVolt",
+     "dumpExpr": "this.posVolt",
+     "kind": "float"
+    },
+    {
+     "attr": "nv",
+     "field": "negVolt",
+     "dumpExpr": "this.negVolt",
+     "kind": "float"
+    }
+   ],
+   "staticArity": 0,
+   "maxArity": 0
+  },
+  "OutputElm": {
+   "cls": "OutputElm",
+   "parent": "CircuitElm",
+   "file": "OutputElm.ts",
+   "txtType": 79,
+   "xmlType": "O",
+   "xmlTypeDeclared": false,
+   "postCountExpr": "1",
+   "traits": {},
+   "txtSlots": [
+    {
+     "field": "scale",
+     "kind": "string",
+     "conditional": false
+    }
+   ],
+   "xmlAttrs": [
+    {
+     "attr": "sc",
+     "field": "scale",
+     "dumpExpr": "this.scale",
+     "kind": "int"
+    }
+   ],
+   "staticArity": 1,
+   "maxArity": 1
+  },
+  "PDarlingtonElm": {
+   "cls": "PDarlingtonElm",
+   "parent": "DarlingtonElm",
+   "file": "PDarlingtonElm.ts",
+   "txtType": null,
+   "xmlType": "PDarlington",
+   "xmlTypeDeclared": false,
+   "postCountExpr": null,
+   "traits": {},
+   "txtSlots": [],
+   "xmlAttrs": [],
+   "staticArity": 0,
+   "maxArity": 0
+  },
+  "PhaseCompElm": {
+   "cls": "PhaseCompElm",
+   "parent": "ChipElm",
+   "file": "PhaseCompElm.ts",
+   "txtType": 161,
+   "xmlType": "PhaseComp",
+   "xmlTypeDeclared": false,
+   "postCountExpr": "3",
+   "traits": {},
+   "txtSlots": [],
+   "xmlAttrs": [],
+   "staticArity": 0,
+   "maxArity": 0
+  },
+  "PisoShiftElm": {
+   "cls": "PisoShiftElm",
+   "parent": "ChipElm",
+   "file": "PisoShiftElm.ts",
+   "txtType": 186,
+   "xmlType": "PisoShift",
+   "xmlTypeDeclared": false,
+   "postCountExpr": "(this.hasNewBhvr() ? 4 : 3) + this.bits",
+   "traits": {},
+   "txtSlots": [],
+   "xmlAttrs": [
+    {
+     "attr": "dt",
+     "field": null,
+     "dumpExpr": null,
+     "kind": "string"
+    }
+   ],
+   "staticArity": 0,
+   "maxArity": 0
+  },
+  "Point": {
+   "cls": "Point",
+   "parent": null,
+   "file": "Point.ts",
+   "txtType": null,
+   "xmlType": "Point",
+   "xmlTypeDeclared": false,
+   "postCountExpr": null,
+   "traits": {},
+   "txtSlots": [],
+   "xmlAttrs": [],
+   "staticArity": 0,
+   "maxArity": 0
+  },
+  "PolarCapacitorElm": {
+   "cls": "PolarCapacitorElm",
+   "parent": "CapacitorElm",
+   "file": "PolarCapacitorElm.ts",
+   "txtType": 209,
+   "xmlType": "pc",
+   "xmlTypeDeclared": true,
+   "postCountExpr": null,
+   "traits": {},
+   "txtSlots": [
+    {
+     "field": "maxNegativeVoltage",
+     "kind": "string",
+     "conditional": false
+    }
+   ],
+   "xmlAttrs": [
+    {
+     "attr": "mv",
+     "field": "maxNegativeVoltage",
+     "dumpExpr": "this.maxNegativeVoltage",
+     "kind": "float"
+    }
+   ],
+   "staticArity": 1,
+   "maxArity": 1
+  },
+  "Polygon": {
+   "cls": "Polygon",
+   "parent": null,
+   "file": "Polygon.ts",
+   "txtType": null,
+   "xmlType": "Polygon",
+   "xmlTypeDeclared": false,
+   "postCountExpr": null,
+   "traits": {},
+   "txtSlots": [],
+   "xmlAttrs": [],
+   "staticArity": 0,
+   "maxArity": 0
+  },
+  "PotElm": {
+   "cls": "PotElm",
+   "parent": "CircuitElm",
+   "file": "PotElm.ts",
+   "txtType": 174,
+   "xmlType": "pt",
+   "xmlTypeDeclared": true,
+   "postCountExpr": "3",
+   "traits": {},
+   "txtSlots": [
+    {
+     "field": "maxResistance",
+     "kind": "float",
+     "conditional": false
+    },
+    {
+     "field": "position",
+     "kind": "string",
+     "conditional": false
+    },
+    {
+     "field": "text",
+     "kind": "string",
+     "conditional": false
+    },
+    {
+     "field": null,
+     "kind": "string",
+     "conditional": false
+    }
+   ],
+   "xmlAttrs": [
+    {
+     "attr": "ma",
+     "field": "maxResistance",
+     "dumpExpr": "this.maxResistance",
+     "kind": "float"
+    },
+    {
+     "attr": "po",
+     "field": "position",
+     "dumpExpr": "this.position",
+     "kind": "float"
+    },
+    {
+     "attr": "sl",
+     "field": "sliderText",
+     "dumpExpr": "this.sliderText",
+     "kind": "string"
+    },
+    {
+     "attr": "li",
+     "field": "link",
+     "dumpExpr": "this.link",
+     "kind": "int"
+    }
+   ],
+   "staticArity": 4,
+   "maxArity": 4
+  },
+  "ProbeElm": {
+   "cls": "ProbeElm",
+   "parent": "CircuitElm",
+   "file": "ProbeElm.ts",
+   "txtType": 112,
+   "xmlType": "p",
+   "xmlTypeDeclared": false,
+   "postCountExpr": null,
+   "traits": {},
+   "txtSlots": [
+    {
+     "field": "meter",
+     "kind": "int",
+     "conditional": false
+    },
+    {
+     "field": "scale",
+     "kind": "float",
+     "conditional": false
+    },
+    {
+     "field": "resistance",
+     "kind": "string",
+     "conditional": false
+    }
+   ],
+   "xmlAttrs": [
+    {
+     "attr": "me",
+     "field": "meter",
+     "dumpExpr": "this.meter",
+     "kind": "int"
+    },
+    {
+     "attr": "sc",
+     "field": "scale",
+     "dumpExpr": "this.scale",
+     "kind": "int"
+    },
+    {
+     "attr": "re",
+     "field": "resistance",
+     "dumpExpr": "this.resistance",
+     "kind": "float"
+    },
+    {
+     "attr": "lb",
+     "field": "label",
+     "dumpExpr": "this.label",
+     "kind": "string"
+    }
+   ],
+   "staticArity": 3,
+   "maxArity": 3
+  },
+  "PushSwitchElm": {
+   "cls": "PushSwitchElm",
+   "parent": "SwitchElm",
+   "file": "PushSwitchElm.ts",
+   "txtType": null,
+   "xmlType": "PushSwitch",
+   "xmlTypeDeclared": false,
+   "postCountExpr": null,
+   "traits": {},
+   "txtSlots": [],
+   "xmlAttrs": [],
+   "staticArity": 0,
+   "maxArity": 0
+  },
+  "RailElm": {
+   "cls": "RailElm",
+   "parent": "VoltageElm",
+   "file": "RailElm.ts",
+   "txtType": 82,
+   "xmlType": "R",
+   "xmlTypeDeclared": false,
+   "postCountExpr": "1",
+   "traits": {
+    "isRailElm": true
+   },
+   "txtSlots": [],
+   "xmlAttrs": [],
+   "staticArity": 0,
+   "maxArity": 0
+  },
+  "Rectangle": {
+   "cls": "Rectangle",
+   "parent": null,
+   "file": "Rectangle.ts",
+   "txtType": null,
+   "xmlType": "Rectangle",
+   "xmlTypeDeclared": false,
+   "postCountExpr": null,
+   "traits": {},
+   "txtSlots": [],
+   "xmlAttrs": [],
+   "staticArity": 0,
+   "maxArity": 0
+  },
+  "RelayCoilElm": {
+   "cls": "RelayCoilElm",
+   "parent": "CircuitElm",
+   "file": "RelayCoilElm.ts",
+   "txtType": 425,
+   "xmlType": "RelayCoil",
+   "xmlTypeDeclared": false,
+   "postCountExpr": "2",
+   "traits": {},
+   "txtSlots": [
+    {
+     "field": "label",
+     "kind": "float",
+     "conditional": false
+    },
+    {
+     "field": "inductance",
+     "kind": "float",
+     "conditional": false
+    },
+    {
+     "field": "coilCurrent",
+     "kind": "float",
+     "conditional": false
+    },
+    {
+     "field": "onCurrent",
+     "kind": "float",
+     "conditional": false
+    },
+    {
+     "field": "coilR",
+     "kind": "float",
+     "conditional": false
+    },
+    {
+     "field": "offCurrent",
+     "kind": "float",
+     "conditional": false
+    },
+    {
+     "field": "switchingTime",
+     "kind": "int",
+     "conditional": false
+    },
+    {
+     "field": "type",
+     "kind": "int",
+     "conditional": false
+    },
+    {
+     "field": "state",
+     "kind": "int",
+     "conditional": false
+    },
+    {
+     "field": "switchPosition",
+     "kind": "string",
+     "conditional": false
+    }
+   ],
+   "xmlAttrs": [
+    {
+     "attr": "lb",
+     "field": "label",
+     "dumpExpr": "this.label",
+     "kind": "string"
+    },
+    {
+     "attr": "in",
+     "field": "inductance",
+     "dumpExpr": "this.inductance",
+     "kind": "float"
+    },
+    {
+     "attr": "oc",
+     "field": "onCurrent",
+     "dumpExpr": "this.onCurrent",
+     "kind": "float"
+    },
+    {
+     "attr": "cr",
+     "field": "coilR",
+     "dumpExpr": "this.coilR",
+     "kind": "float"
+    },
+    {
+     "attr": "ofc",
+     "field": "offCurrent",
+     "dumpExpr": "this.offCurrent",
+     "kind": "float"
+    },
+    {
+     "attr": "swt",
+     "field": "switchingTime",
+     "dumpExpr": "this.switchingTime",
+     "kind": "float"
+    },
+    {
+     "attr": "tp",
+     "field": "type",
+     "dumpExpr": "this.type",
+     "kind": "int"
+    },
+    {
+     "attr": "ci",
+     "field": null,
+     "dumpExpr": null,
+     "kind": "float"
+    },
+    {
+     "attr": "st",
+     "field": null,
+     "dumpExpr": null,
+     "kind": "int"
+    },
+    {
+     "attr": "sp",
+     "field": null,
+     "dumpExpr": null,
+     "kind": "int"
+    }
+   ],
+   "staticArity": 10,
+   "maxArity": 10
+  },
+  "RelayContactElm": {
+   "cls": "RelayContactElm",
+   "parent": "CircuitElm",
+   "file": "RelayContactElm.ts",
+   "txtType": 426,
+   "xmlType": "RelayContact",
+   "xmlTypeDeclared": false,
+   "postCountExpr": "2",
+   "traits": {},
+   "txtSlots": [
+    {
+     "field": "label",
+     "kind": "float",
+     "conditional": false
+    },
+    {
+     "field": "r_on",
+     "kind": "float",
+     "conditional": false
+    },
+    {
+     "field": "r_off",
+     "kind": "int",
+     "conditional": false
+    },
+    {
+     "field": "i_position",
+     "kind": "string",
+     "conditional": false
+    }
+   ],
+   "xmlAttrs": [
+    {
+     "attr": "lb",
+     "field": "label",
+     "dumpExpr": "this.label",
+     "kind": "string"
+    },
+    {
+     "attr": "ron",
+     "field": "r_on",
+     "dumpExpr": "this.r_on",
+     "kind": "float"
+    },
+    {
+     "attr": "roff",
+     "field": "r_off",
+     "dumpExpr": "this.r_off",
+     "kind": "float"
+    },
+    {
+     "attr": "ip",
+     "field": "i_position",
+     "dumpExpr": "this.i_position",
+     "kind": "int"
+    }
+   ],
+   "staticArity": 4,
+   "maxArity": 4
+  },
+  "RelayElm": {
+   "cls": "RelayElm",
+   "parent": "CircuitElm",
+   "file": "RelayElm.ts",
+   "txtType": 178,
+   "xmlType": "rl",
+   "xmlTypeDeclared": true,
+   "postCountExpr": "2 + this.poleCount() * 3",
+   "traits": {},
+   "txtSlots": [
+    {
+     "field": "poleCount",
+     "kind": "float",
+     "conditional": false
+    },
+    {
+     "field": "inductance",
+     "kind": "float",
+     "conditional": false
+    },
+    {
+     "field": "coilCurrent",
+     "kind": "float",
+     "conditional": false
+    },
+    {
+     "field": "r_on",
+     "kind": "float",
+     "conditional": false
+    },
+    {
+     "field": "r_off",
+     "kind": "float",
+     "conditional": false
+    },
+    {
+     "field": "onCurrent",
+     "kind": "float",
+     "conditional": false
+    },
+    {
+     "field": "coilR",
+     "kind": "string",
+     "conditional": false
+    },
+    {
+     "field": null,
+     "kind": "float",
+     "conditional": false
+    },
+    {
+     "field": null,
+     "kind": "int",
+     "conditional": false
+    },
+    {
+     "field": "i_position",
+     "kind": "string",
+     "conditional": false
+    }
+   ],
+   "xmlAttrs": [
+    {
+     "attr": "mo",
+     "field": "modelName",
+     "dumpExpr": "this.modelName",
+     "kind": "string"
+    },
+    {
+     "attr": "ix",
+     "field": null,
+     "dumpExpr": null,
+     "kind": "string"
+    },
+    {
+     "attr": "po",
+     "field": null,
+     "dumpExpr": null,
+     "kind": "int"
+    },
+    {
+     "attr": "in",
+     "field": null,
+     "dumpExpr": null,
+     "kind": "float"
+    },
+    {
+     "attr": "ron",
+     "field": null,
+     "dumpExpr": null,
+     "kind": "float"
+    },
+    {
+     "attr": "roff",
+     "field": null,
+     "dumpExpr": null,
+     "kind": "float"
+    },
+    {
+     "attr": "on",
+     "field": null,
+     "dumpExpr": null,
+     "kind": "float"
+    },
+    {
+     "attr": "coR",
+     "field": null,
+     "dumpExpr": null,
+     "kind": "float"
+    },
+    {
+     "attr": "of",
+     "field": null,
+     "dumpExpr": null,
+     "kind": "float"
+    },
+    {
+     "attr": "sw",
+     "field": null,
+     "dumpExpr": null,
+     "kind": "float"
+    },
+    {
+     "attr": "i",
+     "field": null,
+     "dumpExpr": null,
+     "kind": "float"
+    },
+    {
+     "attr": "ip",
+     "field": null,
+     "dumpExpr": null,
+     "kind": "int"
+    }
+   ],
+   "staticArity": 10,
+   "maxArity": 10
+  },
+  "RelayModel": {
+   "cls": "RelayModel",
+   "parent": null,
+   "file": "RelayModel.ts",
+   "txtType": null,
+   "xmlType": "RelayModel",
+   "xmlTypeDeclared": false,
+   "postCountExpr": null,
+   "traits": {},
+   "txtSlots": [],
+   "xmlAttrs": [
+    {
+     "attr": "nm",
+     "field": "name",
+     "dumpExpr": "this.name",
+     "kind": null
+    },
+    {
+     "attr": "f",
+     "field": "flags",
+     "dumpExpr": "this.flags",
+     "kind": "int"
+    },
+    {
+     "attr": "in",
+     "field": "inductance",
+     "dumpExpr": "this.inductance",
+     "kind": "float"
+    },
+    {
+     "attr": "ron",
+     "field": "r_on",
+     "dumpExpr": "this.r_on",
+     "kind": "float"
+    },
+    {
+     "attr": "rof",
+     "field": "r_off",
+     "dumpExpr": "this.r_off",
+     "kind": "float"
+    },
+    {
+     "attr": "on",
+     "field": "onCurrent",
+     "dumpExpr": "this.onCurrent",
+     "kind": "float"
+    },
+    {
+     "attr": "of",
+     "field": "offCurrent",
+     "dumpExpr": "this.offCurrent",
+     "kind": "float"
+    },
+    {
+     "attr": "coR",
+     "field": "coilR",
+     "dumpExpr": "this.coilR",
+     "kind": "float"
+    },
+    {
+     "attr": "sw",
+     "field": "switchingTime",
+     "dumpExpr": "this.switchingTime",
+     "kind": "float"
+    },
+    {
+     "attr": "cs",
+     "field": "coilStyle",
+     "dumpExpr": "this.coilStyle",
+     "kind": "int"
+    },
+    {
+     "attr": "po",
+     "field": "poleCount",
+     "dumpExpr": "this.poleCount",
+     "kind": "int"
+    },
+    {
+     "attr": "sb",
+     "field": null,
+     "dumpExpr": "1",
+     "kind": "int"
+    },
+    {
+     "attr": "pd",
+     "field": null,
+     "dumpExpr": "1",
+     "kind": "int"
+    }
+   ],
+   "staticArity": 0,
+   "maxArity": 0
+  },
+  "ResistorElm": {
+   "cls": "ResistorElm",
+   "parent": "CircuitElm",
+   "file": "ResistorElm.ts",
+   "txtType": 114,
+   "xmlType": "r",
+   "xmlTypeDeclared": false,
+   "postCountExpr": null,
+   "traits": {
+    "isResistorElm": true
+   },
+   "txtSlots": [
+    {
+     "field": "resistance",
+     "kind": "string",
+     "conditional": false
+    }
+   ],
+   "xmlAttrs": [
+    {
+     "attr": "r",
+     "field": "resistance",
+     "dumpExpr": "this.resistance",
+     "kind": "float"
+    }
+   ],
+   "staticArity": 1,
+   "maxArity": 1
+  },
+  "RingCounterElm": {
+   "cls": "RingCounterElm",
+   "parent": "ChipElm",
+   "file": "RingCounterElm.ts",
+   "txtType": 163,
+   "xmlType": "RingCounter",
+   "xmlTypeDeclared": false,
+   "postCountExpr": "this.hasClockInhibit() ? this.bits + 3 : this.bits + 2",
+   "traits": {},
+   "txtSlots": [],
+   "xmlAttrs": [],
+   "staticArity": 0,
+   "maxArity": 0
+  },
+  "ROMElm": {
+   "cls": "ROMElm",
+   "parent": "SRAMElm",
+   "file": "ROMElm.ts",
+   "txtType": 436,
+   "xmlType": "ROM",
+   "xmlTypeDeclared": false,
+   "postCountExpr": "1 + this.addressBits + this.dataBits",
+   "traits": {},
+   "txtSlots": [],
+   "xmlAttrs": [],
+   "staticArity": 0,
+   "maxArity": 0
+  },
+  "RoutedWireElm": {
+   "cls": "RoutedWireElm",
+   "parent": "WireElm",
+   "file": "RoutedWireElm.ts",
+   "txtType": 0,
+   "xmlType": "rw",
+   "xmlTypeDeclared": true,
+   "postCountExpr": null,
+   "traits": {},
+   "txtSlots": [],
+   "xmlAttrs": [],
+   "staticArity": 0,
+   "maxArity": 0
+  },
+  "SchmittElm": {
+   "cls": "SchmittElm",
+   "parent": "InvertingSchmittElm",
+   "file": "SchmittElm.ts",
+   "txtType": 182,
+   "xmlType": "Schmitt",
+   "xmlTypeDeclared": false,
+   "postCountExpr": null,
+   "traits": {},
+   "txtSlots": [],
+   "xmlAttrs": [],
+   "staticArity": 0,
+   "maxArity": 0
+  },
+  "Scope": {
+   "cls": "Scope",
+   "parent": null,
+   "file": "Scope.ts",
+   "txtType": null,
+   "xmlType": "Scope",
+   "xmlTypeDeclared": false,
+   "postCountExpr": null,
+   "traits": {},
+   "txtSlots": [],
+   "xmlAttrs": [],
+   "staticArity": 0,
+   "maxArity": 0
+  },
+  "ScopeDataIterator": {
+   "cls": "ScopeDataIterator",
+   "parent": null,
+   "file": "ScopeDataIterator.ts",
+   "txtType": null,
+   "xmlType": "ScopeDataIterator",
+   "xmlTypeDeclared": false,
+   "postCountExpr": null,
+   "traits": {},
+   "txtSlots": [],
+   "xmlAttrs": [],
+   "staticArity": 0,
+   "maxArity": 0
+  },
+  "ScopeElm": {
+   "cls": "ScopeElm",
+   "parent": "CircuitElm",
+   "file": "ScopeElm.ts",
+   "txtType": 403,
+   "xmlType": "Scope",
+   "xmlTypeDeclared": false,
+   "postCountExpr": "0",
+   "traits": {},
+   "txtSlots": [
+    {
+     "field": "sStr",
+     "kind": "string",
+     "conditional": false
+    }
+   ],
+   "xmlAttrs": [],
+   "staticArity": 1,
+   "maxArity": 1
+  },
+  "ScopeExportImageDialog": {
+   "cls": "ScopeExportImageDialog",
+   "parent": "Dialog",
+   "file": "ScopeExportImageDialog.ts",
+   "txtType": null,
+   "xmlType": "ScopeExportImageDialog",
+   "xmlTypeDeclared": false,
+   "postCountExpr": null,
+   "traits": {},
+   "txtSlots": [],
+   "xmlAttrs": [],
+   "staticArity": 0,
+   "maxArity": 0
+  },
+  "ScopeFFT": {
+   "cls": "ScopeFFT",
+   "parent": null,
+   "file": "ScopeFFT.ts",
+   "txtType": null,
+   "xmlType": "ScopeFFT",
+   "xmlTypeDeclared": false,
+   "postCountExpr": null,
+   "traits": {},
+   "txtSlots": [],
+   "xmlAttrs": [],
+   "staticArity": 0,
+   "maxArity": 0
+  },
+  "ScopeManager": {
+   "cls": "ScopeManager",
+   "parent": null,
+   "file": "ScopeManager.ts",
+   "txtType": null,
+   "xmlType": "ScopeManager",
+   "xmlTypeDeclared": false,
+   "postCountExpr": null,
+   "traits": {},
+   "txtSlots": [],
+   "xmlAttrs": [],
+   "staticArity": 0,
+   "maxArity": 0
+  },
+  "ScopeOverlays": {
+   "cls": "ScopeOverlays",
+   "parent": null,
+   "file": "ScopeOverlays.ts",
+   "txtType": null,
+   "xmlType": "ScopeOverlays",
+   "xmlTypeDeclared": false,
+   "postCountExpr": null,
+   "traits": {},
+   "txtSlots": [],
+   "xmlAttrs": [],
+   "staticArity": 0,
+   "maxArity": 0
+  },
+  "ScopePlot": {
+   "cls": "ScopePlot",
+   "parent": null,
+   "file": "ScopePlot.ts",
+   "txtType": null,
+   "xmlType": "ScopePlot",
+   "xmlTypeDeclared": false,
+   "postCountExpr": null,
+   "traits": {},
+   "txtSlots": [],
+   "xmlAttrs": [],
+   "staticArity": 0,
+   "maxArity": 0
+  },
+  "ScopePlot2d": {
+   "cls": "ScopePlot2d",
+   "parent": null,
+   "file": "ScopePlot2d.ts",
+   "txtType": null,
+   "xmlType": "ScopePlot2d",
+   "xmlTypeDeclared": false,
+   "postCountExpr": null,
+   "traits": {},
+   "txtSlots": [],
+   "xmlAttrs": [],
+   "staticArity": 0,
+   "maxArity": 0
+  },
+  "ScopePopupMenu": {
+   "cls": "ScopePopupMenu",
+   "parent": null,
+   "file": "ScopePopupMenu.ts",
+   "txtType": null,
+   "xmlType": "ScopePopupMenu",
+   "xmlTypeDeclared": false,
+   "postCountExpr": null,
+   "traits": {},
+   "txtSlots": [],
+   "xmlAttrs": [],
+   "staticArity": 0,
+   "maxArity": 0
+  },
+  "ScopePropertiesDialog": {
+   "cls": "ScopePropertiesDialog",
+   "parent": "Dialog",
+   "file": "ScopePropertiesDialog.ts",
+   "txtType": null,
+   "xmlType": "ScopePropertiesDialog",
+   "xmlTypeDeclared": false,
+   "postCountExpr": null,
+   "traits": {},
+   "txtSlots": [],
+   "xmlAttrs": [],
+   "staticArity": 0,
+   "maxArity": 0
+  },
+  "ScopeSerializer": {
+   "cls": "ScopeSerializer",
+   "parent": null,
+   "file": "ScopeSerializer.ts",
+   "txtType": null,
+   "xmlType": "ScopeSerializer",
+   "xmlTypeDeclared": false,
+   "postCountExpr": null,
+   "traits": {},
+   "txtSlots": [],
+   "xmlAttrs": [
+    {
+     "attr": "en",
+     "field": null,
+     "dumpExpr": null,
+     "kind": "int"
+    },
+    {
+     "attr": "sp",
+     "field": null,
+     "dumpExpr": null,
+     "kind": "int"
+    },
+    {
+     "attr": "f",
+     "field": null,
+     "dumpExpr": null,
+     "kind": "string"
+    },
+    {
+     "attr": "p",
+     "field": null,
+     "dumpExpr": null,
+     "kind": "int"
+    },
+    {
+     "attr": "md",
+     "field": null,
+     "dumpExpr": null,
+     "kind": "int"
+    },
+    {
+     "attr": "x",
+     "field": null,
+     "dumpExpr": null,
+     "kind": "string"
+    },
+    {
+     "attr": "tp",
+     "field": null,
+     "dumpExpr": null,
+     "kind": "int"
+    },
+    {
+     "attr": "xy2x",
+     "field": null,
+     "dumpExpr": null,
+     "kind": "int"
+    },
+    {
+     "attr": "xy2y",
+     "field": null,
+     "dumpExpr": null,
+     "kind": "int"
+    },
+    {
+     "attr": "xy2br",
+     "field": null,
+     "dumpExpr": null,
+     "kind": "int"
+    },
+    {
+     "attr": "xy2r",
+     "field": null,
+     "dumpExpr": null,
+     "kind": "int"
+    },
+    {
+     "attr": "xy2g",
+     "field": null,
+     "dumpExpr": null,
+     "kind": "int"
+    },
+    {
+     "attr": "xy2b",
+     "field": null,
+     "dumpExpr": null,
+     "kind": "int"
+    },
+    {
+     "attr": "e",
+     "field": null,
+     "dumpExpr": null,
+     "kind": "int"
+    },
+    {
+     "attr": "v",
+     "field": null,
+     "dumpExpr": null,
+     "kind": "int"
+    },
+    {
+     "attr": "sc",
+     "field": null,
+     "dumpExpr": null,
+     "kind": "float"
+    },
+    {
+     "attr": "ms",
+     "field": null,
+     "dumpExpr": null,
+     "kind": "float"
+    },
+    {
+     "attr": "mp",
+     "field": null,
+     "dumpExpr": null,
+     "kind": "int"
+    }
+   ],
+   "staticArity": 0,
+   "maxArity": 0
+  },
+  "ScopeTrigger": {
+   "cls": "ScopeTrigger",
+   "parent": null,
+   "file": "ScopeTrigger.ts",
+   "txtType": null,
+   "xmlType": "ScopeTrigger",
+   "xmlTypeDeclared": false,
+   "postCountExpr": null,
+   "traits": {},
+   "txtSlots": [],
+   "xmlAttrs": [
+    {
+     "attr": "triggerMode",
+     "field": null,
+     "dumpExpr": null,
+     "kind": "int"
+    },
+    {
+     "attr": "triggerEdge",
+     "field": null,
+     "dumpExpr": null,
+     "kind": "int"
+    },
+    {
+     "attr": "triggerLevel",
+     "field": null,
+     "dumpExpr": null,
+     "kind": "float"
+    }
+   ],
+   "staticArity": 0,
+   "maxArity": 0
+  },
+  "SCRElm": {
+   "cls": "SCRElm",
+   "parent": "CircuitElm",
+   "file": "SCRElm.ts",
+   "txtType": 177,
+   "xmlType": "SCR",
+   "xmlTypeDeclared": false,
+   "postCountExpr": "3",
+   "traits": {},
+   "txtSlots": [
+    {
+     "field": "lastvac",
+     "kind": "float",
+     "conditional": false
+    },
+    {
+     "field": "lastvag",
+     "kind": "string",
+     "conditional": false
+    },
+    {
+     "field": "triggerI",
+     "kind": "float",
+     "conditional": false
+    },
+    {
+     "field": "holdingI",
+     "kind": "float",
+     "conditional": false
+    },
+    {
+     "field": "gresistance",
+     "kind": "string",
+     "conditional": false
+    }
+   ],
+   "xmlAttrs": [
+    {
+     "attr": "tr",
+     "field": "triggerI",
+     "dumpExpr": "this.triggerI",
+     "kind": "float"
+    },
+    {
+     "attr": "ho",
+     "field": "holdingI",
+     "dumpExpr": "this.holdingI",
+     "kind": "float"
+    },
+    {
+     "attr": "gr",
+     "field": "gresistance",
+     "dumpExpr": "this.gresistance",
+     "kind": "float"
+    }
+   ],
+   "staticArity": 5,
+   "maxArity": 5
+  },
+  "ScrollValuePopup": {
+   "cls": "ScrollValuePopup",
+   "parent": null,
+   "file": "ScrollValuePopup.ts",
+   "txtType": null,
+   "xmlType": "ScrollValuePopup",
+   "xmlTypeDeclared": false,
+   "postCountExpr": null,
+   "traits": {},
+   "txtSlots": [],
+   "xmlAttrs": [],
+   "staticArity": 0,
+   "maxArity": 0
+  },
+  "SeqGenElm": {
+   "cls": "SeqGenElm",
+   "parent": "ChipElm",
+   "file": "SeqGenElm.ts",
+   "txtType": 188,
+   "xmlType": "SeqGen",
+   "xmlTypeDeclared": false,
+   "postCountExpr": "this.hasReset() ? 3 : 2",
+   "traits": {},
+   "txtSlots": [
+    {
+     "field": "oldData",
+     "kind": "string",
+     "conditional": false
+    },
+    {
+     "field": "bitCount",
+     "kind": "string",
+     "conditional": false
+    },
+    {
+     "field": null,
+     "kind": "string",
+     "conditional": false
+    }
+   ],
+   "xmlAttrs": [
+    {
+     "attr": "bc",
+     "field": "bitCount",
+     "dumpExpr": "this.bitCount",
+     "kind": "int"
+    },
+    {
+     "attr": "dt",
+     "field": null,
+     "dumpExpr": "s",
+     "kind": "string"
+    }
+   ],
+   "staticArity": 3,
+   "maxArity": 3
+  },
+  "SevenSegDecoderElm": {
+   "cls": "SevenSegDecoderElm",
+   "parent": "ChipElm",
+   "file": "SevenSegDecoderElm.ts",
+   "txtType": 197,
+   "xmlType": "SevenSegDecoder",
+   "xmlTypeDeclared": false,
+   "postCountExpr": "segCount + 4 + (this.hasBlank() ? 1 : 0)",
+   "traits": {},
+   "txtSlots": [
+    {
+     "field": "segmentType",
+     "kind": "string",
+     "conditional": false
+    }
+   ],
+   "xmlAttrs": [
+    {
+     "attr": "sgt",
+     "field": "segmentType",
+     "dumpExpr": "this.segmentType",
+     "kind": "int"
+    }
+   ],
+   "staticArity": 1,
+   "maxArity": 1
+  },
+  "SevenSegElm": {
+   "cls": "SevenSegElm",
+   "parent": "ChipElm",
+   "file": "SevenSegElm.ts",
+   "txtType": 157,
+   "xmlType": "ssd",
+   "xmlTypeDeclared": true,
+   "postCountExpr": "this.pinCount ?? 0",
+   "traits": {},
+   "txtSlots": [
+    {
+     "field": "baseSegmentCount",
+     "kind": "int",
+     "conditional": false
+    },
+    {
+     "field": "extraSegment",
+     "kind": "int",
+     "conditional": false
+    },
+    {
+     "field": "diodeDirection",
+     "kind": "string",
+     "conditional": false
+    }
+   ],
+   "xmlAttrs": [
+    {
+     "attr": "ba",
+     "field": "baseSegmentCount",
+     "dumpExpr": "this.baseSegmentCount",
+     "kind": "int"
+    },
+    {
+     "attr": "ex",
+     "field": "extraSegment",
+     "dumpExpr": "this.extraSegment",
+     "kind": "int"
+    },
+    {
+     "attr": "di",
+     "field": "diodeDirection",
+     "dumpExpr": "this.diodeDirection",
+     "kind": "int"
+    }
+   ],
+   "staticArity": 3,
+   "maxArity": 3
+  },
+  "ShortcutsDialog": {
+   "cls": "ShortcutsDialog",
+   "parent": "Dialog",
+   "file": "ShortcutsDialog.ts",
+   "txtType": null,
+   "xmlType": "ShortcutsDialog",
+   "xmlTypeDeclared": false,
+   "postCountExpr": null,
+   "traits": {},
+   "txtSlots": [],
+   "xmlAttrs": [],
+   "staticArity": 0,
+   "maxArity": 0
+  },
+  "WireSegment": {
+   "cls": "WireSegment",
+   "parent": null,
+   "file": "SimulationManager.ts",
+   "txtType": null,
+   "xmlType": "WireSegment",
+   "xmlTypeDeclared": false,
+   "postCountExpr": null,
+   "traits": {},
+   "txtSlots": [],
+   "xmlAttrs": [],
+   "staticArity": 0,
+   "maxArity": 0
+  },
+  "RoutedWireConnection": {
+   "cls": "RoutedWireConnection",
+   "parent": null,
+   "file": "SimulationManager.ts",
+   "txtType": null,
+   "xmlType": "RoutedWireConnection",
+   "xmlTypeDeclared": false,
+   "postCountExpr": null,
+   "traits": {},
+   "txtSlots": [],
+   "xmlAttrs": [],
+   "staticArity": 0,
+   "maxArity": 0
+  },
+  "SimulationManager": {
+   "cls": "SimulationManager",
+   "parent": null,
+   "file": "SimulationManager.ts",
+   "txtType": null,
+   "xmlType": "SimulationManager",
+   "xmlTypeDeclared": false,
+   "postCountExpr": null,
+   "traits": {},
+   "txtSlots": [],
+   "xmlAttrs": [],
+   "staticArity": 0,
+   "maxArity": 0
+  },
+  "SipoShiftElm": {
+   "cls": "SipoShiftElm",
+   "parent": "ChipElm",
+   "file": "SipoShiftElm.ts",
+   "txtType": 189,
+   "xmlType": "SipoShift",
+   "xmlTypeDeclared": false,
+   "postCountExpr": "2 + this.bits",
+   "traits": {},
+   "txtSlots": [],
+   "xmlAttrs": [
+    {
+     "attr": "dt",
+     "field": null,
+     "dumpExpr": null,
+     "kind": "string"
+    }
+   ],
+   "staticArity": 0,
+   "maxArity": 0
+  },
+  "SliderDialog": {
+   "cls": "SliderDialog",
+   "parent": "Dialog",
+   "file": "SliderDialog.ts",
+   "txtType": null,
+   "xmlType": "SliderDialog",
+   "xmlTypeDeclared": false,
+   "postCountExpr": null,
+   "traits": {},
+   "txtSlots": [],
+   "xmlAttrs": [],
+   "staticArity": 0,
+   "maxArity": 0
+  },
+  "SparkGapElm": {
+   "cls": "SparkGapElm",
+   "parent": "CircuitElm",
+   "file": "SparkGapElm.ts",
+   "txtType": 187,
+   "xmlType": "SparkGap",
+   "xmlTypeDeclared": false,
+   "postCountExpr": null,
+   "traits": {},
+   "txtSlots": [
+    {
+     "field": "onresistance",
+     "kind": "float",
+     "conditional": false
+    },
+    {
+     "field": "offresistance",
+     "kind": "float",
+     "conditional": false
+    },
+    {
+     "field": "breakdown",
+     "kind": "float",
+     "conditional": false
+    },
+    {
+     "field": "holdcurrent",
+     "kind": "string",
+     "conditional": false
+    }
+   ],
+   "xmlAttrs": [
+    {
+     "attr": "on",
+     "field": "onresistance",
+     "dumpExpr": "this.onresistance",
+     "kind": "float"
+    },
+    {
+     "attr": "of",
+     "field": "offresistance",
+     "dumpExpr": "this.offresistance",
+     "kind": "float"
+    },
+    {
+     "attr": "br",
+     "field": "breakdown",
+     "dumpExpr": "this.breakdown",
+     "kind": "float"
+    },
+    {
+     "attr": "ho",
+     "field": "holdcurrent",
+     "dumpExpr": "this.holdcurrent",
+     "kind": "float"
+    }
+   ],
+   "staticArity": 4,
+   "maxArity": 4
+  },
+  "SquareRailElm": {
+   "cls": "SquareRailElm",
+   "parent": "RailElm",
+   "file": "SquareRailElm.ts",
+   "txtType": null,
+   "xmlType": "SquareRail",
+   "xmlTypeDeclared": false,
+   "postCountExpr": null,
+   "traits": {},
+   "txtSlots": [],
+   "xmlAttrs": [],
+   "staticArity": 0,
+   "maxArity": 0
+  },
+  "SRAMElm": {
+   "cls": "SRAMElm",
+   "parent": "ChipElm",
+   "file": "SRAMElm.ts",
+   "txtType": 413,
+   "xmlType": "SRAM",
+   "xmlTypeDeclared": false,
+   "postCountExpr": "2 + this.addressBits + this.dataBits",
+   "traits": {},
+   "txtSlots": [
+    {
+     "field": "addressBits",
+     "kind": "int",
+     "conditional": false
+    },
+    {
+     "field": "dataBits",
+     "kind": "string",
+     "conditional": false
+    },
+    {
+     "field": "a_str",
+     "kind": "int",
+     "conditional": false
+    },
+    {
+     "field": "v",
+     "kind": "string",
+     "conditional": false
+    },
+    {
+     "field": null,
+     "kind": "string",
+     "conditional": false
+    }
+   ],
+   "xmlAttrs": [
+    {
+     "attr": "ab",
+     "field": "addressBits",
+     "dumpExpr": "this.addressBits",
+     "kind": "int"
+    },
+    {
+     "attr": "db",
+     "field": "dataBits",
+     "dumpExpr": "this.dataBits",
+     "kind": "int"
+    }
+   ],
+   "staticArity": 5,
+   "maxArity": 5
+  },
+  "StopTriggerElm": {
+   "cls": "StopTriggerElm",
+   "parent": "CircuitElm",
+   "file": "StopTriggerElm.ts",
+   "txtType": 408,
+   "xmlType": "StopTrigger",
+   "xmlTypeDeclared": false,
+   "postCountExpr": "1",
+   "traits": {},
+   "txtSlots": [
+    {
+     "field": "triggerVoltage",
+     "kind": "int",
+     "conditional": false
+    },
+    {
+     "field": "type",
+     "kind": "float",
+     "conditional": false
+    },
+    {
+     "field": "delay",
+     "kind": "string",
+     "conditional": false
+    }
+   ],
+   "xmlAttrs": [
+    {
+     "attr": "tv",
+     "field": "triggerVoltage",
+     "dumpExpr": "this.triggerVoltage",
+     "kind": "float"
+    },
+    {
+     "attr": "tp",
+     "field": "type",
+     "dumpExpr": "this.type",
+     "kind": "int"
+    },
+    {
+     "attr": "dl",
+     "field": "delay",
+     "dumpExpr": "this.delay",
+     "kind": "float"
+    },
+    {
+     "attr": "ct",
+     "field": "count",
+     "dumpExpr": "this.count",
+     "kind": "int"
+    },
+    {
+     "attr": "rd",
+     "field": "requiredDuration",
+     "dumpExpr": "this.requiredDuration",
+     "kind": "float"
+    }
+   ],
+   "staticArity": 3,
+   "maxArity": 3
+  },
+  "StringTokenizer": {
+   "cls": "StringTokenizer",
+   "parent": null,
+   "file": "StringTokenizer.ts",
+   "txtType": null,
+   "xmlType": "StringTokenizer",
+   "xmlTypeDeclared": false,
+   "postCountExpr": null,
+   "traits": {},
+   "txtSlots": [],
+   "xmlAttrs": [],
+   "staticArity": 0,
+   "maxArity": 0
+  },
+  "SubcircuitBar": {
+   "cls": "SubcircuitBar",
+   "parent": null,
+   "file": "SubcircuitBar.ts",
+   "txtType": null,
+   "xmlType": "SubcircuitBar",
+   "xmlTypeDeclared": false,
+   "postCountExpr": null,
+   "traits": {},
+   "txtSlots": [],
+   "xmlAttrs": [],
+   "staticArity": 0,
+   "maxArity": 0
+  },
+  "SubcircuitChipElm": {
+   "cls": "SubcircuitChipElm",
+   "parent": "ChipElm",
+   "file": "SubcircuitChipElm.ts",
+   "txtType": null,
+   "xmlType": "SubcircuitChip",
+   "xmlTypeDeclared": false,
+   "postCountExpr": "this.pins == null ? 1 : this.pins.length",
+   "traits": {},
+   "txtSlots": [],
+   "xmlAttrs": [],
+   "staticArity": 0,
+   "maxArity": 0
+  },
+  "SubcircuitDialog": {
+   "cls": "SubcircuitDialog",
+   "parent": "Dialog",
+   "file": "SubcircuitDialog.ts",
+   "txtType": null,
+   "xmlType": "SubcircuitDialog",
+   "xmlTypeDeclared": false,
+   "postCountExpr": null,
+   "traits": {},
+   "txtSlots": [],
+   "xmlAttrs": [],
+   "staticArity": 0,
+   "maxArity": 0
+  },
+  "SubcircuitElm": {
+   "cls": "SubcircuitElm",
+   "parent": "CompositeElm",
+   "file": "SubcircuitElm.ts",
+   "txtType": 410,
+   "xmlType": "cc",
+   "xmlTypeDeclared": true,
+   "postCountExpr": "this.postCount",
+   "traits": {},
+   "txtSlots": [
+    {
+     "field": "modelName",
+     "kind": "string",
+     "conditional": false
+    }
+   ],
+   "xmlAttrs": [
+    {
+     "attr": "mo",
+     "field": "modelName",
+     "dumpExpr": "this.modelName",
+     "kind": "string"
+    },
+    {
+     "attr": "hv",
+     "field": "highVoltage",
+     "dumpExpr": "this.highVoltage",
+     "kind": "float"
+    }
+   ],
+   "staticArity": 1,
+   "maxArity": 1
+  },
+  "SubcircuitModel": {
+   "cls": "SubcircuitModel",
+   "parent": null,
+   "file": "SubcircuitModel.ts",
+   "txtType": null,
+   "xmlType": "SubcircuitModel",
+   "xmlTypeDeclared": false,
+   "postCountExpr": null,
+   "traits": {},
+   "txtSlots": [],
+   "xmlAttrs": [],
+   "staticArity": 0,
+   "maxArity": 0
+  },
+  "SweepElm": {
+   "cls": "SweepElm",
+   "parent": "CircuitElm",
+   "file": "SweepElm.ts",
+   "txtType": 170,
+   "xmlType": "sw",
+   "xmlTypeDeclared": true,
+   "postCountExpr": "1",
+   "traits": {},
+   "txtSlots": [
+    {
+     "field": "minF",
+     "kind": "float",
+     "conditional": false
+    },
+    {
+     "field": "maxF",
+     "kind": "float",
+     "conditional": false
+    },
+    {
+     "field": "maxV",
+     "kind": "float",
+     "conditional": false
+    },
+    {
+     "field": "sweepTime",
+     "kind": "string",
+     "conditional": false
+    }
+   ],
+   "xmlAttrs": [
+    {
+     "attr": "mi",
+     "field": "minF",
+     "dumpExpr": "this.minF",
+     "kind": "float"
+    },
+    {
+     "attr": "ma",
+     "field": "maxF",
+     "dumpExpr": "this.maxF",
+     "kind": "float"
+    },
+    {
+     "attr": "mv",
+     "field": "maxV",
+     "dumpExpr": "this.maxV",
+     "kind": "float"
+    },
+    {
+     "attr": "sw",
+     "field": "sweepTime",
+     "dumpExpr": "this.sweepTime",
+     "kind": "float"
+    }
+   ],
+   "staticArity": 4,
+   "maxArity": 4
+  },
+  "Switch2Elm": {
+   "cls": "Switch2Elm",
+   "parent": "SwitchElm",
+   "file": "Switch2Elm.ts",
+   "txtType": 83,
+   "xmlType": "S",
+   "xmlTypeDeclared": false,
+   "postCountExpr": "1 + (this.throwCount ?? 0)",
+   "traits": {},
+   "txtSlots": [
+    {
+     "field": "link",
+     "kind": "string",
+     "conditional": false
+    },
+    {
+     "field": "throwCount",
+     "kind": "string",
+     "conditional": false
+    }
+   ],
+   "xmlAttrs": [
+    {
+     "attr": "li",
+     "field": "link",
+     "dumpExpr": "this.link",
+     "kind": "int"
+    },
+    {
+     "attr": "th",
+     "field": "throwCount",
+     "dumpExpr": "this.throwCount",
+     "kind": "int"
+    }
+   ],
+   "staticArity": 2,
+   "maxArity": 2
+  },
+  "SwitchElm": {
+   "cls": "SwitchElm",
+   "parent": "CircuitElm",
+   "file": "SwitchElm.ts",
+   "txtType": 115,
+   "xmlType": "s",
+   "xmlTypeDeclared": false,
+   "postCountExpr": null,
+   "traits": {},
+   "txtSlots": [
+    {
+     "field": "str",
+     "kind": "string",
+     "conditional": false
+    },
+    {
+     "field": "momentary",
+     "kind": "bool",
+     "conditional": false
+    },
+    {
+     "field": "label",
+     "kind": "string",
+     "conditional": true
+    }
+   ],
+   "xmlAttrs": [
+    {
+     "attr": "p",
+     "field": "position",
+     "dumpExpr": "this.position",
+     "kind": "int"
+    },
+    {
+     "attr": "mm",
+     "field": "momentary",
+     "dumpExpr": "this.momentary",
+     "kind": "bool"
+    },
+    {
+     "attr": "lab",
+     "field": "label",
+     "dumpExpr": "this.label",
+     "kind": "string"
+    },
+    {
+     "attr": "key",
+     "field": "keyShortcut",
+     "dumpExpr": "this.keyShortcut",
+     "kind": "string"
+    },
+    {
+     "attr": "r",
+     "field": "resistance",
+     "dumpExpr": "this.resistance",
+     "kind": "float"
+    }
+   ],
+   "staticArity": 2,
+   "maxArity": 3
+  },
+  "TappedTransformerElm": {
+   "cls": "TappedTransformerElm",
+   "parent": "CircuitElm",
+   "file": "TappedTransformerElm.ts",
+   "txtType": 169,
+   "xmlType": "tt",
+   "xmlTypeDeclared": true,
+   "postCountExpr": "5",
+   "traits": {},
+   "txtSlots": [
+    {
+     "field": "inductance",
+     "kind": "float",
+     "conditional": false
+    },
+    {
+     "field": "ratio",
+     "kind": "float",
+     "conditional": false
+    },
+    {
+     "field": null,
+     "kind": "float",
+     "conditional": false
+    },
+    {
+     "field": null,
+     "kind": "string",
+     "conditional": false
+    },
+    {
+     "field": null,
+     "kind": "string",
+     "conditional": false
+    },
+    {
+     "field": "couplingCoef",
+     "kind": "string",
+     "conditional": false
+    }
+   ],
+   "xmlAttrs": [
+    {
+     "attr": "in",
+     "field": "inductance",
+     "dumpExpr": "this.inductance",
+     "kind": "float"
+    },
+    {
+     "attr": "ra",
+     "field": "ratio",
+     "dumpExpr": "this.ratio",
+     "kind": "float"
+    },
+    {
+     "attr": "co",
+     "field": "couplingCoef",
+     "dumpExpr": "this.couplingCoef",
+     "kind": "float"
+    },
+    {
+     "attr": "c0",
+     "field": null,
+     "dumpExpr": null,
+     "kind": "float"
+    },
+    {
+     "attr": "c1",
+     "field": null,
+     "dumpExpr": null,
+     "kind": "float"
+    },
+    {
+     "attr": "c2",
+     "field": null,
+     "dumpExpr": null,
+     "kind": "float"
+    }
+   ],
+   "staticArity": 6,
+   "maxArity": 6
+  },
+  "TestPointElm": {
+   "cls": "TestPointElm",
+   "parent": "CircuitElm",
+   "file": "TestPointElm.ts",
+   "txtType": 368,
+   "xmlType": "TestPoint",
+   "xmlTypeDeclared": false,
+   "postCountExpr": "1",
+   "traits": {},
+   "txtSlots": [
+    {
+     "field": "meter",
+     "kind": "string",
+     "conditional": false
+    },
+    {
+     "field": "label",
+     "kind": "string",
+     "conditional": true
+    }
+   ],
+   "xmlAttrs": [
+    {
+     "attr": "me",
+     "field": "meter",
+     "dumpExpr": "this.meter",
+     "kind": "int"
+    },
+    {
+     "attr": "lb",
+     "field": "label",
+     "dumpExpr": "this.label",
+     "kind": "string"
+    }
+   ],
+   "staticArity": 1,
+   "maxArity": 2
+  },
+  "TextElm": {
+   "cls": "TextElm",
+   "parent": "GraphicElm",
+   "file": "TextElm.ts",
+   "txtType": 120,
+   "xmlType": "x",
+   "xmlTypeDeclared": false,
+   "postCountExpr": null,
+   "traits": {},
+   "txtSlots": [
+    {
+     "field": "size",
+     "kind": "string",
+     "conditional": false
+    },
+    {
+     "field": "text",
+     "kind": "string",
+     "conditional": false
+    },
+    {
+     "field": "text",
+     "kind": "string",
+     "conditional": false
+    }
+   ],
+   "xmlAttrs": [
+    {
+     "attr": "si",
+     "field": "size",
+     "dumpExpr": "this.size",
+     "kind": "int"
+    },
+    {
+     "attr": "te",
+     "field": "text",
+     "dumpExpr": "this.text",
+     "kind": "string"
+    },
+    {
+     "attr": "co",
+     "field": "color",
+     "dumpExpr": "this.color",
+     "kind": "string"
+    }
+   ],
+   "staticArity": 3,
+   "maxArity": 3
+  },
+  "TFlipFlopElm": {
+   "cls": "TFlipFlopElm",
+   "parent": "ChipElm",
+   "file": "TFlipFlopElm.ts",
+   "txtType": 193,
+   "xmlType": "TFlipFlop",
+   "xmlTypeDeclared": false,
+   "postCountExpr": "4 + (this.hasReset() ? 1 : 0) + (this.hasSet() ? 1 : 0)",
+   "traits": {},
+   "txtSlots": [],
+   "xmlAttrs": [],
+   "staticArity": 0,
+   "maxArity": 0
+  },
+  "ThermistorNTCElm": {
+   "cls": "ThermistorNTCElm",
+   "parent": "CircuitElm",
+   "file": "ThermistorNTCElm.ts",
+   "txtType": 350,
+   "xmlType": "ThermistorNTC",
+   "xmlTypeDeclared": false,
+   "postCountExpr": "2",
+   "traits": {},
+   "txtSlots": [
+    {
+     "field": "r25",
+     "kind": "float",
+     "conditional": false
+    },
+    {
+     "field": "r50",
+     "kind": "float",
+     "conditional": false
+    },
+    {
+     "field": "minTempr",
+     "kind": "float",
+     "conditional": false
+    },
+    {
+     "field": "maxTempr",
+     "kind": "float",
+     "conditional": false
+    },
+    {
+     "field": "position",
+     "kind": "string",
+     "conditional": false
+    },
+    {
+     "field": "sliderText",
+     "kind": "string",
+     "conditional": false
+    }
+   ],
+   "xmlAttrs": [
+    {
+     "attr": "r25",
+     "field": "r25",
+     "dumpExpr": "this.r25",
+     "kind": "float"
+    },
+    {
+     "attr": "r50",
+     "field": "r50",
+     "dumpExpr": "this.r50",
+     "kind": "float"
+    },
+    {
+     "attr": "mnt",
+     "field": "minTempr",
+     "dumpExpr": "this.minTempr",
+     "kind": "float"
+    },
+    {
+     "attr": "mxt",
+     "field": "maxTempr",
+     "dumpExpr": "this.maxTempr",
+     "kind": "float"
+    },
+    {
+     "attr": "ps",
+     "field": "position",
+     "dumpExpr": "this.position",
+     "kind": "float"
+    },
+    {
+     "attr": "st",
+     "field": "sliderText",
+     "dumpExpr": "this.sliderText",
+     "kind": "string"
+    }
+   ],
+   "staticArity": 6,
+   "maxArity": 6
+  },
+  "ThreePhaseMotorElm": {
+   "cls": "ThreePhaseMotorElm",
+   "parent": "CircuitElm",
+   "file": "ThreePhaseMotorElm.ts",
+   "txtType": 427,
+   "xmlType": "ThreePhaseMotor",
+   "xmlTypeDeclared": false,
+   "postCountExpr": "6",
+   "traits": {},
+   "txtSlots": [
+    {
+     "field": "Rs",
+     "kind": "float",
+     "conditional": false
+    },
+    {
+     "field": "Rr",
+     "kind": "float",
+     "conditional": false
+    },
+    {
+     "field": "Ls",
+     "kind": "float",
+     "conditional": false
+    },
+    {
+     "field": "Lr",
+     "kind": "float",
+     "conditional": false
+    },
+    {
+     "field": "Lm",
+     "kind": "float",
+     "conditional": false
+    },
+    {
+     "field": "b",
+     "kind": "float",
+     "conditional": false
+    },
+    {
+     "field": "J",
+     "kind": "string",
+     "conditional": false
+    }
+   ],
+   "xmlAttrs": [
+    {
+     "attr": "rs",
+     "field": "Rs",
+     "dumpExpr": "this.Rs",
+     "kind": "float"
+    },
+    {
+     "attr": "rr",
+     "field": "Rr",
+     "dumpExpr": "this.Rr",
+     "kind": "float"
+    },
+    {
+     "attr": "ls",
+     "field": "Ls",
+     "dumpExpr": "this.Ls",
+     "kind": "float"
+    },
+    {
+     "attr": "lr",
+     "field": "Lr",
+     "dumpExpr": "this.Lr",
+     "kind": "float"
+    },
+    {
+     "attr": "lm",
+     "field": "Lm",
+     "dumpExpr": "this.Lm",
+     "kind": "float"
+    },
+    {
+     "attr": "b",
+     "field": "b",
+     "dumpExpr": "this.b",
+     "kind": "float"
+    },
+    {
+     "attr": "j",
+     "field": "J",
+     "dumpExpr": "this.J",
+     "kind": "float"
+    }
+   ],
+   "staticArity": 7,
+   "maxArity": 7
+  },
+  "TimeDelayRelayElm": {
+   "cls": "TimeDelayRelayElm",
+   "parent": "ChipElm",
+   "file": "TimeDelayRelayElm.ts",
+   "txtType": 414,
+   "xmlType": "TimeDelayRelay",
+   "xmlTypeDeclared": false,
+   "postCountExpr": "4",
+   "traits": {},
+   "txtSlots": [
+    {
+     "field": "onDelay",
+     "kind": "float",
+     "conditional": false
+    },
+    {
+     "field": "offDelay",
+     "kind": "float",
+     "conditional": false
+    },
+    {
+     "field": "onResistance",
+     "kind": "float",
+     "conditional": false
+    },
+    {
+     "field": "resistance",
+     "kind": "string",
+     "conditional": false
+    }
+   ],
+   "xmlAttrs": [
+    {
+     "attr": "ond",
+     "field": "onDelay",
+     "dumpExpr": "this.onDelay",
+     "kind": "float"
+    },
+    {
+     "attr": "ofd",
+     "field": "offDelay",
+     "dumpExpr": "this.offDelay",
+     "kind": "float"
+    },
+    {
+     "attr": "onr",
+     "field": "onResistance",
+     "dumpExpr": "this.onResistance",
+     "kind": "float"
+    },
+    {
+     "attr": "ofr",
+     "field": "offResistance",
+     "dumpExpr": "this.offResistance",
+     "kind": "float"
+    }
+   ],
+   "staticArity": 4,
+   "maxArity": 4
+  },
+  "TimerElm": {
+   "cls": "TimerElm",
+   "parent": "ChipElm",
+   "file": "TimerElm.ts",
+   "txtType": 165,
+   "xmlType": "Timer",
+   "xmlTypeDeclared": false,
+   "postCountExpr": "this.hasGroundPin() ? 8 : this.hasReset() ? 7 : 6",
+   "traits": {},
+   "txtSlots": [],
+   "xmlAttrs": [],
+   "staticArity": 0,
+   "maxArity": 0
+  },
+  "Toolbar": {
+   "cls": "Toolbar",
+   "parent": null,
+   "file": "Toolbar.ts",
+   "txtType": null,
+   "xmlType": "Toolbar",
+   "xmlTypeDeclared": false,
+   "postCountExpr": null,
+   "traits": {},
+   "txtSlots": [],
+   "xmlAttrs": [],
+   "staticArity": 0,
+   "maxArity": 0
+  },
+  "TransformerElm": {
+   "cls": "TransformerElm",
+   "parent": "CircuitElm",
+   "file": "TransformerElm.ts",
+   "txtType": 84,
+   "xmlType": "T",
+   "xmlTypeDeclared": false,
+   "postCountExpr": "4",
+   "traits": {},
+   "txtSlots": [
+    {
+     "field": "inductance",
+     "kind": "float",
+     "conditional": false
+    },
+    {
+     "field": "ratio",
+     "kind": "string",
+     "conditional": false
+    },
+    {
+     "field": null,
+     "kind": "float",
+     "conditional": false
+    },
+    {
+     "field": null,
+     "kind": "string",
+     "conditional": false
+    },
+    {
+     "field": "couplingCoef",
+     "kind": "float",
+     "conditional": false
+    },
+    {
+     "field": "saturationCurrent",
+     "kind": "string",
+     "conditional": false
+    }
+   ],
+   "xmlAttrs": [
+    {
+     "attr": "in",
+     "field": "inductance",
+     "dumpExpr": "this.inductance",
+     "kind": "float"
+    },
+    {
+     "attr": "ra",
+     "field": "ratio",
+     "dumpExpr": "this.ratio",
+     "kind": "float"
+    },
+    {
+     "attr": "co",
+     "field": "couplingCoef",
+     "dumpExpr": "this.couplingCoef",
+     "kind": "float"
+    },
+    {
+     "attr": "wi",
+     "field": "width",
+     "dumpExpr": "this.width",
+     "kind": "int"
+    },
+    {
+     "attr": "isat",
+     "field": "saturationCurrent",
+     "dumpExpr": "this.saturationCurrent",
+     "kind": "float"
+    },
+    {
+     "attr": "c0",
+     "field": null,
+     "dumpExpr": null,
+     "kind": "float"
+    },
+    {
+     "attr": "c1",
+     "field": null,
+     "dumpExpr": null,
+     "kind": "float"
+    }
+   ],
+   "staticArity": 6,
+   "maxArity": 6
+  },
+  "TransistorElm": {
+   "cls": "TransistorElm",
+   "parent": "CircuitElm",
+   "file": "TransistorElm.ts",
+   "txtType": 116,
+   "xmlType": "t",
+   "xmlTypeDeclared": false,
+   "postCountExpr": "3",
+   "traits": {},
+   "txtSlots": [
+    {
+     "field": "pnp",
+     "kind": "string",
+     "conditional": false
+    },
+    {
+     "field": "lastvbc",
+     "kind": "float",
+     "conditional": false
+    },
+    {
+     "field": "lastvbe",
+     "kind": "string",
+     "conditional": false
+    },
+    {
+     "field": "beta",
+     "kind": "string",
+     "conditional": false
+    },
+    {
+     "field": "modelName",
+     "kind": "string",
+     "conditional": false
+    }
+   ],
+   "xmlAttrs": [
+    {
+     "attr": "pn",
+     "field": "pnp",
+     "dumpExpr": "this.pnp",
+     "kind": "int"
+    },
+    {
+     "attr": "be",
+     "field": "beta",
+     "dumpExpr": "this.beta",
+     "kind": "float"
+    },
+    {
+     "attr": "mo",
+     "field": "modelName",
+     "dumpExpr": "this.modelName",
+     "kind": "string"
+    },
+    {
+     "attr": "vBE",
+     "field": null,
+     "dumpExpr": null,
+     "kind": "float"
+    },
+    {
+     "attr": "vBC",
+     "field": null,
+     "dumpExpr": null,
+     "kind": "float"
+    },
+    {
+     "attr": "vbe",
+     "field": null,
+     "dumpExpr": null,
+     "kind": "float"
+    },
+    {
+     "attr": "vbc",
+     "field": null,
+     "dumpExpr": null,
+     "kind": "float"
+    }
+   ],
+   "staticArity": 5,
+   "maxArity": 5
+  },
+  "NTransistorElm": {
+   "cls": "NTransistorElm",
+   "parent": "TransistorElm",
+   "file": "TransistorElm.ts",
+   "txtType": null,
+   "xmlType": "NTransistor",
+   "xmlTypeDeclared": false,
+   "postCountExpr": null,
+   "traits": {},
+   "txtSlots": [],
+   "xmlAttrs": [],
+   "staticArity": 0,
+   "maxArity": 0
+  },
+  "PTransistorElm": {
+   "cls": "PTransistorElm",
+   "parent": "TransistorElm",
+   "file": "TransistorElm.ts",
+   "txtType": null,
+   "xmlType": "PTransistor",
+   "xmlTypeDeclared": false,
+   "postCountExpr": null,
+   "traits": {},
+   "txtSlots": [],
+   "xmlAttrs": [],
+   "staticArity": 0,
+   "maxArity": 0
+  },
+  "TransistorModel": {
+   "cls": "TransistorModel",
+   "parent": null,
+   "file": "TransistorModel.ts",
+   "txtType": null,
+   "xmlType": "TransistorModel",
+   "xmlTypeDeclared": false,
+   "postCountExpr": null,
+   "traits": {},
+   "txtSlots": [],
+   "xmlAttrs": [
+    {
+     "attr": "nm",
+     "field": "name",
+     "dumpExpr": "this.name",
+     "kind": null
+    },
+    {
+     "attr": "f",
+     "field": "flags",
+     "dumpExpr": "this.flags",
+     "kind": "int"
+    },
+    {
+     "attr": "is",
+     "field": "satCur",
+     "dumpExpr": "this.satCur",
+     "kind": "float"
+    },
+    {
+     "attr": "ikf",
+     "field": "invRollOffF",
+     "dumpExpr": "this.invRollOffF",
+     "kind": "float"
+    },
+    {
+     "attr": "ise",
+     "field": "BEleakCur",
+     "dumpExpr": "this.BEleakCur",
+     "kind": "float"
+    },
+    {
+     "attr": "ne",
+     "field": "leakBEemissionCoeff",
+     "dumpExpr": "this.leakBEemissionCoeff",
+     "kind": "float"
+    },
+    {
+     "attr": "ikr",
+     "field": "invRollOffR",
+     "dumpExpr": "this.invRollOffR",
+     "kind": "float"
+    },
+    {
+     "attr": "isc",
+     "field": "BCleakCur",
+     "dumpExpr": "this.BCleakCur",
+     "kind": "float"
+    },
+    {
+     "attr": "nc",
+     "field": "leakBCemissionCoeff",
+     "dumpExpr": "this.leakBCemissionCoeff",
+     "kind": "float"
+    },
+    {
+     "attr": "nf",
+     "field": "emissionCoeffF",
+     "dumpExpr": "this.emissionCoeffF",
+     "kind": "float"
+    },
+    {
+     "attr": "nr",
+     "field": "emissionCoeffR",
+     "dumpExpr": "this.emissionCoeffR",
+     "kind": "float"
+    },
+    {
+     "attr": "vaf",
+     "field": "invEarlyVoltF",
+     "dumpExpr": "this.invEarlyVoltF",
+     "kind": "float"
+    },
+    {
+     "attr": "var",
+     "field": "invEarlyVoltR",
+     "dumpExpr": "this.invEarlyVoltR",
+     "kind": "float"
+    },
+    {
+     "attr": "br",
+     "field": "betaR",
+     "dumpExpr": "this.betaR",
+     "kind": "float"
+    },
+    {
+     "attr": "cje",
+     "field": "junctionCapBE",
+     "dumpExpr": "this.junctionCapBE",
+     "kind": "float"
+    },
+    {
+     "attr": "vje",
+     "field": "junctionPotBE",
+     "dumpExpr": "this.junctionPotBE",
+     "kind": "float"
+    },
+    {
+     "attr": "mje",
+     "field": "junctionExpBE",
+     "dumpExpr": "this.junctionExpBE",
+     "kind": "float"
+    },
+    {
+     "attr": "cjc",
+     "field": "junctionCapBC",
+     "dumpExpr": "this.junctionCapBC",
+     "kind": "float"
+    },
+    {
+     "attr": "vjc",
+     "field": "junctionPotBC",
+     "dumpExpr": "this.junctionPotBC",
+     "kind": "float"
+    },
+    {
+     "attr": "mjc",
+     "field": "junctionExpBC",
+     "dumpExpr": "this.junctionExpBC",
+     "kind": "float"
+    },
+    {
+     "attr": "tf",
+     "field": "transitTimeF",
+     "dumpExpr": "this.transitTimeF",
+     "kind": "float"
+    },
+    {
+     "attr": "tr",
+     "field": "transitTimeR",
+     "dumpExpr": "this.transitTimeR",
+     "kind": "float"
+    }
+   ],
+   "staticArity": 0,
+   "maxArity": 0
+  },
+  "TransLineElm": {
+   "cls": "TransLineElm",
+   "parent": "CircuitElm",
+   "file": "TransLineElm.ts",
+   "txtType": 171,
+   "xmlType": "tl",
+   "xmlTypeDeclared": true,
+   "postCountExpr": "4",
+   "traits": {},
+   "txtSlots": [
+    {
+     "field": "delay",
+     "kind": "float",
+     "conditional": false
+    },
+    {
+     "field": "imped",
+     "kind": "int",
+     "conditional": false
+    },
+    {
+     "field": "width",
+     "kind": "string",
+     "conditional": false
+    },
+    {
+     "field": null,
+     "kind": "string",
+     "conditional": false
+    }
+   ],
+   "xmlAttrs": [
+    {
+     "attr": "de",
+     "field": "delay",
+     "dumpExpr": "this.delay",
+     "kind": "float"
+    },
+    {
+     "attr": "im",
+     "field": "imped",
+     "dumpExpr": "this.imped",
+     "kind": "float"
+    },
+    {
+     "attr": "wi",
+     "field": "width",
+     "dumpExpr": "this.width",
+     "kind": "int"
+    }
+   ],
+   "staticArity": 4,
+   "maxArity": 4
+  },
+  "TriacElm": {
+   "cls": "TriacElm",
+   "parent": "CircuitElm",
+   "file": "TriacElm.ts",
+   "txtType": 206,
+   "xmlType": "Triac",
+   "xmlTypeDeclared": false,
+   "postCountExpr": "3",
+   "traits": {},
+   "txtSlots": [
+    {
+     "field": "triggerI",
+     "kind": "float",
+     "conditional": false
+    },
+    {
+     "field": "holdingI",
+     "kind": "float",
+     "conditional": false
+    },
+    {
+     "field": "cresistance",
+     "kind": "string",
+     "conditional": false
+    },
+    {
+     "field": "state",
+     "kind": "string",
+     "conditional": false
+    }
+   ],
+   "xmlAttrs": [
+    {
+     "attr": "ti",
+     "field": "triggerI",
+     "dumpExpr": "this.triggerI",
+     "kind": "float"
+    },
+    {
+     "attr": "hi",
+     "field": "holdingI",
+     "dumpExpr": "this.holdingI",
+     "kind": "float"
+    },
+    {
+     "attr": "cr",
+     "field": "cresistance",
+     "dumpExpr": "this.cresistance",
+     "kind": "float"
+    },
+    {
+     "attr": "st",
+     "field": null,
+     "dumpExpr": null,
+     "kind": "bool"
+    }
+   ],
+   "staticArity": 4,
+   "maxArity": 4
+  },
+  "TriodeElm": {
+   "cls": "TriodeElm",
+   "parent": "CircuitElm",
+   "file": "TriodeElm.ts",
+   "txtType": 173,
+   "xmlType": "Triode",
+   "xmlTypeDeclared": false,
+   "postCountExpr": "3",
+   "traits": {},
+   "txtSlots": [
+    {
+     "field": "mu",
+     "kind": "float",
+     "conditional": false
+    },
+    {
+     "field": "kg1",
+     "kind": "string",
+     "conditional": false
+    }
+   ],
+   "xmlAttrs": [
+    {
+     "attr": "mu",
+     "field": "mu",
+     "dumpExpr": "this.mu",
+     "kind": "float"
+    },
+    {
+     "attr": "kg",
+     "field": "kg1",
+     "dumpExpr": "this.kg1",
+     "kind": "float"
+    }
+   ],
+   "staticArity": 2,
+   "maxArity": 2
+  },
+  "TriStateElm": {
+   "cls": "TriStateElm",
+   "parent": "CircuitElm",
+   "file": "TriStateElm.ts",
+   "txtType": 180,
+   "xmlType": "ts",
+   "xmlTypeDeclared": true,
+   "postCountExpr": "2 * this.busWidth + 1",
+   "traits": {},
+   "txtSlots": [
+    {
+     "field": "r_on",
+     "kind": "float",
+     "conditional": false
+    },
+    {
+     "field": "r_off",
+     "kind": "float",
+     "conditional": false
+    },
+    {
+     "field": "r_off_ground",
+     "kind": "float",
+     "conditional": false
+    },
+    {
+     "field": "highVoltage",
+     "kind": "string",
+     "conditional": false
+    }
+   ],
+   "xmlAttrs": [
+    {
+     "attr": "ron",
+     "field": "r_on",
+     "dumpExpr": "this.r_on",
+     "kind": "float"
+    },
+    {
+     "attr": "roff",
+     "field": "r_off",
+     "dumpExpr": "this.r_off",
+     "kind": "float"
+    },
+    {
+     "attr": "rog",
+     "field": "r_off_ground",
+     "dumpExpr": "this.r_off_ground",
+     "kind": "float"
+    },
+    {
+     "attr": "hi",
+     "field": "highVoltage",
+     "dumpExpr": "this.highVoltage",
+     "kind": "float"
+    },
+    {
+     "attr": "bw",
+     "field": "busWidth",
+     "dumpExpr": "this.busWidth",
+     "kind": "int"
+    }
+   ],
+   "staticArity": 4,
+   "maxArity": 4
+  },
+  "TunnelDiodeElm": {
+   "cls": "TunnelDiodeElm",
+   "parent": "CircuitElm",
+   "file": "TunnelDiodeElm.ts",
+   "txtType": 175,
+   "xmlType": "TunnelDiode",
+   "xmlTypeDeclared": false,
+   "postCountExpr": null,
+   "traits": {},
+   "txtSlots": [],
+   "xmlAttrs": [],
+   "staticArity": 0,
+   "maxArity": 0
+  },
+  "TypeScrollPopup": {
+   "cls": "TypeScrollPopup",
+   "parent": null,
+   "file": "TypeScrollPopup.ts",
+   "txtType": null,
+   "xmlType": "TypeScrollPopup",
+   "xmlTypeDeclared": false,
+   "postCountExpr": null,
+   "traits": {},
+   "txtSlots": [],
+   "xmlAttrs": [],
+   "staticArity": 0,
+   "maxArity": 0
+  },
+  "Scrollbar": {
+   "cls": "Scrollbar",
+   "parent": null,
+   "file": "UIManager.ts",
+   "txtType": null,
+   "xmlType": "Scrollbar",
+   "xmlTypeDeclared": false,
+   "postCountExpr": null,
+   "traits": {},
+   "txtSlots": [],
+   "xmlAttrs": [],
+   "staticArity": 0,
+   "maxArity": 0
+  },
+  "UIManager": {
+   "cls": "UIManager",
+   "parent": null,
+   "file": "UIManager.ts",
+   "txtType": null,
+   "xmlType": "UIManager",
+   "xmlTypeDeclared": false,
+   "postCountExpr": null,
+   "traits": {},
+   "txtSlots": [],
+   "xmlAttrs": [],
+   "staticArity": 0,
+   "maxArity": 0
+  },
+  "UndoManager": {
+   "cls": "UndoManager",
+   "parent": null,
+   "file": "UndoManager.ts",
+   "txtType": null,
+   "xmlType": "UndoManager",
+   "xmlTypeDeclared": false,
+   "postCountExpr": null,
+   "traits": {},
+   "txtSlots": [],
+   "xmlAttrs": [],
+   "staticArity": 0,
+   "maxArity": 0
+  },
+  "UnijunctionElm": {
+   "cls": "UnijunctionElm",
+   "parent": "CompositeElm",
+   "file": "UnijunctionElm.ts",
+   "txtType": 417,
+   "xmlType": "Unijunction",
+   "xmlTypeDeclared": false,
+   "postCountExpr": "3",
+   "traits": {},
+   "txtSlots": [],
+   "xmlAttrs": [],
+   "staticArity": 0,
+   "maxArity": 0
+  },
+  "VaractorElm": {
+   "cls": "VaractorElm",
+   "parent": "DiodeElm",
+   "file": "VaractorElm.ts",
+   "txtType": 176,
+   "xmlType": "Varactor",
+   "xmlTypeDeclared": false,
+   "postCountExpr": null,
+   "traits": {},
+   "txtSlots": [
+    {
+     "field": "capvoltdiff",
+     "kind": "float",
+     "conditional": false
+    },
+    {
+     "field": "baseCapacitance",
+     "kind": "string",
+     "conditional": false
+    }
+   ],
+   "xmlAttrs": [
+    {
+     "attr": "ca",
+     "field": "capvoltdiff",
+     "dumpExpr": "this.capvoltdiff",
+     "kind": "float"
+    },
+    {
+     "attr": "ba",
+     "field": "baseCapacitance",
+     "dumpExpr": "this.baseCapacitance",
+     "kind": "float"
+    }
+   ],
+   "staticArity": 2,
+   "maxArity": 2
+  },
+  "VarRailElm": {
+   "cls": "VarRailElm",
+   "parent": "RailElm",
+   "file": "VarRailElm.ts",
+   "txtType": 172,
+   "xmlType": "VarRail",
+   "xmlTypeDeclared": false,
+   "postCountExpr": null,
+   "traits": {},
+   "txtSlots": [
+    {
+     "field": "text",
+     "kind": "string",
+     "conditional": false
+    },
+    {
+     "field": null,
+     "kind": "string",
+     "conditional": false
+    }
+   ],
+   "xmlAttrs": [
+    {
+     "attr": "st",
+     "field": "sliderText",
+     "dumpExpr": "this.sliderText",
+     "kind": "string"
+    }
+   ],
+   "staticArity": 2,
+   "maxArity": 2
+  },
+  "VCCSElm": {
+   "cls": "VCCSElm",
+   "parent": "ChipElm",
+   "file": "VCCSElm.ts",
+   "txtType": 213,
+   "xmlType": "VCCS",
+   "xmlTypeDeclared": false,
+   "postCountExpr": "this.inputCount + 2",
+   "traits": {},
+   "txtSlots": [
+    {
+     "field": "inputCount",
+     "kind": "string",
+     "conditional": false
+    },
+    {
+     "field": "exprString",
+     "kind": "string",
+     "conditional": false
+    }
+   ],
+   "xmlAttrs": [
+    {
+     "attr": "ic",
+     "field": "inputCount",
+     "dumpExpr": "this.inputCount",
+     "kind": "int"
+    },
+    {
+     "attr": "ex",
+     "field": "exprString",
+     "dumpExpr": "this.exprString",
+     "kind": "string"
+    }
+   ],
+   "staticArity": 2,
+   "maxArity": 2
+  },
+  "VCOElm": {
+   "cls": "VCOElm",
+   "parent": "ChipElm",
+   "file": "VCOElm.ts",
+   "txtType": 158,
+   "xmlType": "VCO",
+   "xmlTypeDeclared": false,
+   "postCountExpr": "6",
+   "traits": {},
+   "txtSlots": [],
+   "xmlAttrs": [],
+   "staticArity": 0,
+   "maxArity": 0
+  },
+  "VCVSElm": {
+   "cls": "VCVSElm",
+   "parent": "VCCSElm",
+   "file": "VCVSElm.ts",
+   "txtType": 212,
+   "xmlType": "VCVS",
+   "xmlTypeDeclared": false,
+   "postCountExpr": "this.inputCount + 2",
+   "traits": {},
+   "txtSlots": [],
+   "xmlAttrs": [],
+   "staticArity": 0,
+   "maxArity": 0
+  },
+  "VoltageElm": {
+   "cls": "VoltageElm",
+   "parent": "CircuitElm",
+   "file": "VoltageElm.ts",
+   "txtType": 118,
+   "xmlType": "v",
+   "xmlTypeDeclared": false,
+   "postCountExpr": null,
+   "traits": {
+    "isVoltageElm": true
+   },
+   "txtSlots": [
+    {
+     "field": "waveform",
+     "kind": "float",
+     "conditional": false
+    },
+    {
+     "field": "frequency",
+     "kind": "float",
+     "conditional": false
+    },
+    {
+     "field": "maxVoltage",
+     "kind": "float",
+     "conditional": false
+    },
+    {
+     "field": "bias",
+     "kind": "float",
+     "conditional": false
+    },
+    {
+     "field": "phaseShift",
+     "kind": "float",
+     "conditional": false
+    },
+    {
+     "field": "dutyCycle",
+     "kind": "string",
+     "conditional": false
+    }
+   ],
+   "xmlAttrs": [
+    {
+     "attr": "wf",
+     "field": "waveform",
+     "dumpExpr": "this.waveform",
+     "kind": "int"
+    },
+    {
+     "attr": "fr",
+     "field": "frequency",
+     "dumpExpr": "this.frequency",
+     "kind": "float"
+    },
+    {
+     "attr": "maxv",
+     "field": "maxVoltage",
+     "dumpExpr": "this.maxVoltage",
+     "kind": "float"
+    },
+    {
+     "attr": "bias",
+     "field": "bias",
+     "dumpExpr": "this.bias",
+     "kind": "float"
+    },
+    {
+     "attr": "phaseShift",
+     "field": "phaseShift",
+     "dumpExpr": "this.phaseShift",
+     "kind": "float"
+    },
+    {
+     "attr": "dutyCycle",
+     "field": "dutyCycle",
+     "dumpExpr": "this.dutyCycle",
+     "kind": "float"
+    },
+    {
+     "attr": "riseTime",
+     "field": "riseTime",
+     "dumpExpr": "this.riseTime",
+     "kind": "float"
+    },
+    {
+     "attr": "ir",
+     "field": "internalResistance",
+     "dumpExpr": "this.internalResistance",
+     "kind": "float"
+    }
+   ],
+   "staticArity": 6,
+   "maxArity": 6
+  },
+  "VoltageSource": {
+   "cls": "VoltageSource",
+   "parent": null,
+   "file": "VoltageSource.ts",
+   "txtType": null,
+   "xmlType": "VoltageSource",
+   "xmlTypeDeclared": false,
+   "postCountExpr": null,
+   "traits": {},
+   "txtSlots": [],
+   "xmlAttrs": [],
+   "staticArity": 0,
+   "maxArity": 0
+  },
+  "WattmeterElm": {
+   "cls": "WattmeterElm",
+   "parent": "CircuitElm",
+   "file": "WattmeterElm.ts",
+   "txtType": 420,
+   "xmlType": "Wattmeter",
+   "xmlTypeDeclared": false,
+   "postCountExpr": "4",
+   "traits": {},
+   "txtSlots": [
+    {
+     "field": "width",
+     "kind": "int",
+     "conditional": false
+    },
+    {
+     "field": "meter",
+     "kind": "string",
+     "conditional": false
+    }
+   ],
+   "xmlAttrs": [
+    {
+     "attr": "w",
+     "field": "width",
+     "dumpExpr": "this.width",
+     "kind": "int"
+    },
+    {
+     "attr": "meter",
+     "field": "meter",
+     "dumpExpr": "this.meter",
+     "kind": "int"
+    }
+   ],
+   "staticArity": 2,
+   "maxArity": 2
+  },
+  "WattmeterTrueElm": {
+   "cls": "WattmeterTrueElm",
+   "parent": "CircuitElm",
+   "file": "WattmeterTrueElm.ts",
+   "txtType": null,
+   "xmlType": "WattmeterTrue",
+   "xmlTypeDeclared": false,
+   "postCountExpr": "4",
+   "traits": {},
+   "txtSlots": [],
+   "xmlAttrs": [
+    {
+     "attr": "w",
+     "field": "width",
+     "dumpExpr": "this.width",
+     "kind": "int"
+    },
+    {
+     "attr": "meter",
+     "field": "meter",
+     "dumpExpr": "this.meter",
+     "kind": "int"
+    }
+   ],
+   "staticArity": 0,
+   "maxArity": 0
+  },
+  "WireConverter": {
+   "cls": "WireConverter",
+   "parent": null,
+   "file": "WireConverter.ts",
+   "txtType": null,
+   "xmlType": "WireConverter",
+   "xmlTypeDeclared": false,
+   "postCountExpr": null,
+   "traits": {},
+   "txtSlots": [],
+   "xmlAttrs": [],
+   "staticArity": 0,
+   "maxArity": 0
+  },
+  "WireElm": {
+   "cls": "WireElm",
+   "parent": "CircuitElm",
+   "file": "WireElm.ts",
+   "txtType": 119,
+   "xmlType": "w",
+   "xmlTypeDeclared": false,
+   "postCountExpr": "(this.busWidth ?? 1) * 2",
+   "traits": {
+    "isRemovableWire": true,
+    "isWireElm": true
+   },
+   "txtSlots": [],
+   "xmlAttrs": [],
+   "staticArity": 0,
+   "maxArity": 0
+  },
+  "WireRouter": {
+   "cls": "WireRouter",
+   "parent": null,
+   "file": "WireRouter.ts",
+   "txtType": null,
+   "xmlType": "WireRouter",
+   "xmlTypeDeclared": false,
+   "postCountExpr": null,
+   "traits": {},
+   "txtSlots": [],
+   "xmlAttrs": [],
+   "staticArity": 0,
+   "maxArity": 0
+  },
+  "ZenerElm": {
+   "cls": "ZenerElm",
+   "parent": "DiodeElm",
+   "file": "ZenerElm.ts",
+   "txtType": 122,
+   "xmlType": "z",
+   "xmlTypeDeclared": false,
+   "postCountExpr": null,
+   "traits": {},
+   "txtSlots": [
+    {
+     "field": "zvoltage",
+     "kind": "string",
+     "conditional": false
+    }
+   ],
+   "xmlAttrs": [],
+   "staticArity": 1,
+   "maxArity": 1
+  }
+ },
+ "byTxtType": {
+  "65": "AntennaElm",
+  "73": "InverterElm",
+  "76": "LogicInputElm",
+  "77": "LogicOutputElm",
+  "79": "OutputElm",
+  "82": "RailElm",
+  "83": "Switch2Elm",
+  "84": "TransformerElm",
+  "97": "OpAmpElm",
+  "98": "BoxElm",
+  "99": "CapacitorElm",
+  "100": "DiodeElm",
+  "102": "MosfetElm",
+  "103": "GroundElm",
+  "105": "CurrentElm",
+  "106": "JfetElm",
+  "108": "InductorElm",
+  "109": "MemristorElm",
+  "112": "ProbeElm",
+  "114": "ResistorElm",
+  "115": "SwitchElm",
+  "116": "TransistorElm",
+  "118": "VoltageElm",
+  "119": "WireElm",
+  "120": "TextElm",
+  "122": "ZenerElm",
+  "150": "AndGateElm",
+  "151": "NandGateElm",
+  "152": "OrGateElm",
+  "153": "NorGateElm",
+  "154": "XorGateElm",
+  "155": "DFlipFlopElm",
+  "156": "JKFlipFlopElm",
+  "157": "SevenSegElm",
+  "158": "VCOElm",
+  "159": "AnalogSwitchElm",
+  "160": "AnalogSwitch2Elm",
+  "161": "PhaseCompElm",
+  "162": "LEDElm",
+  "163": "RingCounterElm",
+  "164": "CounterElm",
+  "165": "TimerElm",
+  "166": "DACElm",
+  "167": "ADCElm",
+  "168": "LatchElm",
+  "169": "TappedTransformerElm",
+  "170": "SweepElm",
+  "171": "TransLineElm",
+  "172": "VarRailElm",
+  "173": "TriodeElm",
+  "174": "PotElm",
+  "175": "TunnelDiodeElm",
+  "176": "VaractorElm",
+  "177": "SCRElm",
+  "178": "RelayElm",
+  "179": "CC2Elm",
+  "180": "TriStateElm",
+  "181": "LampElm",
+  "182": "SchmittElm",
+  "183": "InvertingSchmittElm",
+  "184": "MultiplexerElm",
+  "185": "DeMultiplexerElm",
+  "186": "PisoShiftElm",
+  "187": "SparkGapElm",
+  "188": "SeqGenElm",
+  "189": "SipoShiftElm",
+  "193": "TFlipFlopElm",
+  "194": "MonostableElm",
+  "195": "HalfAdderElm",
+  "196": "FullAdderElm",
+  "197": "SevenSegDecoderElm",
+  "200": "AMElm",
+  "201": "FMElm",
+  "203": "DiacElm",
+  "206": "TriacElm",
+  "207": "LabeledNodeElm",
+  "208": "CustomLogicElm",
+  "209": "PolarCapacitorElm",
+  "210": "DataRecorderElm",
+  "211": "AudioOutputElm",
+  "212": "VCVSElm",
+  "213": "VCCSElm",
+  "214": "CCVSElm",
+  "215": "CCCSElm",
+  "216": "OhmMeterElm",
+  "350": "ThermistorNTCElm",
+  "368": "TestPointElm",
+  "370": "AmmeterElm",
+  "374": "LDRElm",
+  "400": "DarlingtonElm",
+  "401": "ComparatorElm",
+  "402": "OTAElm",
+  "403": "ScopeElm",
+  "404": "FuseElm",
+  "405": "LEDArrayElm",
+  "406": "CustomTransformerElm",
+  "407": "OptocouplerElm",
+  "408": "StopTriggerElm",
+  "409": "OpAmpRealElm",
+  "410": "SubcircuitElm",
+  "411": "AudioInputElm",
+  "412": "CrystalElm",
+  "413": "SRAMElm",
+  "414": "TimeDelayRelayElm",
+  "415": "DCMotorElm",
+  "416": "MBBSwitchElm",
+  "417": "UnijunctionElm",
+  "418": "ExtVoltageElm",
+  "419": "DecimalDisplayElm",
+  "420": "WattmeterElm",
+  "421": "Counter2Elm",
+  "422": "DelayBufferElm",
+  "423": "LineElm",
+  "424": "DataInputElm",
+  "425": "RelayCoilElm",
+  "426": "RelayContactElm",
+  "427": "ThreePhaseMotorElm",
+  "428": "MotorProtectionSwitchElm",
+  "429": "DPDTSwitchElm",
+  "430": "CrossSwitchElm",
+  "431": "XnorGateElm",
+  "432": "AnalogMuxElm",
+  "433": "BusSplitterElm",
+  "436": "ROMElm"
+ },
+ "byXmlType": {
+  "AboutBox": "AboutBox",
+  "ACRail": "ACRailElm",
+  "ACVoltage": "ACVoltageElm",
+  "ADC": "ADCElm",
+  "Adjustable": "Adjustable",
+  "AM": "AMElm",
+  "Ammeter": "AmmeterElm",
+  "AnalogMux": "AnalogMuxElm",
+  "as2": "AnalogSwitch2Elm",
+  "as": "AnalogSwitchElm",
+  "A": "AntennaElm",
+  "ain": "AudioInputElm",
+  "aout": "AudioOutputElm",
+  "Battery": "BatteryElm",
+  "b": "BoxElm",
+  "bli": "BusLogicInputElm",
+  "bs": "BusSplitterElm",
+  "BusTransceiver": "BusTransceiverElm",
+  "c": "CapacitorElm",
+  "CC2": "CC2Elm",
+  "CC2Neg": "CC2NegElm",
+  "CCCS": "CCCSElm",
+  "CCVS": "CCVSElm",
+  "Checkbox": "Checkbox",
+  "Pin": "Pin",
+  "Chip": "ChipElm",
+  "Choice": "Choice",
+  "Circuit": "CircuitElm",
+  "CircuitLoader": "CircuitLoader",
+  "CircuitMatrix": "CircuitMatrix",
+  "CircuitNode": "CircuitNode",
+  "CircuitNodeLink": "CircuitNodeLink",
+  "CircuitXMLDeserializer": "CircuitXMLDeserializer",
+  "CircuitXMLSerializer": "CircuitXMLSerializer",
+  "CirSim": "CirSim",
+  "CircuitContext": "CircuitContext",
+  "Clock": "ClockElm",
+  "Color": "Color",
+  "CommandManager": "CommandManager",
+  "CommandPalette": "CommandPalette",
+  "CommandPaletteHistory": "CommandPaletteHistory",
+  "PaletteCommand": "PaletteCommand",
+  "CommandPaletteRegistry": "CommandPaletteRegistry",
+  "Comparator": "ComparatorElm",
+  "Composite": "CompositeElm",
+  "VoltageSourceRecord": "VoltageSourceRecord",
+  "ci": "ControlledCurrentElm",
+  "ControlledSource": "ControlledSourceElm",
+  "cv": "ControlledVoltageElm",
+  "ctr2": "Counter2Elm",
+  "ctr": "CounterElm",
+  "CrossSwitch": "CrossSwitchElm",
+  "cr": "CrystalElm",
+  "i": "CurrentElm",
+  "cl": "CustomLogicElm",
+  "CustomLogicModel": "CustomLogicModel",
+  "CustomTransformer": "CustomTransformerElm",
+  "DAC": "DACElm",
+  "dar": "DarlingtonElm",
+  "DataInput": "DataInputElm",
+  "DataRecorder": "DataRecorderElm",
+  "DCMotor": "DCMotorElm",
+  "DCVoltage": "DCVoltageElm",
+  "dd": "DecimalDisplayElm",
+  "DelayBuffer": "DelayBufferElm",
+  "dmux": "DeMultiplexerElm",
+  "DFlipFlop": "DFlipFlopElm",
+  "Diac": "DiacElm",
+  "Dialog": "Dialog",
+  "Diode": "Diode",
+  "d": "DiodeElm",
+  "DiodeModel": "DiodeModel",
+  "dpdt": "DPDTSwitchElm",
+  "EditDialog": "EditDialog",
+  "EditDiodeModelDialog": "EditDiodeModelDialog",
+  "EditInfo": "EditInfo",
+  "EditMosfetModelDialog": "EditMosfetModelDialog",
+  "EditOptions": "EditOptions",
+  "EditRelayModelDialog": "EditRelayModelDialog",
+  "EditSubcircuitModelDialog": "EditSubcircuitModelDialog",
+  "EditTransistorModelDialog": "EditTransistorModelDialog",
+  "ElementFactory": "ElementFactory",
+  "ExportAsImageDialog": "ExportAsImageDialog",
+  "ExportAsLocalFileDialog": "ExportAsLocalFileDialog",
+  "ExportAsTextDialog": "ExportAsTextDialog",
+  "ExportAsUrlDialog": "ExportAsUrlDialog",
+  "ExprNodeRef": "ExprNodeRef",
+  "ExprState": "ExprState",
+  "Expr": "Expr",
+  "ExprParser": "ExprParser",
+  "ExprEngine": "ExprEngine",
+  "ExtListEntry": "ExtListEntry",
+  "ExtVoltage": "ExtVoltageElm",
+  "FFT": "FFT",
+  "FindPathInfo": "FindPathInfo",
+  "FM": "FMElm",
+  "Font": "Font",
+  "FullAdder": "FullAdderElm",
+  "Fuse": "FuseElm",
+  "": "GateElm",
+  "AndGate": "AndGateElm",
+  "NandGate": "NandGateElm",
+  "OrGate": "OrGateElm",
+  "NorGate": "NorGateElm",
+  "XorGate": "XorGateElm",
+  "XnorGate": "XnorGateElm",
+  "Graphic": "GraphicElm",
+  "Graphics": "Graphics",
+  "g": "GroundElm",
+  "Gyrator": "GyratorElm",
+  "HalfAdder": "HalfAdderElm",
+  "ImageExporter": "ImageExporter",
+  "ImportFromDropbox": "ImportFromDropbox",
+  "ImportFromDropboxDialog": "ImportFromDropboxDialog",
+  "ImportFromTextDialog": "ImportFromTextDialog",
+  "Inductor": "Inductor",
+  "l": "InductorElm",
+  "ins": "InstructionDisplayElm",
+  "I": "InverterElm",
+  "InvertingSchmitt": "InvertingSchmittElm",
+  "j": "JfetElm",
+  "NJfet": "NJfetElm",
+  "PJfet": "PJfetElm",
+  "JKFlipFlop": "JKFlipFlopElm",
+  "JSInterface": "JSInterface",
+  "KeyNames": "KeyNames",
+  "ln": "LabeledNodeElm",
+  "Lamp": "LampElm",
+  "Latch": "LatchElm",
+  "LDR": "LDRElm",
+  "LEDArray": "LEDArrayElm",
+  "LED": "LEDElm",
+  "Line": "LineElm",
+  "Locale": "Locale",
+  "L": "LogicInputElm",
+  "M": "LogicOutputElm",
+  "MBBSwitch": "MBBSwitchElm",
+  "m": "MemristorElm",
+  "CheckItem": "CheckItem",
+  "MenuItem": "MenuItem",
+  "Menus": "Menus",
+  "Monostable": "MonostableElm",
+  "f": "MosfetElm",
+  "NMosfet": "NMosfetElm",
+  "PMosfet": "PMosfetElm",
+  "MosfetModel": "MosfetModel",
+  "MotorProtectionSwitch": "MotorProtectionSwitchElm",
+  "MouseManager": "MouseManager",
+  "mux": "MultiplexerElm",
+  "MyCommand": "MyCommand",
+  "NDarlington": "NDarlingtonElm",
+  "Noise": "NoiseElm",
+  "nor": "NortonAmpElm",
+  "NumberFormat": "NumberFormat",
+  "OhmMeter": "OhmMeterElm",
+  "a": "OpAmpElm",
+  "OpAmpReal": "OpAmpRealElm",
+  "OpAmpSwap": "OpAmpSwapElm",
+  "Optocoupler": "OptocouplerElm",
+  "OTA": "OTAElm",
+  "O": "OutputElm",
+  "PDarlington": "PDarlingtonElm",
+  "PhaseComp": "PhaseCompElm",
+  "PisoShift": "PisoShiftElm",
+  "Point": "Point",
+  "pc": "PolarCapacitorElm",
+  "Polygon": "Polygon",
+  "pt": "PotElm",
+  "p": "ProbeElm",
+  "PushSwitch": "PushSwitchElm",
+  "R": "RailElm",
+  "Rectangle": "Rectangle",
+  "RelayCoil": "RelayCoilElm",
+  "RelayContact": "RelayContactElm",
+  "rl": "RelayElm",
+  "RelayModel": "RelayModel",
+  "r": "ResistorElm",
+  "RingCounter": "RingCounterElm",
+  "ROM": "ROMElm",
+  "rw": "RoutedWireElm",
+  "Schmitt": "SchmittElm",
+  "Scope": "Scope",
+  "ScopeDataIterator": "ScopeDataIterator",
+  "ScopeExportImageDialog": "ScopeExportImageDialog",
+  "ScopeFFT": "ScopeFFT",
+  "ScopeManager": "ScopeManager",
+  "ScopeOverlays": "ScopeOverlays",
+  "ScopePlot": "ScopePlot",
+  "ScopePlot2d": "ScopePlot2d",
+  "ScopePopupMenu": "ScopePopupMenu",
+  "ScopePropertiesDialog": "ScopePropertiesDialog",
+  "ScopeSerializer": "ScopeSerializer",
+  "ScopeTrigger": "ScopeTrigger",
+  "SCR": "SCRElm",
+  "ScrollValuePopup": "ScrollValuePopup",
+  "SeqGen": "SeqGenElm",
+  "SevenSegDecoder": "SevenSegDecoderElm",
+  "ssd": "SevenSegElm",
+  "ShortcutsDialog": "ShortcutsDialog",
+  "WireSegment": "WireSegment",
+  "RoutedWireConnection": "RoutedWireConnection",
+  "SimulationManager": "SimulationManager",
+  "SipoShift": "SipoShiftElm",
+  "SliderDialog": "SliderDialog",
+  "SparkGap": "SparkGapElm",
+  "SquareRail": "SquareRailElm",
+  "SRAM": "SRAMElm",
+  "StopTrigger": "StopTriggerElm",
+  "StringTokenizer": "StringTokenizer",
+  "SubcircuitBar": "SubcircuitBar",
+  "SubcircuitChip": "SubcircuitChipElm",
+  "SubcircuitDialog": "SubcircuitDialog",
+  "cc": "SubcircuitElm",
+  "SubcircuitModel": "SubcircuitModel",
+  "sw": "SweepElm",
+  "S": "Switch2Elm",
+  "s": "SwitchElm",
+  "tt": "TappedTransformerElm",
+  "TestPoint": "TestPointElm",
+  "x": "TextElm",
+  "TFlipFlop": "TFlipFlopElm",
+  "ThermistorNTC": "ThermistorNTCElm",
+  "ThreePhaseMotor": "ThreePhaseMotorElm",
+  "TimeDelayRelay": "TimeDelayRelayElm",
+  "Timer": "TimerElm",
+  "Toolbar": "Toolbar",
+  "T": "TransformerElm",
+  "t": "TransistorElm",
+  "NTransistor": "NTransistorElm",
+  "PTransistor": "PTransistorElm",
+  "TransistorModel": "TransistorModel",
+  "tl": "TransLineElm",
+  "Triac": "TriacElm",
+  "Triode": "TriodeElm",
+  "ts": "TriStateElm",
+  "TunnelDiode": "TunnelDiodeElm",
+  "TypeScrollPopup": "TypeScrollPopup",
+  "Scrollbar": "Scrollbar",
+  "UIManager": "UIManager",
+  "UndoManager": "UndoManager",
+  "Unijunction": "UnijunctionElm",
+  "Varactor": "VaractorElm",
+  "VarRail": "VarRailElm",
+  "VCCS": "VCCSElm",
+  "VCO": "VCOElm",
+  "VCVS": "VCVSElm",
+  "v": "VoltageElm",
+  "VoltageSource": "VoltageSource",
+  "Wattmeter": "WattmeterElm",
+  "WattmeterTrue": "WattmeterTrueElm",
+  "WireConverter": "WireConverter",
+  "w": "WireElm",
+  "WireRouter": "WireRouter",
+  "z": "ZenerElm"
+ },
+ "xmlTypeConflict": [
+  [
+   "Scope",
+   "Scope",
+   "ScopeElm"
+  ]
+ ],
+ "stats": {
+  "filesScanned": 253,
+  "classesScanned": 255,
+  "elementsWithTxtType": 124,
+  "elementsWithSlots": 86
+ }
+}

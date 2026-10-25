@@ -1,0 +1,16 @@
+{
+  // 覆盖层类型检查：rootDirs 把 cover/ts 与 core/ts 声明成同一虚拟目录树的两层实现。
+  // cover/ts/ExtApi.ts 里的 "./CirSim" 会先找 cover/ts（无），再落到 core/ts/CirSim.ts。
+  "extends": "../core/ts/tsconfig.json",
+  "compilerOptions": {
+    "rootDirs": ["./ts", "../core/ts"],
+    "types": ["vite/client"],
+    "typeRoots": ["../core/ts/node_modules/@types", "../core/ts/node_modules"],
+    "resolveJsonModule": true,
+    "paths": {
+      "@ext/netlist": ["../packages/netlist/src/index.ts"],
+      "@ext/plugin-api": ["../packages/plugin-api/src/index.ts"]
+    }
+  },
+  "include": ["ts/**/*.ts", "../packages/*/src/**/*.ts"]
+}
