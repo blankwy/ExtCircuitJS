@@ -7,7 +7,7 @@
  *   node tools/ext.mjs build               tsc(core) + tsc(cover) + vite build -> dist/
  *   node tools/ext.mjs test                vitest（上游单测）
  *   node tools/ext.mjs cover <scan|status|apply|bless> [...]
- *   node tools/ext.mjs plugin <list|lint>
+ *   node tools/ext.mjs plugin <list|lint> [path...]   lint 可带显式路径（文件/目录），只跑代码三禁令
  *   node tools/ext.mjs core <install|sync>
  *   node tools/ext.mjs netlist registry   从 core/ts 重生成 packages/netlist/src/registry.json
  *   node tools/ext.mjs netlist bench     373 语料紧凑编码基准 -> build/netlist-bench.json（需 dev server）
@@ -183,6 +183,49 @@ function cover(argv) {
     return r.status ?? 1;
 }
 
+// ── plugin lint 三禁令（B06）：禁 import 指向 ../core；禁动态执行（eval / new Function 调用）；禁裸 document.write。
+//    文本级正则、零依赖；报错（不是 warn），命中即 lint 失败。
+const LINT_RULES = [
+    { id: "core-import", re: /(?:\bfrom|\bimport)\s*\(?\s*["']((?:\.\.\/)+core(?:\/[^"']*)?)["']/g, hit: (m) => `import 指向 core: "${m[1]}"` },
+    { id: "eval", re: /\beval\s*\(/g, hit: () => `动态代码执行 eval(` },
+    { id: "new-function", re: /\bnew\s+Function\s*\(/g, hit: () => `动态代码执行 new Function(` },
+    { id: "document-write", re: /\bdocument\s*\.\s*write\s*\(/g, hit: () => `裸 document.write(` },
+];
+
+/** 对单个源文件跑三禁令，返回命中数（每处命中一行 err，带行号）。 */
+function lintCodeRules(file) {
+    const text = fs.readFileSync(file, "utf8");
+    const rel = path.relative(root, file);
+    const lineOf = (idx) => text.slice(0, idx).split("\n").length;
+    let bad = 0;
+    for (const rule of LINT_RULES) {
+        rule.re.lastIndex = 0;
+        for (let m = rule.re.exec(text); m; m = rule.re.exec(text)) {
+            console.log(c.err(`  ${rel}:${lineOf(m.index)}: ${rule.id}: ${rule.hit(m)}`));
+            bad++;
+        }
+    }
+    return bad;
+}
+
+/** 收集待 lint 的源文件：参数是文件则单收（限 js/ts 家族），是目录则递归走（跳 node_modules 与点目录）。 */
+function collectJsFiles(p) {
+    const JS_EXT = new Set([".js", ".mjs", ".cjs", ".ts", ".mts", ".cts"]);
+    const out = [];
+    const walk = (dir) => {
+        for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
+            if (e.name === "node_modules" || e.name.startsWith(".")) continue;
+            const full = path.join(dir, e.name);
+            if (e.isDirectory()) walk(full);
+            else if (JS_EXT.has(path.extname(e.name))) out.push(full);
+        }
+    };
+    if (!exists(p)) return out;
+    if (fs.statSync(p).isDirectory()) walk(p);
+    else if (JS_EXT.has(path.extname(p))) out.push(p);
+    return out;
+}
+
 function plugin(argv) {
     const sub = argv[0] ?? "list";
     const manifestPath = path.join(root, "plugins", "plugins.manifest.json");
@@ -200,6 +243,21 @@ function plugin(argv) {
         return plugins.every((p) => exists(path.join(root, "plugins", p.id, p.entry))) ? 0 : 1;
     }
     if (sub === "lint") {
+        const targets = argv.slice(1);
+        if (targets.length > 0) {
+            // 显式路径模式：只对给定文件/目录跑代码三禁令（不做 manifest 级检查），
+            // 用于双向验证——对故意违规样例报错，不污染 plugins.manifest.json。
+            let bad = 0;
+            for (const t of targets) {
+                // 先按 cwd 解析（验收命令常从仓库外层跑，带 ExtCircuitJS/ 前缀），再退回 repo root
+                const abs = path.resolve(t);
+                const files = collectJsFiles(exists(abs) ? abs : path.resolve(root, t));
+                if (files.length === 0) { console.log(c.err(`  lint target not found (or no js/ts files): ${t}`)); bad++; continue; }
+                for (const f of files) bad += lintCodeRules(f);
+            }
+            console.log(bad === 0 ? c.ok("  plugin lint ok") : c.err(`  ${bad} issue(s)`));
+            return bad === 0 ? 0 : 1;
+        }
         let bad = 0;
         const ids = new Set();
         const cmds = new Map();
@@ -212,12 +270,8 @@ function plugin(argv) {
                 if (cmds.has(cmd)) { console.log(c.err(`  command conflict: ${cmd} (${cmds.get(cmd)} vs ${p.id})`)); bad++; }
                 cmds.set(cmd, p.id);
             }
-            const src = path.join(root, "plugins", p.id, p.entry);
-            if (exists(src)) {
-                const text = fs.readFileSync(src, "utf8");
-                for (const badWord of ["document.write", "eval(", "new Function("]) {
-                    if (text.includes(badWord)) { console.log(c.warn(`  ${p.id}: suspicious API "${badWord}"`)); }
-                }
+            for (const f of collectJsFiles(path.join(root, "plugins", p.id))) {
+                bad += lintCodeRules(f);
             }
         }
         console.log(bad === 0 ? c.ok("  plugin lint ok") : c.err(`  ${bad} issue(s)`));
