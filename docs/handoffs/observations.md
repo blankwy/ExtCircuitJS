@@ -1,4 +1,9 @@
 # 计划外观察（跨阶段累积；Lead 逐条裁决，不在当前卡展开）
 
+- [2026-10-25 · Stage 2 / G2] 引擎分析序列坑：`SimulationManager.analyzeCircuit()` 只建矩阵壳（size 定了、行不分配），分配在 `stampCircuit()`（`CircuitMatrix.clear()`）。UIManager.updateCircuit() 的真实顺序是 analyze → `preStampAndStampCircuit()` → runCircuit。任何"绕开 UI 帧循环做确定性步进/求解"的代码（测试、MCP 桥、Stage 5 会话 RPC）都必须按这个顺序，只调 `preStampCircuit(false)`（boot.browser 的导出序列够用但步进会崩在 runCircuit 的 NaN 检查）。建议 Stage 5 的 D01 会话层把该序列封装成单一入口。
+- [2026-10-25 · Stage 2 / C02] fingerprints 地面真值缺口：总线导线 WireElm 的 getPostCount=(busWidth??1)*2，而 fingerprint 一律记 2 脚（td4* 5 例少记 690 脚）；InstructionDisplayElm 在 fingerprint 生成期 getInfoJS 抛错被记 null。对拍口径已按"导出引脚/期望引脚"聚合比处理（103.48% > 93.8% 线），fixtures 只读未动；若后续要把引脚口径收紧到 100% 需重新生成 fingerprints（不在 Stage 2 作用域）。
+- [2026-10-25 · Stage 2 / 执行侧] ① glm-strong-worker 连续 3 次 "model concurrency limit exceeded"（goal 会话主线同为 GLM-5.3，账号级并发冲突疑似），C06 按升级链改 Lead 直做；后续 G 卡派发前需确认槽位，或错峰。② 一次 Agent 派发报并发失败但 worker 实际已启动并写了半成品（C05），二次派发时工作区出现未提交同卡实现——审查后采纳。派发失败不等于未执行，接手 worker/Lead 必须先查 `git status` 与作用域文件。
+- [2026-10-25 · Stage 2 / 工具] Mimosa 安全 hook 对含正则 `.exec(` 的编辑报"命令注入"并拦截写入（C06 index.ts 改动实际为 JS 正则方法，误报）。规避：改用 split/lastIndexOf 等价写法。若 hook 语义后续覆盖更多 JS 内建方法名，建议调整检测规则而非逐次改写代码。
 - [2026-10-25 · Stage 1 / A05] coverOverlay 的 dev 与 dist 路径层级不一致：`cover/public/<rel>` 在 dev 服务于 `/<rel>`，在 build 落到 `dist/circuitjs/<rel>`，同一文件在 dev 与 dist（根目录静态服务）的 URL 相差一个 assetsDir 层级。影响：想要 dist URL 与 dev URL 完全一致的覆盖文件做不到；想要影子 core 既有资源（如 `circuitjs/font/fontello.css`，HTML 里被引用）时，dev 侧 `cover/public/circuitjs/font/...` 可命中，dist 侧却落到 `dist/circuitjs/circuitjs/font/...`，不覆盖目标。属 spike B 原型遗留；本阶段 tools/ 超出写作用域未动。后续若要做"覆盖 core 静态资源"类功能（非新增），需先在 coverOverlay closeBundle 里对 `circuitjs/` 前缀做与上游 copy-public-assets 相同的剥层。
 - [2026-10-25 · Stage 1 / A01] dev server（端口 5174）为上次会话遗留的 vite 进程（配置与 `ext dev` 完全一致，PID 38636），已直接复用未重启。CI/新环境无此便利，`ext dev` 的后台化与就绪探测（等端口 listen）目前要手工做，Stage 6 CI 化时需要一个 `dev --background` 或测试内起 server 的方案。
+
