@@ -8,6 +8,8 @@
 // TODO(v0.2)：add between nets（WireElm.split + 正交补线）；probe 映射到 ScopeElm。
 
 import registryJson from "./registry.json";
+import { assignStableIds, elmOf, idOf } from "./ids";
+export { resetIds, idOf, elmOf } from "./ids";
 
 type AttrDef = { attr: string; field: string | null; kind: string };
 type ElemDef = { cls: string; parent?: string; xmlType?: string | null; xmlAttrs?: AttrDef[] };
@@ -70,8 +72,9 @@ export function exportNetlist(app: any, opts: ExportOptions = {}): Netlist {
         }
     }
 
-    const idx = new Map<any, number>();
-    elms.forEach((e, i) => idx.set(e, i));
+    // 稳定 id（C06）：按首次导出顺序分配 e1..eN；编辑不改变幸存者 id，
+    // 全新电路（实例全部更换）时重置——见 ids.ts 头注释
+    const stable = assignStableIds(elms);
     const unsupported: any[] = [];
 
     // ── 组件 ────────────────────────────────────────────────────────────────
@@ -79,7 +82,8 @@ export function exportNetlist(app: any, opts: ExportOptions = {}): Netlist {
         const cls: string = ce?.getClassName?.() ?? "Unknown";
         const def = REGISTRY.elements[cls];
         const props: Record<string, number | string | boolean> = {};
-        if (!def) unsupported.push({ component: `c${i}`, type: cls, reason: "not in registry" });
+        const id = stable.get(ce) ?? `x${i}`; // assignStableIds 覆盖全部 elm，此处仅防御
+        if (!def) unsupported.push({ component: id, type: cls, reason: "not in registry" });
         for (const a of def?.xmlAttrs ?? []) {
             if (!a.field) continue;
             const v = ce[a.field];
@@ -87,7 +91,7 @@ export function exportNetlist(app: any, opts: ExportOptions = {}): Netlist {
             if (typeof v === "number" || typeof v === "string" || typeof v === "boolean") props[a.field] = v;
         }
         const c: NetlistComponent = {
-            id: `c${i}`,
+            id,
             type: cls,
             tag: ce?.getXmlDumpType?.() ?? "?",
             f: ce?.flags ?? 0,
@@ -97,6 +101,7 @@ export function exportNetlist(app: any, opts: ExportOptions = {}): Netlist {
         if (opts.layout) c.layout = [ce.x, ce.y, ce.x2, ce.y2];
         return c;
     });
+    const compById = new Map(components.map((c) => [c.id, c]));
 
     // ── 网络（引擎权威 nodeList）─────────────────────────────────────────────
     const groundNode = (() => {
@@ -109,24 +114,24 @@ export function exportNetlist(app: any, opts: ExportOptions = {}): Netlist {
     for (const cn of sim?.nodeList ?? []) {
         const pins: string[] = [];
         for (const link of cn?.links ?? []) {
-            const i = idx.get(link.elm);
-            if (i == null) continue;
+            const cid = stable.get(link.elm);
+            if (cid == null) continue; // 不在 elmList 的链接（防御，与原 idx 语义一致）
             const postCount = link.elm?.getPostCount?.() ?? 0;
             if (link.num >= postCount) continue; // 内部节点
-            pins.push(`c${i}:${link.num}`);
+            pins.push(`${cid}:${link.num}`);
         }
         if (pins.length === 0) continue;
         const isGround = cn === groundNode;
         nets.push({ id: isGround ? "GND" : `n${n++}`, pins, ...(isGround ? { ground: true } : {}) });
     }
 
-    // 把 net id 回填到组件引脚
+    // 把 net id 回填到组件引脚（pin 形如 "<组件稳定id>:<post 序号>"）
     for (const net of nets) {
         for (const p of net.pins) {
-            const m = /^c(\d+):(\d+)$/.exec(p);
-            if (!m) continue;
-            const c = components[Number(m[1])];
-            if (c) c.pins[m[2]] = net.id;
+            const sep = p.lastIndexOf(":");
+            if (sep <= 0) continue;
+            const c = compById.get(p.slice(0, sep));
+            if (c) c.pins[p.slice(sep + 1)] = net.id;
         }
     }
 
@@ -164,8 +169,15 @@ export interface ApplyResult {
 }
 
 function indexOfTarget(app: any, target: string): number {
-    const m = /^c(\d+)$/.exec(String(target));
-    const i = m ? Number(m[1]) : Number(target);
+    // 双轨 target（C06）：优先稳定 id（e1..eN，exportNetlist 产出）逆查实例；
+    // 兼容旧 cN 下标格式与裸数字（boot.browser.mjs 走 ExtApi.listComponents 的 cN）
+    const elm = elmOf(String(target));
+    if (elm != null) {
+        const i = app?.elmList?.indexOf(elm) ?? -1;
+        if (i >= 0) return i;
+    }
+    const s = String(target);
+    const i = Number(s.startsWith("c") ? s.slice(1) : s);
     if (!Number.isInteger(i) || i < 0 || i >= (app?.elmList?.length ?? 0))
         throw new Error(`unknown target "${target}"`);
     return i;
@@ -197,10 +209,11 @@ export function applyOps(app: any, ops: NetlistOp[]): ApplyResult {
                 }
                 case "delete": {
                     const i = indexOfTarget(app, op.target);
+                    const elm = app.elmList[i];
                     app.elmList.splice(i, 1);
                     result.applied++;
-                    // 注意：删除会让后续 c{i} 编号整体前移；v0.2 改用稳定 id
-                    result.atoms.push({ deleted: `c${i}`, warning: "subsequent ids shift" });
+                    // 稳定 id（e1..）不受删除影响；旧 cN 下标会整体前移，建议改用稳定 id
+                    result.atoms.push({ deleted: idOf(elm) ?? `c${i}` });
                     break;
                 }
                 case "probe":
