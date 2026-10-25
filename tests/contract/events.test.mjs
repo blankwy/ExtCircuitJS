@@ -5,19 +5,20 @@
 //      （对抗 core 单槽钩子：JSInterface.callAnalyzeHook 只读 window.CircuitJS1.onanalyze
 //       一个槽位，core/ts/JSInterface.ts:90-94，后写覆盖先写）
 //   2. 其中一个回调抛错：异常不外泄，其余订阅者（含抛错者之后注册的）仍全收到；
-//      总线不静默摘除抛错者、后续 emit 照常派发
+//      总线不静默摘除抛错者、后续 emit 照常派发；每次抛错的 emit 隔离日志恰好一条
+//      且记录原始异常对象本身（ExtEvents.ts:33 的 console.error(msg, e) 契约）
 //   3. analyze 类事件四路（analyze/update/timestep/svgren）互不串扰
 //   4. wireAppEvents（cover/ts/ExtEvents.ts:55）桥接 jsInterface：单槽方法一次调用 →
 //      3 个订阅全收 + core 原钩子仍被调用（叠加而非顶替）；unwire 后恢复直通、不再 emit
-//   5. 退订与生命周期：off() 精确移除自身；按宿主 ctx.on 接线（ExtPluginHost.ts:161-165）
+//   5. 退订与生命周期：off() 精确移除自身；按宿主 ctx.on 接线（ExtPluginHost.ts:175-179）
 //      后 fiber.dispose() → 订阅计数回 0（B07「监听器计数归零」的单元级前提）
 //
 // 被测对象说明：
 //   事件面 = cover/ts/ExtEvents.ts（无内部依赖，Node 直接加载）；
-//   宿主接线语义 = cover/ts/ExtPluginHost.ts:161-165 的 ctx.on（api.on + fiber.add），
+//   宿主接线语义 = cover/ts/ExtPluginHost.ts:175-179 的 ctx.on（api.on + fiber.add），
 //   其中 api.on 是 events.on 的直通（cover/ts/ExtApi.ts:88-90），故用真实 Fiber
 //   （packages/plugin-api/src/index.ts）+ 真实 ExtEvents 复现同一组合；
-//   PluginHost 本体含裸导入 @ext/plugin-api / @ext/netlist（ts-resolve 不解析裸模块）
+//   PluginHost 本体含裸导入 @ext/plugin-api（ts-resolve 不解析裸模块）
 //   且其命令插槽依赖 B03 的 cover 层落点，不在 Node 侧加载。
 
 import { register } from "node:module";
@@ -63,16 +64,21 @@ test("其中一个回调抛错：异常被隔离，其余订阅者（含后注�
         assert.doesNotThrow(() => bus.emit("analyze", { n: 1 }));
         assert.deepEqual(calls, ["a", "b", "c"], "抛错不得中断同事件后续订阅者");
         assert.equal(bus.count("analyze"), 3, "抛错的订阅者不应被总线静默摘除");
-        assert.ok(errMock.mock.calls.length >= 1, "隔离时应记录错误日志（console.error）");
+        assert.equal(errMock.mock.calls.length, 1, "首次 emit 的隔离日志应恰好一条（不吞、不重复）");
         assert.ok(
             errMock.mock.calls.some((c) => String(c.arguments[0]).includes('event "analyze" handler failed')),
             "错误日志应指向 analyze 事件（ExtEvents.emit 的隔离日志）",
+        );
+        assert.equal(
+            errMock.mock.calls[0].arguments[1], boom,
+            "记录的应是原始异常对象本身（不换包装、不静默降级为字符串）",
         );
 
         // 总线未被破坏：第二次 emit 照常三路全达
         calls.length = 0;
         bus.emit("analyze", { n: 2 });
         assert.deepEqual(calls, ["a", "b", "c"], "抛错后总线应继续正常派发");
+        assert.equal(errMock.mock.calls.length, 2, "每次含抛错的 emit 各记恰好一条隔离日志");
     } finally {
         errMock.mock.restore();
     }
@@ -152,7 +158,7 @@ test("退订与宿主生命周期：off 精确移除；ctx.on 接线 + fiber.dis
     assert.equal(h1, 0, "已退订者不再收到");
     assert.equal(h2, 1, "未退订者照常收到");
 
-    // ② 宿主接线语义（ExtPluginHost.ts:161-165）：ctx.on = api.on + fiber.add(off)
+    // ② 宿主接线语义（ExtPluginHost.ts:175-179）：ctx.on = api.on + fiber.add(off)
     //    3 个插件同时挂 analyze，fiber.dispose 后订阅计数回基线 0
     const hostBus = new ExtEvents();
     const fiber = new Fiber();
@@ -165,7 +171,7 @@ test("退订与宿主生命周期：off 精确移除；ctx.on 接线 + fiber.dis
     for (let i = 0; i < 3; i++) ctxOn("analyze", () => { received++; });
     assert.equal(hostBus.count("analyze"), 3);
 
-    fiber.dispose(); // deactivate 时宿主调用的正是 fiber.dispose（ExtPluginHost.ts:99）
+    fiber.dispose(); // deactivate 时宿主调用的正是 fiber.dispose（ExtPluginHost.ts:109）
     assert.equal(fiber.state, "disposed");
     assert.equal(hostBus.count("analyze"), 0, "三个插件卸载后订阅计数应回 0（不残留监听）");
     hostBus.emit("analyze");
