@@ -11,6 +11,36 @@
       "permissions": ["ui.panel", "ui.command"],
       "claims": { "commands": ["ext.hello.poke"], "panels": ["right.sidebar"] },
       "enabled": true
+    },
+    {
+      "id": "ext-panel",
+      "entry": "index.js",
+      "version": "0.1.0",
+      "mode": "in-page",
+      "inject": ["api"],
+      "permissions": ["ui.panel"],
+      "claims": { "panels": ["right.sidebar"] },
+      "enabled": true
+    },
+    {
+      "id": "ext-command",
+      "entry": "index.js",
+      "version": "0.1.0",
+      "mode": "in-page",
+      "inject": ["api"],
+      "permissions": ["ui.command"],
+      "claims": { "commands": ["ext.command.ping"] },
+      "enabled": true
+    },
+    {
+      "id": "ext-event",
+      "entry": "index.js",
+      "version": "0.1.0",
+      "mode": "in-page",
+      "inject": ["api"],
+      "permissions": [],
+      "claims": {},
+      "enabled": true
     }
   ]
 }

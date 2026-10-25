@@ -1,0 +1,11 @@
+{
+  "id": "ext-command",
+  "name": "Ext Command Demo",
+  "version": "0.1.0",
+  "apiVersion": "1.0.0",
+  "entry": "index.js",
+  "mode": "in-page",
+  "permissions": ["ui.command"],
+  "claims": { "commands": ["ext.command.ping"] },
+  "description": "示例插件（B07）· command：注册命令 ext.command.ping，执行次数写入 ctx.storage，卸载由 disposer 撤销"
+}

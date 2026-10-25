@@ -1,0 +1,11 @@
+{
+  "id": "ext-event",
+  "name": "Ext Event Demo",
+  "version": "0.1.0",
+  "apiVersion": "1.0.0",
+  "entry": "index.js",
+  "mode": "in-page",
+  "permissions": [],
+  "claims": {},
+  "description": "示例插件（B07）· event：订阅 analyze 事件并把计数写入 ctx.storage，退订由 fiber 完成"
+}
