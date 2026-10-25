@@ -33,7 +33,7 @@
 //        特别是 addCommand 对重复 id 静默忽略（core/ts/CommandPaletteRegistry.ts:84-89），
 //        这正是宿主必须在其之上先做冲突拒绝的原因；宿主的冲突/所有权/撤销逻辑
 //        全部仍走真实 ExtPluginHost.ts。替身经同一 data: URL 导入，与宿主共享同一注册表。
-//     ③ activate() 的动态导入 "/plugins/<id>/<entry>?v=..."（cover/ts/ExtPluginHost.ts:75）
+//     ③ activate() 的动态导入 "/plugins/<id>/<entry>?rev=..."（cover/ts/ExtPluginHost.ts:75）
 //        → 测试内置的虚拟插件源码（data: URL），让真实激活流程
 //        （scanClaims → import → createContext → mod.activate → ready/回滚）全程可跑。
 //   调色板真实集成（core 原实现 + 真实插件 URL）由构建与 boot.browser 浏览器契约覆盖。
@@ -70,7 +70,7 @@ export class CommandPaletteRegistry {
     static get(id) { return CommandPaletteRegistry.byId.get(id); }
 }
 `;
-// 测试内置的虚拟插件表：key = "/plugins/<id>/<entry>"（不含 ?v= 查询）
+// 测试内置的虚拟插件表：key = "/plugins/<id>/<entry>"（不含 ?rev= 查询）
 const virtualPlugins = new Map();
 
 registerHooks({

@@ -72,7 +72,9 @@ export class PluginHost {
         fiber.state = "loading";
         this.fibers.set(entry.id, fiber);
 
-        const url = `/plugins/${entry.id}/${entry.entry}?v=${entry.rev ?? Date.now()}`;
+        // ?rev= 是热重载的换版本键：不同 rev → 不同 URL → 浏览器必然拉新模块实例，
+        // 不会命中 ESM 模块图里的旧条目（core 只读，宿主侧解决"能加不能减"）。
+        const url = `/plugins/${entry.id}/${entry.entry}?rev=${entry.rev ?? Date.now()}`;
         let mod: ExtPluginModule;
         try {
             mod = (await import(/* @vite-ignore */ url)) as ExtPluginModule;
@@ -109,11 +111,15 @@ export class PluginHost {
         this.mods.delete(id);
     }
 
-    async reload(id: string): Promise<void> {
+    /** 热重载（B05）：重新 fetch manifest 拿最新 entry，deactivate 旧 fiber（全部
+     *  disposer 逆序执行：命令/监听/面板/所有权释放），再以新 rev 的 URL 重新装载。
+     *  rev 可显式指定（契约测试用它钉死 import 路径），缺省用当前时间戳保证换版本。
+     *  同步点 = 返回的 Promise（deactivate/activate 均 await），无需轮询等待。 */
+    async reload(id: string, rev?: string | number): Promise<void> {
         const entry = await this.findEntry(id);
         if (!entry) throw new Error(`plugin "${id}" not found in manifest`);
         await this.deactivate(id);
-        await this.activate({ ...entry, rev: Date.now() });
+        await this.activate({ ...entry, rev: rev ?? Date.now() });
     }
 
     list(): PluginStatus[] {
