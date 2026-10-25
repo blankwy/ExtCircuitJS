@@ -345,11 +345,11 @@ test("B03 卸载回基线：多插件交错注册/卸载命令数精确回落；
 
 // ─────────────────────────────────────────────────────────────────────────
 // B04 — 面板插槽 + DOM 卸载清理（宿主生命周期类，docs/task-board.md B04）
-// 被测对象：真实 cover/ts/ExtPluginHost.ts 的 ctx.panel（ExtPluginHost.ts:203-208）：
+// 被测对象：真实 cover/ts/ExtPluginHost.ts 的 ctx.panel（ExtPluginHost.ts:209-214）：
 //   挂载走 app.addWidgetToVerticalPanel，disposer 走 app.removeWidgetFromVerticalPanel
 //   并汇入 fiber.add —— 卸载（deactivate / 激活失败回滚）时随 fiber.dispose 自动摘除。
 // DOM 桩（手写最小桩，零第三方依赖）：逐字镜像被用到的 core 表面，不改任何 core 源码：
-//   - verticalPanel 容器：core/ts/UIManager.ts:586-589 创建的 div#painel；
+//   - verticalPanel 容器：core/ts/UIManager.ts:585-589 创建的 div#painel；
 //     初始化完成后 iFrame 恒在面板内（core/ts/UIManager.ts:820），是可插入锚点。
 //   - ui.addWidgetToVerticalPanel / removeWidgetFromVerticalPanel：逐字镜像
 //     core/ts/UIManager.ts:1879-1897 —— iFrame 存在时插到其前；卸载仅当
@@ -361,7 +361,7 @@ test("B03 卸载回基线：多插件交错注册/卸载命令数精确回落；
 function makeStubPanelDom(baselineWidgets = 3) {
     const mkNode = (tag) => ({ tagName: String(tag).toUpperCase(), parentNode: null });
 
-    // verticalPanel 容器节点（core/ts/UIManager.ts:586-589）
+    // verticalPanel 容器节点（core/ts/UIManager.ts:585-589）
     const panel = mkNode("div");
     panel.id = "painel";
     const children = [];
