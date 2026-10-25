@@ -28,10 +28,27 @@
 //   请求  {v:1, kind:"req", id:"q7", method:"step", sessionId:"p1", params:{...}}
 //   应答  {v:1, kind:"res", id:"q7", payload:{ok:true, t:…, timeStepCount:…}}
 // method ∈ echo | ping | open | isAlive | load | step | measure | export | close
+//          （D03 工具集后端，packages/mcp/src/tools.ts 一一对应）
+//          | list_components | set_param | sim_run | sim_stop | sim_reset
+//          | read_scope | screenshot
 // 错误码沿用 D01 六码（unknown_session / session_closed / no_circuit /
 // invalid_args / load_failed / unknown_method），另有桥内两个扩展码：
 //   sim_stopped    引擎 stopMessage 置位（奇异矩阵等），step 中止（只报不清理）
 //   internal_error 分发中未预期的异常（兜底，正常不应出现）
+//
+// D03 方法语义（与 tools.ts 工具一一对应；会话纪律同上——live+loaded 校验，
+// screenshot 只要求 live：画布截图是「视觉兜底」，不依赖会话是否载入过电路）：
+//   list_components  元件清单（dumpNetlist 的稳定 id + 类型 + 参数投影）
+//   set_param        {target,prop,value} → api.applyOps set + analyzeNow（G2 配方
+//                    重 stamp，保证后续 step 确定性）
+//   sim_run/stop     宿主实时步进的恢复/暂停（墙钟驱动，与会话显式 step 并存但
+//                    不要混用——run 期间 step 的确定性不成立）
+//   sim_reset        resetAction()（t=0、元件状态复位、scope 清空）+ analyzeNow +
+//                    恢复暂停（resetAction 在 t===0 时会自动开跑，桥模式把时间轴
+//                    交给会话显式 step，故复位后立刻恢复 paused）
+//   read_scope       scope 波形缓冲**全量**返回（minValues/maxValues 环形缓冲原样，
+//                    不降采样——zcode-goal_step.md Stage 5 禁止项）
+//   screenshot       imageExporter 画布截图：png dataURL（CAC_IMAGE）或 svg 文本
 
 export type ExtMcpBridgeState = "idle" | "connecting" | "online" | "stopped";
 
@@ -253,6 +270,20 @@ export class ExtMcpBridge {
                 return this.exportNetlist(sessionId, params);
             case "close":
                 return this.closeSession(sessionId);
+            case "list_components":
+                return this.listComponents(sessionId);
+            case "set_param":
+                return this.setParam(sessionId, params);
+            case "sim_run":
+                return this.simRun(sessionId);
+            case "sim_stop":
+                return this.simStop(sessionId);
+            case "sim_reset":
+                return this.simReset(sessionId);
+            case "read_scope":
+                return this.readScope(sessionId, params);
+            case "screenshot":
+                return this.screenshot(params);
             default:
                 return fail("unknown_method", `unknown session method ${JSON.stringify(method)}`);
         }
@@ -428,9 +459,10 @@ export class ExtMcpBridge {
         if (format !== "netlist" && format !== "xml") {
             return fail("invalid_args", `format 必须是 netlist|xml，收到 ${JSON.stringify(format)}`);
         }
+        // D03 get_netlist 工具：layout 透传给导出（默认 false，坐标不输出）
         const payload =
             format === "netlist"
-                ? JSON.stringify(this.ext.api.dumpNetlist())
+                ? JSON.stringify(this.ext.api.dumpNetlist({ layout: args?.layout === true }))
                 : String(this.app().dumpCircuit());
         return { ok: true, format, payload, bytes: new TextEncoder().encode(payload).length };
     }
@@ -441,6 +473,229 @@ export class ExtMcpBridge {
         if (!s.alive) return fail("session_closed", `session "${sessionId}" is closed`);
         s.alive = false;
         return { ok: true, sessionId: s.id };
+    }
+
+    // ── D03 工具集后端（packages/mcp/src/tools.ts 一一对应）─────────────────
+    // 会话纪律与上面一致：live + loaded；screenshot 只要求 live（视觉兜底）。
+
+    /** 元件清单：dumpNetlist 的稳定 id（e1..eN）+ 类型 + 参数投影 */
+    private listComponents(sessionId: string): any {
+        const s = this.live(sessionId);
+        if (isFailure(s)) return s;
+        if (!s.loaded) return fail("no_circuit", "load a netlist before list_components");
+        const nl = this.ext.api.dumpNetlist();
+        return {
+            ok: true,
+            t: this.sim().t,
+            counts: { components: nl.components.length, nets: nl.nets.length },
+            components: nl.components.map((c: any) => ({
+                id: c.id,
+                type: c.type,
+                tag: c.tag,
+                props: c.props,
+            })),
+            unsupported: nl.unsupported,
+        };
+    }
+
+    /** 改元件参数：api.applyOps 单条 set + G2 配方 re-stamp（后续 step 才确定性） */
+    private setParam(sessionId: string, args: any): any {
+        const s = this.live(sessionId);
+        if (isFailure(s)) return s;
+        if (!s.loaded) return fail("no_circuit", "load a netlist before set_param");
+
+        const target = args?.target;
+        const prop = args?.prop;
+        const value = args?.value;
+        if (typeof target !== "string" || target === "") {
+            return fail("invalid_args", "set_param 需要 string 类型的 target（稳定 id 或旧 cN）");
+        }
+        if (typeof prop !== "string" || prop === "") {
+            return fail("invalid_args", "set_param 需要 string 类型的 prop（registry 字段名）");
+        }
+        if (typeof value !== "number" && typeof value !== "string" && typeof value !== "boolean") {
+            return fail("invalid_args", `set_param 的 value 必须是 number|string|boolean，收到 ${typeof value}`);
+        }
+        const r = this.ext.api.applyOps([{ op: "set", target, prop, value }]);
+        if (r.applied > 0) {
+            this.analyzeNow();
+            if (this.app().stopMessage != null) {
+                const m = String(this.app().stopMessage);
+                this.app().stopMessage = null; // 清掉以免毒化后续操作
+                return fail("sim_stopped", `改参后分析停止：${m}`);
+            }
+        }
+        return {
+            ok: r.ok === true,
+            applied: r.applied,
+            atoms: r.atoms,
+            unsupported: r.unsupported,
+            t: this.sim().t,
+        };
+    }
+
+    /** 恢复宿主实时步进（墙钟驱动；stopMessage 置位时 setSimRunning(true) 是 no-op） */
+    private simRun(sessionId: string): any {
+        const s = this.live(sessionId);
+        if (isFailure(s)) return s;
+        if (!s.loaded) return fail("no_circuit", "load a netlist before sim.run");
+        try {
+            this.app().setSimRunning(true);
+        } catch (e) {
+            return fail("internal_error", errText(e));
+        }
+        return {
+            ok: true,
+            running: this.app().simIsRunning?.() === true,
+            t: this.sim().t,
+            timeStepCount: this.sim().timeStepCount,
+        };
+    }
+
+    /** 暂停宿主实时步进（时间轴回到会话显式 step 独占） */
+    private simStop(sessionId: string): any {
+        const s = this.live(sessionId);
+        if (isFailure(s)) return s;
+        if (!s.loaded) return fail("no_circuit", "load a netlist before sim.stop");
+        try {
+            this.app().setSimRunning(false);
+        } catch (e) {
+            return fail("internal_error", errText(e));
+        }
+        return {
+            ok: true,
+            running: false,
+            t: this.sim().t,
+            timeStepCount: this.sim().timeStepCount,
+        };
+    }
+
+    /**
+     * 复位：resetAction()（t=0、元件状态复位、scope 清空）+ analyzeNow 重 stamp +
+     * 恢复暂停。resetAction 在 t===0 时会自动 setSimRunning(true)（UI「复位即开跑」
+     * 语义），桥模式时间轴由会话显式 step 独占，故复位后立刻恢复 paused——
+     * running 状态只由 sim_run/sim_stop 显式控制。
+     */
+    private simReset(sessionId: string): any {
+        const s = this.live(sessionId);
+        if (isFailure(s)) return s;
+        if (!s.loaded) return fail("no_circuit", "load a netlist before sim.reset");
+        try {
+            this.app().resetAction();
+        } catch (e) {
+            return fail("internal_error", errText(e));
+        }
+        this.analyzeNow();
+        if (this.app().stopMessage != null) {
+            const m = String(this.app().stopMessage);
+            this.app().stopMessage = null;
+            return fail("sim_stopped", `复位后分析停止：${m}`);
+        }
+        try {
+            this.app().setSimRunning(false);
+        } catch { /* UI 未就绪时忽略 */ }
+        return {
+            ok: true,
+            running: false,
+            t: this.sim().t,
+            timeStepCount: this.sim().timeStepCount,
+        };
+    }
+
+    // ScopeConstants.ts 的常量（core 只读，此处按值镜像并注明出处）
+    private static readonly SCOPE_VALUE_NAMES: Record<number, string> = {
+        0: "voltage", // VAL_VOLTAGE
+        3: "current", // VAL_CURRENT
+        7: "power", // VAL_POWER
+    };
+    private static readonly SCOPE_UNITS_NAMES: Record<number, string> = {
+        0: "V", // UNITS_V
+        1: "A", // UNITS_A
+        2: "W", // UNITS_W
+        3: "ohm", // UNITS_OHMS
+        4: "C", // UNITS_C
+    };
+
+    /**
+     * scope 波形数据：minValues/maxValues 环形缓冲**全量**返回，不做任何降采样
+     * （zcode-goal_step.md Stage 5 禁止项「read_scope 不做降采样防爆 token」）。
+     * 缓冲是环形：pointCount 为容量，ptr 为当前写指针，min/max 同下标成对。
+     */
+    private readScope(sessionId: string, args: any): any {
+        const s = this.live(sessionId);
+        if (isFailure(s)) return s;
+        if (!s.loaded) return fail("no_circuit", "load a netlist before read_scope");
+
+        const sm = this.app().scopeManager;
+        if (sm == null) return fail("internal_error", "scopeManager 尚未初始化");
+        const idx = args?.index;
+        if (idx !== undefined &&
+            (typeof idx !== "number" || !Number.isInteger(idx) || idx < 0 || idx >= sm.scopeCount)) {
+            return fail("invalid_args", `index 必须是 0..${sm.scopeCount - 1} 的整数，收到 ${JSON.stringify(idx)}`);
+        }
+
+        // 稳定 id：exportNetlist 的 components 与 elmList 同序，用 elmList 下标反查
+        const nl = this.ext.api.dumpNetlist();
+        const elms: any[] = this.app().elmList ?? [];
+        const elmIdOf = (elm: any): { id: string | null; type: string | null } => {
+            if (elm == null) return { id: null, type: null };
+            const i = elms.indexOf(elm);
+            return {
+                id: i >= 0 ? (nl.components[i]?.id ?? null) : null,
+                type: elm.getClassName?.() ?? null,
+            };
+        };
+
+        const scopes: any[] = [];
+        for (let i = 0; i < sm.scopeCount; i++) {
+            if (typeof idx === "number" && i !== idx) continue;
+            const sc = sm.scopes[i];
+            if (sc == null) continue;
+            const plots = (sc.plots ?? []).map((p: any) => {
+                const e = elmIdOf(p.elm);
+                return {
+                    elm: e.id,
+                    elmType: e.type,
+                    value: p.value,
+                    valueName: ExtMcpBridge.SCOPE_VALUE_NAMES[p.value] ?? `other(${p.value})`,
+                    units: p.units,
+                    unitsName: ExtMcpBridge.SCOPE_UNITS_NAMES[p.units] ?? `other(${p.units})`,
+                    pointCount: p.scopePointCount,
+                    ptr: p.ptr,
+                    lastValue: p.lastValue,
+                    // 全量缓冲，原样（禁止降采样）
+                    minValues: Array.from(p.minValues ?? []),
+                    maxValues: Array.from(p.maxValues ?? []),
+                };
+            });
+            scopes.push({ index: i, position: sc.position, plots });
+        }
+        return {
+            ok: true,
+            t: this.sim().t,
+            scopeCount: sm.scopeCount,
+            returned: scopes.length,
+            scopes,
+        };
+    }
+
+    /** 画布截图：png dataURL（ImageExporter.CAC_IMAGE=1，core/ts/ImageExporter.ts:28）或 svg 文本 */
+    private screenshot(args: any): any {
+        const format = args?.format ?? "png";
+        if (format !== "png" && format !== "svg") {
+            return fail("invalid_args", `format 必须是 png|svg，收到 ${JSON.stringify(format)}`);
+        }
+        const exporter = this.app().imageExporter;
+        if (exporter == null) return fail("internal_error", "imageExporter 尚未初始化");
+        let data: string;
+        try {
+            data = format === "png"
+                ? String(exporter.getCircuitAsCanvas(1).toDataURL())
+                : String(exporter.getCircuitAsSVG());
+        } catch (e) {
+            return fail("internal_error", `截图失败：${errText(e)}`);
+        }
+        return { ok: true, format, data, bytes: new TextEncoder().encode(data).length };
     }
 
     // ── 引擎驱动（确定性配方，见文件头纪律段）──────────────────────────────
