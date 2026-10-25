@@ -9,6 +9,7 @@
  *   node tools/ext.mjs cover <scan|status|apply|bless> [...]
  *   node tools/ext.mjs plugin <list|lint>
  *   node tools/ext.mjs core <install|sync>
+ *   node tools/ext.mjs netlist registry   从 core/ts 重生成 packages/netlist/src/registry.json
  */
 import fs from "node:fs";
 import path from "node:path";
@@ -257,6 +258,17 @@ function core(argv) {
     return 1;
 }
 
+// ─────────────────────────────────────────────────────────────── netlist
+
+function netlist(argv) {
+    const sub = argv[0] ?? "registry";
+    if (sub === "registry") {
+        return runNode("registry-gen", path.join(root, "packages", "netlist", "src", "registry-gen.mjs"), [], { cwd: root });
+    }
+    console.error(c.err(`[ext] unknown netlist subcommand: ${sub}`));
+    return 1;
+}
+
 // ─────────────────────────────────────────────────────────────── main
 
 const [cmd, ...rest] = process.argv.slice(2);
@@ -268,6 +280,7 @@ const table = {
     cover: () => cover(rest),
     plugin: () => plugin(rest),
     core: () => core(rest),
+    netlist: () => netlist(rest),
     help: () => { console.log(fs.readFileSync(fileURLToPath(import.meta.url), "utf8").split("*/")[0]); return 0; },
 };
 
