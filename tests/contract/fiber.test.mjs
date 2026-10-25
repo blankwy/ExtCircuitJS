@@ -138,13 +138,26 @@ test("dispose 后再 add()：迟到的清理动作立即同步执行（不进栈
     assert.equal(lateRan, true, "dispose 后 add 的清理动作必须同步立即执行");
     assert.equal(typeof ret, "function", "add 仍返回 disposer 本身");
 
-    // 迟到的 disposer 抛错也不得外泄（与 dispose 内的容错同策略）
-    assert.doesNotThrow(() => fiber.effect(() => { throw new Error("late boom"); }));
+    // 迟到的 disposer 抛错也不得外泄（与 dispose 内的容错同策略，
+    // packages/plugin-api/src/index.ts:57-64 的 catch 分支）：
+    // 异常必须被 Fiber 捕获，只走 console.error 通道恰好一次，进程零未捕获异常
+    const errMock = mock.method(console, "error", () => {});
+    try {
+        assert.doesNotThrow(() => fiber.effect(() => { throw new Error("late boom"); }));
+        assert.equal(errMock.mock.calls.length, 1, "迟到 disposer 的异常应被 Fiber 捕获并记录恰好一次");
+        assert.match(
+            String(errMock.mock.calls[0].arguments[1]),
+            /late boom/,
+            "记录的是原始异常对象",
+        );
+    } finally {
+        errMock.mock.restore();
+    }
 });
 
 test("插件拿到的 AbortSignal：dispose 时 aborted=true，abort 监听恰好收到一次事件", () => {
     const fiber = new Fiber();
-    const signal = fiber.signal; // 即 ctx.signal（ExtPluginHost.ts:158 直通 fiber.signal）
+    const signal = fiber.signal; // 即 ctx.signal（ExtPluginHost.ts:172 直通 fiber.signal）
     assert.equal(signal.aborted, false, "dispose 前插件 signal 不应已 abort");
 
     let abortEvents = 0;
