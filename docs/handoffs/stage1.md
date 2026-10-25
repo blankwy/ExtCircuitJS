@@ -33,3 +33,21 @@ $ node tests/contract/boot.browser.mjs   → EXIT=0   (base http://127.0.0.1:517
 ```
 
 期望全部满足：doctor 全 PASS；build ok；browser `ok:true`、`components=7>0`、`ops.applied=1`。
+
+## A02 cover 状态（只读验证，manifest 未动）
+
+```
+$ node tools/ext.mjs cover status      → EXIT=0
+  local-only  overridden  ts/main.ts            cover/ts/main.ts            3/3  core
+  local-only  overridden  ts/ElementFactory.ts  cover/ts/ElementFactory.ts  2/2  plugin
+  local-only  added       ts/ExtBoot.ts / ExtApi.ts / ExtPluginHost.ts / ExtEvents.ts
+  summary: local-only=6    conflicts: 0  anchorWarnings: 0
+
+$ node tools/ext.mjs cover scan --json build/cover-scan.json   → EXIT=0
+  counts: { "local-only": 6 },  conflicts: 0,  anchorWarnings: 0
+  两条 override 的 anchors 全部 ok:true（main.ts 3/3，ElementFactory.ts 2/2）
+  无 upstream-changed / orphan / both-changed / anchor-broken
+```
+
+状态干净：upstream 未接入（`upstream: null`，本阶段按 local-only 基线判），manifest 无需调整。
+
