@@ -1,0 +1,9 @@
+/* ExtCircuitJS cover/public 静态覆盖（A05 验证样例）
+ *
+ * 该目录下的文件按相对路径影子覆盖：dev 由 coverOverlay 中间件在 /<rel> 优先返回，
+ * build 拷入 dist/circuitjs/<rel> 并记入 dist/cover-overlay.json（与 core public 资产同命名空间）。
+ * core 的 style.css 未使用 CSS 自定义属性，扩展主题变量由本层引入并在此覆盖。
+ */
+:root {
+    --ext-accent: #4a7dbe; /* 扩展层强调色（CSS 变量覆盖样例） */
+}
