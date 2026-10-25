@@ -31,9 +31,17 @@ export class PluginHost {
     private mods = new Map<string, ExtPluginModule>();
     private errors = new Map<string, string>();
     private disposables = new Map<string, number>();
+    /** 命令 id → 实际注册者插件 id（B03）。ctx.command 注册时登记，disposer 撤销时释放。 */
     private commandOwners = new Map<string, string>();
+    // 显式字段而非构造器参数属性：Node 契约测试（tests/contract/fiber.test.mjs）以
+    // strip-only 模式加载本文件，参数属性属不可擦除语法会直接报错；语义与原写法完全一致。
+    private readonly app: any;
+    private readonly api: any;
 
-    constructor(private readonly app: any, private readonly api: any) {}
+    constructor(app: any, api: any) {
+        this.app = app;
+        this.api = api;
+    }
 
     async load(manifestUrl = "/plugins/plugins.manifest.json"): Promise<void> {
         let manifest: any;
@@ -137,7 +145,9 @@ export class PluginHost {
         }
     }
 
-    /** 冲突粗扫描：同一命令/面板被两个插件声明时，后启动者直接拒绝（v0.1 策略） */
+    /** 冲突粗扫描：manifest 声明的命令与在册所有者冲突时，后启动者直接拒绝（v0.1 策略）。
+     *  只校验、不占位：所有权以 ctx.command 的实际注册为准（见 createContext.command），
+     *  并随注册 disposer 在卸载/回滚时释放——否则声明过的 id 会在插件卸载后永久占坑。 */
     private scanClaims(entry: PluginEntry): void {
         for (const cmd of entry.claims?.commands ?? []) {
             const owner = this.commandOwners.get(cmd);
@@ -145,8 +155,6 @@ export class PluginHost {
                 throw new Error(`command conflict: "${cmd}" already claimed by plugin "${owner}"`);
             }
         }
-        // 通过校验后再占位
-        for (const cmd of entry.claims?.commands ?? []) this.commandOwners.set(cmd, entry.id);
     }
 
     private createContext(entry: PluginEntry, fiber: Fiber): ExtPluginContext {
@@ -164,6 +172,17 @@ export class PluginHost {
                 return off;
             },
             command: (cmd: ExtCommand) => {
+                // B03 冲突拒绝：目标 id 已被其他插件实际注册 → 抛错，绝不静默。
+                // core 的 addCommand 对重复 id 是静默忽略（core/ts/CommandPaletteRegistry.ts:84-89），
+                // 若不先拒绝，第二插件看似注册成功，其撤销 disposer 反而会删掉第一插件的命令。
+                const owner = self.commandOwners.get(cmd.id);
+                if (owner && owner !== id) {
+                    throw new Error(`command conflict: "${cmd.id}" already registered by plugin "${owner}"`);
+                }
+                // 与核心调色板撞 id 同样拒绝（保护核心命令不被插件抢占、撤销时误删）
+                if (!owner && CommandPaletteRegistry.byId.has(cmd.id)) {
+                    throw new Error(`command conflict: "${cmd.id}" already exists in the command palette`);
+                }
                 const palette = new PaletteCommand({
                     id: cmd.id,
                     label: cmd.label,
@@ -172,7 +191,9 @@ export class PluginHost {
                     custom: { execute: () => cmd.run() },
                 });
                 CommandPaletteRegistry.addCommand(palette);
+                self.commandOwners.set(cmd.id, id);
                 const off = () => {
+                    if (self.commandOwners.get(cmd.id) === id) self.commandOwners.delete(cmd.id);
                     CommandPaletteRegistry.byId.delete(cmd.id);
                     CommandPaletteRegistry.commands = CommandPaletteRegistry.commands.filter((c) => c.id !== cmd.id);
                 };
