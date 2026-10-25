@@ -10,6 +10,7 @@
  *   node tools/ext.mjs plugin <list|lint>
  *   node tools/ext.mjs core <install|sync>
  *   node tools/ext.mjs netlist registry   从 core/ts 重生成 packages/netlist/src/registry.json
+ *   node tools/ext.mjs netlist bench     373 语料紧凑编码基准 -> build/netlist-bench.json（需 dev server）
  */
 import fs from "node:fs";
 import path from "node:path";
@@ -264,6 +265,10 @@ function netlist(argv) {
     const sub = argv[0] ?? "registry";
     if (sub === "registry") {
         return runNode("registry-gen", path.join(root, "packages", "netlist", "src", "registry-gen.mjs"), [], { cwd: root });
+    }
+    if (sub === "bench") {
+        return runNode("netlist-bench", path.join(root, "tests", "contract", "netlist-bench.mjs"),
+            argv.slice(1), { cwd: root });
     }
     console.error(c.err(`[ext] unknown netlist subcommand: ${sub}`));
     return 1;
