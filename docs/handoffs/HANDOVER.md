@@ -18,10 +18,13 @@
 | 8 | 打开/保存钩子（`ctx.hook`）+ 元件交互事件（`select`/`elemclick`） | ✅ | CHANGELOG v0.1.3 |
 | 9 | 插件能力权限（运行期强制 + lint 同口径 + 站点策略） | ✅ | CHANGELOG v0.1.4 |
 | 10 | 元件拖动事件 + 元件增删事件（`elemdrag` / `elementschange`，含载入后同步） | ✅ | CHANGELOG v0.1.5 |
+| 11 | 紧凑网表**解码**（`decodeCompact` + 幂等律/内容对拍，372 例语料） | ✅ | CHANGELOG v0.1.6 |
 
-全量门禁（2026-10-26 最后一轮亲跑，v0.1.5）：**全绿**——doctor、build、plugin lint、cover status、cover scan、
-Node 契约 **118 例**（`node --test --test-concurrency=1 tests/contract/*.test.mjs`，含 hooks.test.mjs 10 例、
-element-events.test.mjs 10 例、permissions.test.mjs 12 例）、浏览器/产物脚本 6 个（boot/menu/netlist-g2/reload/mcp-stdio/dist-site，
+全量门禁（2026-10-26 最后一轮亲跑，v0.1.6）：**全绿**——doctor、build、plugin lint、cover status、cover scan、
+`ext netlist bench`（372 例，体积 0.258× XML + 解码对拍 372/372）、
+Node 契约 **127 例**（`node --test --test-concurrency=1 tests/contract/*.test.mjs`，含 hooks.test.mjs 10 例、
+element-events.test.mjs 10 例、permissions.test.mjs 12 例、netlist-compact.test.mjs 9 例）、
+浏览器/产物脚本 6 个（boot/menu/netlist-g2/reload/mcp-stdio/dist-site，
 其中 dist-site 双形态：根路径 + `/<repo>/`，且两形态都要跑通 `jsinterface.html` 那条老接口）。
 
 ## 2. 环境与常用命令
@@ -129,6 +132,14 @@ element-events.test.mjs 10 例、permissions.test.mjs 12 例）、浏览器/产�
     把 `inject` 送进 `retired` 并给出迁移提示；`mode` 因为被 lint 校验取值所以留着。
     判断标准只有一条：**谁读它？读不到就删。**
 
+33. **有损编码的正确性要两条腿：幂等律 + 内容对拍**（v0.1.6）：只测 `encode(decode(encode(nl))) ≡ encode(nl)`
+    会放过"解码器把 props 全丢掉"这种退化（它丢掉的东西再编码也是空的，律照样成立）；只测内容对拍又会
+    在编码端偷偷改语义时说不清是谁的错。两条一起跑才知道"没引入新损失"且"没丢该留的东西"。
+    另外对拍要**报出比对了多少元件/net** —— 空跑（0 个元件）也能全绿，这种测试比没有更危险。
+34. **紧凑格式的属性位置依赖 registry 顺序**：`xmlAttrs` 一改（重新生成 registry、上游加属性），
+    历史紧凑数据就整体错位，而且**不会报错**——只会读到错的值。所以解码器把"位置越出属性表"单独计数
+    （`losses.orphanProps`），bench 里一旦非零就是编解码两端版本不一致的信号。紧凑数据要长期存盘，
+    必须连 registry 版本一起存。
 ## 5. 测试地图（改哪里跑什么）
 
 **全量本地跑法（唯一推荐命令）**：`node --test --test-concurrency=1 tests/contract/*.test.mjs`
@@ -140,6 +151,7 @@ element-events.test.mjs 10 例、permissions.test.mjs 12 例）、浏览器/产�
 |---|---|
 | cover/ts/*（宿主/桥/菜单/boot） | `ext build` + 对应浏览器契约 + `boot.browser.mjs` 回归 |
 | packages/netlist/* | `node --test ops/netlist-ids` + `netlist-export` + `netlist-roundtrip`（浏览器）+ `ext netlist registry`（若动 registry-gen） |
+| packages/netlist/src/compact.ts（编码/解码） | `node --test tests/contract/netlist-compact.test.mjs`（纯 Node，边界语义）+ `ext netlist bench`（372 例：体积比 + 幂等律 + 内容对拍，任一失败退出码 1） |
 | packages/mcp/* | `mcp-session` + `mcp-stdio`（纯 Node）+ `mcp-bridge` + `mcp-tools`（浏览器）+ `mcp-stdio.browser.mjs`（独立进程端到端）+ `examples/ai-loop.mjs` |
 | packages/mcp/src/{stdio,server,backend,dev-server}.ts | 上面全部 + `node tools/ext.mjs mcp --help` + 手工 `initialize`/`tools/list` 各一条（stdout 必须是纯协议帧） |
 | tools/ts-resolve.mjs（TS 加载钩子） | `node --test tests/contract/mcp-session.test.mjs`（shim 路径）+ `node tools/ext.mjs mcp --help` |
@@ -187,7 +199,10 @@ element-events.test.mjs 10 例、permissions.test.mjs 12 例）、浏览器/产�
 5. ~~**两个上游辅助页**~~ ✅ 已完成（v0.1.5）：`dist-site.browser.mjs` 现在会开 `jsinterface.html`，
    验证 iframe + `window.CircuitJS1` + `oncircuitjsloaded/onanalyze/onupdate` + `getElements/getTime`
    整条老链路（两种挂载形态都跑）。`iframe.html` 经查是**上游空壳（0 字节）**，没有内容可测。
-6. 可选功能债（不变）：B08 Worker 沙箱、`decodeCompact`（C05 只做了编码）、probe op 的 ScopeElm 映射。
+6. 可选功能债：B08 Worker 沙箱、probe op 的 ScopeElm 映射。
+   ~~`decodeCompact`~~ ✅ 已完成（v0.1.6）：`{ netlist, losses }`，幂等律 + 372 例内容对拍。
+   **下一步（把格式真正用起来）**：MCP `circuit.get_netlist` 加 `format: "compact"`、
+   `circuit.load_netlist` 接受紧凑 JSON（解码器已就位，长度约 0.26×），否则 C05 只是"能编码"而没有消费方。
 7. CI 跑浏览器测试（装 Chrome + playwright-core）。
 
 ## 7. 纪律（沿用 goal 手册，对任何执行者有效）

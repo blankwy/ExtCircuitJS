@@ -120,7 +120,7 @@ GitHub Pages 由 `.github/workflows/pages.yml` 负责：`main` 每次推送都�
 | 元件交互事件（`select` / `elemclick` / `elemdrag` / `elementschange`，`ctx.on`） | ✅ | `cover/ts/ExtElementEvents.ts` |
 | 插件能力权限（声明 → 运行期强制 → lint 同口径 + 站点策略） | ✅ | `packages/plugin-api/permissions.json`、`cover/ts/ExtPluginHost.ts` |
 | 网表导出（引擎 nodeList 权威）+ 稳定 id + set/delete ops | ✅ | `packages/netlist` |
-| 紧凑编码（聚合 0.26× XML）+ registry 再生成 CLI | ✅ | `packages/netlist/src/compact.ts；ext netlist registry/bench` |
+| 紧凑编码 + **解码**（聚合 0.258× XML，372 例往返对拍）+ registry 再生成 CLI | ✅ | `packages/netlist/src/compact.ts；ext netlist registry/bench` |
 | add between nets（导线分裂增量放置，自校验回滚） | ✅ | `packages/netlist/src/place.ts` |
 | 菜单插槽（把自定义元件挂进 Draw/右键菜单） | ✅ | `cover/ts/ExtMenus.ts` |
 | MCP：stdio 服务器 + 会话 RPC + WebSocket 桥 + 11 工具 | ✅ | `node tools/ext.mjs mcp`、[docs/mcp.md](docs/mcp.md) §6 |

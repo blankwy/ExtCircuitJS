@@ -15,7 +15,6 @@
 //   - 类型：registry.elements 键的**字典序**即类型索引（compactTypes() 可取回该表）；
 //   - 属性：该类型 xmlAttrs 的出现顺序即 props 数组位置（跳过 field 为 null 的
 //     dump-only 项与上述坐标项）；靠前的缺失属性用 null 占位，尾部缺失省略。
-// spike 原型没有紧凑格式对应的解码器，故本文件同样不提供 decodeCompact。
 //
 // 输出形状：
 //   { v: 1,
@@ -24,6 +23,24 @@
 //     c: [ [typeIdx, flags, [netIdx|-1...], [props...]], ... ],
 //     u?: [ ...unsupported... ] }
 // net 索引 = nl.nets 数组下标；-1 表示该 post 无 net（内部节点 / 未连）。
+//
+// ── 解码（decodeCompact）────────────────────────────────────────────────
+// 有损格式不可能"解回原样"，所以解码器的正确性用一条**幂等律**来钉：
+//
+//     encode(decode(encode(nl)))  ≡  encode(nl)          // 对所有合法 nl 成立
+//
+// 即"解码不引入新的信息损失"。逐字段看为什么成立：
+//   · typeIdx → 类名 → typeIdx：TYPE_TABLE 是双向的；
+//   · pins：解码把 ≥0 的槽位还原成 `{ <post>: <netId> }`，再编码时 maxPost 与空洞完全一致；
+//   · props：解码只把非 null 值按位置放回字段名，再编码时前导 null 由 pending 补回、尾部照旧省略；
+//   · flags / unsupported 原样往返。
+// 真正解不回来的只有三件（见 `CompactLosses`）：坐标、导线行、以及"整张 net 表里没有被任何
+// 非导线元件引用的 net"——紧凑格式不写 net 总数，只能从引用反推下标上界。
+//
+// 解码输出是 `CompactInputNetlist`（schema + components + nets + unsupported），也就是
+// encodeCompact 的输入形状：可以直接再编码，也可以喂给 `circuit.load_netlist` 那类"网表 JSON"
+// 入口。net id 按 `GND` / `n0..` 还原（与 index.ts 的 exportNetlist 命名同一规则），
+// 元件 id 按 `e1..eN`（紧凑数组顺序；导线的 id 缺口无法还原，见 CompactLosses.wires）。
 
 import registryJson from "./registry.json" with { type: "json" };
 
@@ -126,4 +143,145 @@ export function encodeCompact(nl: CompactInputNetlist): unknown {
     if (Object.keys(named).length) out.n = named;
     if (nl.unsupported?.length) out.u = nl.unsupported;
     return out;
+}
+
+// ── 解码 ────────────────────────────────────────────────────────────────────
+
+/**
+ * 紧凑格式**固有**的信息损失（不是 bug，是有损设计的账目）。
+ * 解码器把这三笔账如实报出来，消费方据此决定"够不够用"：
+ * 要坐标就得走 layout:true 的命名 JSON，要导线就得导 XML。
+ */
+export interface CompactLosses {
+    /** 坐标（x/y/x2/y2）不在紧凑通道里：恢复出的元件必须重新布局（place.ts / 引擎默认位置） */
+    geometry: true;
+    /**
+     * 纯导线被整行剔除，**原始数量不可知**（连通性已由 net 索引表达，但"原来有几根导线"
+     * 这个信息彻底没了）。元件 id 也因此有缺口：原电路的 e7 解码后可能叫 e5。
+     */
+    wires: "unknown";
+    /** 类型索引无法解析（typeIdx = -1，或越出 compactTypes() 长度）的元件数 */
+    unresolved: number;
+    /** props 位置越出该类型的属性表（编码端 registry 与解码端版本不一致的典型症状） */
+    orphanProps: number;
+    /** 反推出的 net 里没有任何引脚引用（只剩一个空 net；计入这个数说明电路里有悬空导线网） */
+    unreferencedNets: number;
+}
+
+export interface CompactDecoded {
+    /** 与 encodeCompact 的输入同形（schema / components / nets / unsupported） */
+    netlist: CompactInputNetlist;
+    losses: CompactLosses;
+}
+
+/** 类型索引解析不出时的占位类名（不在 registry 里，所以再编码会如实回到 -1） */
+const UNRESOLVED_CLS = "Unknown";
+
+/** 该类型在 props 数组里占位的字段名（与 encodeCompact 的遍历条件必须逐字一致） */
+function propFields(cls: string | null): string[] {
+    const def = cls != null ? REGISTRY.elements[cls] : null;
+    const out: string[] = [];
+    for (const a of def?.xmlAttrs ?? []) {
+        if (!a?.field) continue; // dump-only
+        if (GEOMETRY_FIELDS.has(a.field)) continue;
+        out.push(a.field);
+    }
+    return out;
+}
+
+/**
+ * 紧凑 JSON → 网表投影。幂等律见文件头：`encode(decode(encode(nl))) ≡ encode(nl)`。
+ *
+ * 形状不对时抛 `Error`（消息以 `decodeCompact:` 开头）：紧凑格式是**机器产出**的，
+ * 遇到非法输入说明链路坏了，静默返回半个电路比报错更贵。
+ */
+export function decodeCompact(x: unknown): CompactDecoded {
+    const src = x as any;
+    if (!src || typeof src !== "object" || Array.isArray(src)) {
+        throw new Error("decodeCompact: 紧凑网表必须是对象");
+    }
+    if (src.v !== 1) {
+        throw new Error(`decodeCompact: 不支持的版本 v=${JSON.stringify(src.v)}（只认 1）`);
+    }
+    if (!Array.isArray(src.c)) throw new Error("decodeCompact: 缺少组件数组 c");
+
+    // ── 1) net 下标上界：紧凑格式不写 net 总数，只能从引用反推 ────────────────
+    // 引用来三处：组件 pins、ground、命名表。三者之外的下标无法得知（见 losses.wires）。
+    let maxNet = -1;
+    const touch = (v: unknown) => {
+        if (typeof v === "number" && Number.isInteger(v) && v > maxNet) maxNet = v;
+    };
+    for (const [i, row] of src.c.entries()) {
+        if (!Array.isArray(row)) throw new Error(`decodeCompact: c[${i}] 不是数组`);
+        if (!Array.isArray(row[2])) throw new Error(`decodeCompact: c[${i}][2]（pins）不是数组`);
+        for (const p of row[2]) touch(p);
+    }
+    const groundIdx = Number.isInteger(src.g) && src.g >= 0 ? (src.g as number) : -1;
+    touch(groundIdx);
+    const named = src.n && typeof src.n === "object" && !Array.isArray(src.n) ? (src.n as Record<string, string>) : {};
+    for (const k of Object.keys(named)) touch(Number(k));
+
+    // ── 2) net 表：索引即 id 序（GND / n0..，与 exportNetlist 同一命名规则）────
+    const netIds: string[] = [];
+    let seq = 0;
+    for (let i = 0; i <= maxNet; i++) netIds.push(i === groundIdx ? "GND" : `n${seq++}`);
+    const nets: CompactInputNet[] = netIds.map((id, i) => {
+        const net: CompactInputNet = { id, pins: [] };
+        if (i === groundIdx) net.ground = true;
+        const nm = named[String(i)];
+        if (typeof nm === "string") net.name = nm;
+        return net;
+    });
+
+    // ── 3) 组件 ──────────────────────────────────────────────────────────────
+    let unresolved = 0;
+    let orphanProps = 0;
+    const components: CompactInputComponent[] = src.c.map((row: any[], i: number) => {
+        const [t, f, pins, vals] = row;
+        const cls = typeof t === "number" && Number.isInteger(t) ? (TYPE_TABLE[t] ?? null) : null;
+        if (cls == null) unresolved++;
+
+        const comp: CompactInputComponent = {
+            id: `e${i + 1}`,
+            type: cls ?? UNRESOLVED_CLS,
+            f: typeof f === "number" && Number.isInteger(f) ? f : 0,
+            props: {},
+            pins: {},
+        };
+
+        // props：位置 → 字段名（null 是"靠前缺失"的占位，跳过即可，再编码会补回来）
+        const fields = propFields(cls);
+        const arr: unknown[] = Array.isArray(vals) ? vals : [];
+        for (let k = 0; k < arr.length; k++) {
+            const v = arr[k];
+            if (v === null || v === undefined) continue;
+            const field = fields[k];
+            if (field === undefined) { orphanProps++; continue; } // registry 漂移：别静默吞掉
+            if (typeof v === "number" || typeof v === "string" || typeof v === "boolean") comp.props[field] = v;
+        }
+
+        // pins：数组下标 = post 序号，-1 = 该 post 无 net
+        (pins as unknown[]).forEach((ni, post) => {
+            if (typeof ni !== "number" || !Number.isInteger(ni) || ni < 0) return;
+            const id = netIds[ni];
+            if (id == null) return; // 同 maxNet 取自同一批引用，理论上到不了这里
+            comp.pins[String(post)] = id;
+            nets[ni].pins.push(`${comp.id}:${post}`);
+        });
+        return comp;
+    });
+
+    // ── 4) 空 net：只被导线连接、或干脆没人引用（见 losses.unreferencedNets）─────
+    let unreferencedNets = 0;
+    for (const n of nets) if (n.pins.length === 0) unreferencedNets++;
+
+    return {
+        netlist: {
+            schema: "netlist/0.1",
+            components,
+            nets,
+            unsupported: Array.isArray(src.u) ? src.u : [],
+        },
+        losses: { geometry: true, wires: "unknown", unresolved, orphanProps, unreferencedNets },
+    };
 }

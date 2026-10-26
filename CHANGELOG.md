@@ -1,5 +1,43 @@
 # Changelog
 
+## v0.1.6（未发布）
+
+紧凑网表补上**解码器**，并且用 373 例真实语料把它钉住。此前 C05 只有编码：格式小到 0.26× XML，
+但没有任何东西能证明"编出去的东西还认得回来"——`docs/development-plan.md` 里写的
+"三档互相可转"实际上靠人工核对。
+
+### `decodeCompact`（紧凑 JSON → 网表投影）
+- 返回 `{ netlist, losses }`：`netlist` 与 `encodeCompact` 的输入同形（`schema` / `components` /
+  `nets` / `unsupported`），可以直接再编码，也可以当作"网表 JSON"喂给写入入口
+- 类型索引 → 类名、`props` 位置 → 字段名（`null` 占位跳过、dump-only 属性不占位）、
+  `pins` 下标 → `{ post: netId }`（中间 `-1` 保留为空洞）、net 下标 → `GND` / `n0..` id
+  （与 `exportNetlist` 同一命名规则）、`n` 命名表 / `g` 接地 / `u` 不支持项原样还原
+- 解不回来的三件如实记账（`losses`）：`geometry`（坐标）、`wires: "unknown"`（导线行，
+  数量不可知 → 元件 id 会有缺口）、`unresolved`（类型索引解析不出的元件数）。
+  另有 `orphanProps`（属性位置越出 registry = 编解码两端版本漂移）与 `unreferencedNets`
+- 形状不对直接抛 `decodeCompact: …`：紧凑格式是机器产出的，静默返回半个电路比报错更贵
+
+### 正确性判据：幂等律 + 内容对拍
+有损格式不可能"解回原样"，所以判据不能是深比较原网表：
+- **幂等律** `encode(decode(encode(nl))) ≡ encode(nl)`：解码不引入**新的**损失。
+  逐字段的成立理由写在 `compact.ts` 文件头（类型表双向、pins 的 maxPost/空洞一致、
+  props 的 null 占位与尾部省略一致、flags/unsupported 原样）
+- **内容对拍**：摘掉"刻意丢掉的"导线行/坐标后，元件类型、`f`、`props`、引脚连通性
+  逐字段相等。只证明幂等律是不够的 —— 一个"把属性全丢掉"的解码器同样满足它
+
+### 语料级验证（372 例，`node tools/ext.mjs netlist bench`）
+- 幂等律 **372/372**、内容 **372/372**，比较了 **5646 个元件 / 3655 个 net**；
+  未解析元件 0、属性越位 0、空 net 0（= 真实电路里导线剔除后没有 net 变成孤儿）
+- 聚合体积 **0.258× XML**（中位 0.257×，验收线 0.35×）——bench 报告里新增 `roundtrip` 段，
+  对拍失败同样以退出码 1 结束（"体积达标但解不回来"不该算通过）
+- 报告里记了"对比了多少元件/net"：防止对拍写成空转（0 个元件也能全绿）
+
+### 测试
+- 新增 `tests/contract/netlist-compact.test.mjs`（9 例，纯 Node，**进 CI**）：基本往返 /
+  导线剔除与 id 缺口 / 属性前导 null 与尾部省略、dump-only 不占位 / 引脚中间空洞与尾部裁剪 /
+  类型索引越界与未知类型 / net 下标反推（ground 在末位、命名、无人引用） / 非法输入逐项抛错 /
+  两轮解码不动点 / registry 漂移的 `orphanProps`
+
 ## v0.1.5（未发布）
 
 元件交互事件补齐成完整一面：**拖动**有了高频事件，**元件增删**有了结构事件。

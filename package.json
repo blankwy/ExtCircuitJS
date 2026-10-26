@@ -1,6 +1,6 @@
 {
   "name": "ext-circuitjs",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "private": true,
   "type": "module",
   "description": "ExtCircuitJS — CircuitJS1 二开：Core / Cover / Plugin / App 四层 + AI 友好网表",
