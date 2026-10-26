@@ -107,7 +107,7 @@ GitHub Pages 由 `.github/workflows/pages.yml` 负责：`main` 每次推送都�
 
 细节、宿主配置的可选项与排障见 [docs/mcp.md](docs/mcp.md) §6。
 
-## 现在能跑什么（v0.1.1）
+## 现在能跑什么（v0.1.4）
 
 | 能力 | 状态 | 入口 |
 |---|---|---|
@@ -118,6 +118,7 @@ GitHub Pages 由 `.github/workflows/pages.yml` 负责：`main` 每次推送都�
 | 插件自定义元件（类 + 存档类型 + 菜单 + 卸载，`ctx.element`） | ✅ | `cover/ts/ExtElements.ts`、`plugins/ext-element` |
 | 插件打开/保存钩子（可改写存档文本，带来源标记，`ctx.hook`） | ✅ | `cover/ts/ExtHooks.ts`、`plugins/ext-hook` |
 | 元件交互事件（`select` / `elemclick`，`ctx.on`） | ✅ | `cover/ts/ExtElementEvents.ts` |
+| 插件能力权限（声明 → 运行期强制 → lint 同口径 + 站点策略） | ✅ | `packages/plugin-api/permissions.json`、`cover/ts/ExtPluginHost.ts` |
 | 网表导出（引擎 nodeList 权威）+ 稳定 id + set/delete ops | ✅ | `packages/netlist` |
 | 紧凑编码（聚合 0.26× XML）+ registry 再生成 CLI | ✅ | `packages/netlist/src/compact.ts；ext netlist registry/bench` |
 | add between nets（导线分裂增量放置，自校验回滚） | ✅ | `packages/netlist/src/place.ts` |
@@ -172,6 +173,38 @@ ctx.hook("save", (text, meta) => {
 元件交互同样有事件：`ctx.on("select", ({ count, elms, ids }) => …)`、
 `ctx.on("elemclick", ({ elm, index, type, grid }) => …)`——"选中元件显示扩展信息"这类需求
 不必再轮询 `listComponents()`。
+
+### 权限（permissions）
+
+插件用到哪一面，就得在 `plugins.manifest.json` 的 `permissions` 里声明。运行期强制、
+`ext plugin lint` 也查同一份表（`packages/plugin-api/permissions.json`）：
+
+| 权限 | 对应的 ctx 面 | 说明 |
+|---|---|---|
+| `sim.observe` | `ctx.on(...)` | 订阅 analyze / update / timestep / svgren / select / elemclick |
+| `sim.control` | `ctx.api` | 读写网表与元件、改参数、载入电路、控制仿真 |
+| `ui.command` | `ctx.command(...)` | 命令面板条目 |
+| `ui.panel` | `ctx.panel(el)` | 右侧栏面板节点 |
+| `ui.menu` | `ctx.element.register({ menu: true })` | Draw / 右键菜单条目（`menu: false` 不需要） |
+| `element.register` | `ctx.element.*` | 元件类与存档类型 |
+| `document.hook` | `ctx.hook("load"\|"save", ...)` | 打开 / 保存时改写存档文本 |
+
+```js
+// plugins/my-plugin/index.js
+export async function activate(ctx) {
+    if (!ctx.permits("document.hook")) return;   // 站点可能按策略关掉了这一面：降级而不是崩
+    ctx.hook("save", (text, meta) => (meta.source === "document" ? migrate(text) : text));
+}
+```
+
+没声明就调用会**当场抛** `ExtPermissionError`（`code: "ext/eperm"`），`denial` 区分
+`undeclared`（作者漏写）/ `denied-by-policy`（站点拦的）/ `unknown`（名字拼错）；
+`plugins.list()` 里能看到每个插件实际拿到的 `permissions`、被拒的 `denied` 与 `warnings`。
+部署侧想关掉某一面，在 manifest 顶层写 `"policy": { "denyPermissions": ["document.hook"] }`
+——策略只能做减法，不能凭空授予。
+
+⚠ **这不是沙箱**：插件仍是同源 ESM，拿得到 `window`。permissions 管的是"经由 `ctx` 用到哪一面"，
+作用是把能力显式化、让漏声明在激活现场或构建期就报错、让站点能收紧。真隔离要等 B08（Worker/iframe）。
 
 ## 目录
 

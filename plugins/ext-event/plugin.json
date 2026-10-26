@@ -5,7 +5,9 @@
   "apiVersion": "1.0.0",
   "entry": "index.js",
   "mode": "in-page",
-  "permissions": [],
+  "permissions": [
+    "sim.observe"
+  ],
   "claims": {},
   "description": "示例插件（B07）· event：订阅 analyze 事件并把计数写入 ctx.storage，退订由 fiber 完成"
 }

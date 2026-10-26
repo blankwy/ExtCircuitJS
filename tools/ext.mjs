@@ -255,8 +255,7 @@ function lintCodeRules(file) {
 }
 
 /** 收集待 lint 的源文件：参数是文件则单收（限 js/ts 家族），是目录则递归走（跳 node_modules 与点目录）。 */
-function collectJsFiles(p) {
-    const JS_EXT = new Set([".js", ".mjs", ".cjs", ".ts", ".mts", ".cts"]);
+function collectJsFiles(p) {    const JS_EXT = new Set([".js", ".mjs", ".cjs", ".ts", ".mts", ".cts"]);
     const out = [];
     const walk = (dir) => {
         for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
@@ -270,6 +269,140 @@ function collectJsFiles(p) {
     if (fs.statSync(p).isDirectory()) walk(p);
     else if (JS_EXT.has(path.extname(p))) out.push(p);
     return out;
+}
+
+// ── 插件权限（与运行期同一份权威表：packages/plugin-api/permissions.json）────────────
+// 运行期由 cover/ts/ExtPluginHost.ts 判，这里判的是"构建期就能发现的那一半"：
+// 名字拼错、claims 与 permissions 打架、源码用了没声明的面。
+let PERM_CATALOG = null;
+function permissionCatalog() {
+    if (PERM_CATALOG) return PERM_CATALOG;
+    const file = path.join(root, "packages", "plugin-api", "permissions.json");
+    const json = readJson(file);
+    const list = Array.isArray(json?.permissions) ? json.permissions : [];
+    PERM_CATALOG = {
+        byId: new Map(list.map((p) => [p.id, p])),
+        ids: list.map((p) => p.id),
+        checks: list.filter((p) => typeof p.check === "string" && p.check).map((p) => ({
+            id: p.id,
+            re: new RegExp(p.check, "g"),
+        })),
+    };
+    return PERM_CATALOG;
+}
+
+/** 把注释与字符串内容抹成空格（保留换行与长度），免得"源码特征"被注释/文案骗到。 */
+function maskNonCode(text) {
+    const out = text.split("");
+    const n = text.length;
+    const blank = (from, to) => {
+        for (let k = from; k < to && k < n; k++) if (out[k] !== "\n") out[k] = " ";
+    };
+    let i = 0;
+    while (i < n) {
+        const ch = text[i];
+        if (ch === "/" && text[i + 1] === "/") {
+            let j = i;
+            while (j < n && text[j] !== "\n") j++;
+            blank(i, j);
+            i = j;
+        } else if (ch === "/" && text[i + 1] === "*") {
+            let j = i + 2;
+            while (j < n && !(text[j] === "*" && text[j + 1] === "/")) j++;
+            const end = Math.min(j + 2, n);
+            blank(i, end);
+            i = end;
+        } else if (ch === '"' || ch === "'" || ch === "`") {
+            let j = i + 1;
+            while (j < n && text[j] !== ch) {
+                if (text[j] === "\\") j++;
+                j++;
+            }
+            blank(i + 1, j);
+            i = j + 1;
+        } else {
+            i++;
+        }
+    }
+    return out.join("");
+}
+
+/** claims 的每一类都对应一个权限：声明了 claims 却没申请对应权限 = 自相矛盾 */
+const CLAIM_PERMISSION = [
+    ["commands", "ui.command"],
+    ["panels", "ui.panel"],
+    ["hooks", "document.hook"],
+    ["elements", "element.register"],
+];
+
+/** 单个插件的权限检查：返回问题数；declared 为权限集合。 */
+function lintPermissions(p, srcFiles) {
+    const cat = permissionCatalog();
+    const declared = new Set(Array.isArray(p.permissions) ? p.permissions : []);
+    let bad = 0;
+
+    for (const perm of declared) {
+        if (!cat.byId.has(perm)) {
+            console.log(c.err(`  ${p.id}: 未知权限 "${perm}"（可用：${cat.ids.join(" / ")}）`));
+            bad++;
+        }
+    }
+    for (const [claimKey, perm] of CLAIM_PERMISSION) {
+        if ((p.claims?.[claimKey] ?? []).length && !declared.has(perm)) {
+            console.log(c.err(`  ${p.id}: claims.${claimKey} 有内容，但没申请权限 "${perm}"`));
+            bad++;
+        }
+    }
+
+    // 源码用了某面却没声明 → 运行期一定会抛，这里提前拦下
+    const used = new Map();
+    for (const f of srcFiles) {
+        const text = maskNonCode(fs.readFileSync(f, "utf8"));
+        const rel = path.relative(root, f);
+        for (const { id, re } of cat.checks) {
+            re.lastIndex = 0;
+            for (let m = re.exec(text); m; m = re.exec(text)) {
+                const line = text.slice(0, m.index).split("\n").length;
+                used.set(id, (used.get(id) ?? 0) + 1);
+                if (!declared.has(id)) {
+                    console.log(c.err(`  ${rel}:${line}: 用到了 ${m[0].trim()}，但 manifest 没声明权限 "${id}"`));
+                    bad++;
+                }
+            }
+        }
+    }
+    // 反向：声明了却一次也没用到（只是提示——动态取用（ctx[name]）看不出来）
+    for (const perm of declared) {
+        if (cat.byId.get(perm)?.check && !used.has(perm)) {
+            console.log(c.dim(`  ${p.id}: 权限 "${perm}" 已声明但源码里没找到对应用法`));
+        }
+    }
+    return bad;
+}
+
+/** manifest 顶层 policy 的形状校验：拼错的能力名会让"禁用"静默失效，必须报出来 */
+function lintPolicy(policy) {
+    if (policy == null) return 0;
+    const cat = permissionCatalog();
+    let bad = 0;
+    if (policy.denyPermissions != null) {
+        if (!Array.isArray(policy.denyPermissions)) {
+            console.log(c.err(`  policy.denyPermissions 必须是数组`));
+            bad++;
+        } else {
+            for (const perm of policy.denyPermissions) {
+                if (!cat.byId.has(perm)) {
+                    console.log(c.err(`  policy.denyPermissions: 未知权限 "${perm}"`));
+                    bad++;
+                }
+            }
+        }
+    }
+    if (policy.strictClaims != null && typeof policy.strictClaims !== "boolean") {
+        console.log(c.err(`  policy.strictClaims 必须是布尔值`));
+        bad++;
+    }
+    return bad;
 }
 
 function plugin(argv) {
@@ -297,9 +430,20 @@ function plugin(argv) {
             for (const t of targets) {
                 // 先按 cwd 解析（验收命令常从仓库外层跑，带 ExtCircuitJS/ 前缀），再退回 repo root
                 const abs = path.resolve(t);
-                const files = collectJsFiles(exists(abs) ? abs : path.resolve(root, t));
+                const base = exists(abs) ? abs : path.resolve(root, t);
+                const files = collectJsFiles(base);
                 if (files.length === 0) { console.log(c.err(`  lint target not found (or no js/ts files): ${t}`)); bad++; continue; }
                 for (const f of files) bad += lintCodeRules(f);
+                // 目录里带 plugin.json 时顺带做权限检查：这样单个插件能在进 manifest 之前
+                // 先验证（也是"故意违规样例"的验证通道，不必污染 plugins.manifest.json）。
+                const pj = path.join(base, "plugin.json");
+                if (exists(base) && fs.statSync(base).isDirectory() && exists(pj)) {
+                    const meta = readJson(pj);
+                    bad += lintPermissions(
+                        { id: meta.id ?? path.basename(base), permissions: meta.permissions, claims: meta.claims },
+                        files,
+                    );
+                }
             }
             console.log(bad === 0 ? c.ok("  plugin lint ok") : c.err(`  ${bad} issue(s)`));
             return bad === 0 ? 0 : 1;
@@ -307,6 +451,7 @@ function plugin(argv) {
         let bad = 0;
         const ids = new Set();
         const cmds = new Map();
+        bad += lintPolicy(manifest.policy);
         for (const p of plugins) {
             if (!p.id) { console.log(c.err("  plugin without id")); bad++; continue; }
             if (ids.has(p.id)) { console.log(c.err(`  duplicate plugin id: ${p.id}`)); bad++; }
@@ -316,9 +461,11 @@ function plugin(argv) {
                 if (cmds.has(cmd)) { console.log(c.err(`  command conflict: ${cmd} (${cmds.get(cmd)} vs ${p.id})`)); bad++; }
                 cmds.set(cmd, p.id);
             }
-            for (const f of collectJsFiles(path.join(root, "plugins", p.id))) {
+            const srcFiles = collectJsFiles(path.join(root, "plugins", p.id));
+            for (const f of srcFiles) {
                 bad += lintCodeRules(f);
             }
+            bad += lintPermissions(p, srcFiles);
         }
         console.log(bad === 0 ? c.ok("  plugin lint ok") : c.err(`  ${bad} issue(s)`));
         return bad === 0 ? 0 : 1;

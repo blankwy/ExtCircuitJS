@@ -120,7 +120,11 @@ test("plugin-element：自定义元件注册/存档往返/卸载", { timeout: 18
             out.after.textComponents = ext.api.listComponents().length;
 
             // ── 7) 重新装载：证明是可重复的生命周期，不是一次性魔术 ─────────
-            await ext.plugins.activate({ id: "ext-element", entry: "index.js", rev: Date.now() });
+            //     entry 一律从 manifest 取，别手写：权限、claims 都挂在里面，
+            //     手写等于让测试自带一份会过期的副本（插件加权限后这里就红）。
+            const manifest = await (await fetch("/plugins/plugins.manifest.json", { cache: "no-store" })).json();
+            const entry = manifest.plugins.find((p) => p.id === "ext-element");
+            await ext.plugins.activate({ ...entry, rev: Date.now() });
             out.remounted = {
                 state: ext.plugins.list().find((p) => p.id === "ext-element")?.state ?? null,
                 drawHas: document.querySelectorAll("li[data-ext-menu='ExtShuntElm']").length,

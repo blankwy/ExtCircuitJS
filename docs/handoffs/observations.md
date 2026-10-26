@@ -1,5 +1,10 @@
 # 计划外观察（跨阶段累积；Lead 逐条裁决，不在当前卡展开）
 
+- [2026-10-26 · manifest 字段 / 声明与执行] `permissions` 在 manifest 里躺了三个阶段，`claims` 只有命令冲突那一处真被读过；`permissions` 从头到尾**没有一行代码读它**。于是"安全模型"实质是注释：`hello` 用着 `ctx.api`、`ext-event` 用着 `ctx.on`，声明里都是空的，谁也不知道。教训：**manifest 的字段分三种——被运行的、被检查的、纯装饰的；区分方法只有 grep 引用点，不是读文档**。加字段时若当轮不接线，就在字段名旁边写"当前无人读取"，否则下一个人会以为它在生效。
+- [2026-10-26 · 双端规则 / 单一权威] 权限要同时被运行期（浏览器）与构建期（lint，纯 Node）判定。两份手写的表一定会漂——漂的方式还很隐蔽：lint 说"没问题"、运行期照抛，或者反过来。这次把能力表落成 `packages/plugin-api/permissions.json`：TS 侧 `import` 它、`tools/ext.mjs` 读同一个文件，测试再拿字面量列表双向核对。**"同一条规则要在两个环境执行"时，第一件事是把规则本身抽成数据，而不是把代码抄两遍。**
+- [2026-10-26 · 测试维护 / 第二份 manifest] 给 `permissions` 接线后，`plugin-element.browser.test.mjs` 与 `boot.browser.mjs` 立刻红了——它们都用 `activate({ id: "ext-element", entry: "index.js", rev })` 手搓了一份 entry，权限一加就过期。这和上一轮 `reload.browser.mjs` 硬编码"4 个插件"是同一个病：**测试里出现了第二份 manifest**。处置：一律 `fetch("/plugins/plugins.manifest.json")` 取真身再 spread，让测试跟着产品走。
+- [2026-10-26 · 权限模型 / 预期管理] 落地时最容易说过头的一句话是"插件被限制了"。实际不是：插件还是同源 ESM，`window` 照样摸得到，绕开 `ctx` 直接拿 app 完全可行。这套东西给的是**能力显式化 + 漏声明当场报错 + 站点能收紧**，隔离要等 B08。写进 README 时把这段放在表格**后面**、用 ⚠ 开头，比藏在文档深处有用——否则下一个看 README 的人会以为它防得住恶意插件。
+
 - [2026-10-26 · 文档钩子 / 语义错位] **`dumpCircuit` / `readCircuit` 是"序列化"，不是"保存/打开"**：撤销快照、崩溃恢复、粘贴、`isModified()` 的文本比较、子电路进出全走它们（`UndoManager.pushUndo`、`writeRecoveryToStorage`、`popContext`…）。如果按名字当成用户动作来挂钩子，插件光是按键就会被叫醒几十次。处置：不给插件"猜"的机会——宿主在包住这两个方法的同时，把 `undoManager.*` / `isModified` / `popContext` / `commands.doPaste` 也包一层来源标记，`meta.source` 里把 `document` 与其它区分开。**教训：「方法名像什么」不能当作「它什么时候被调用」的依据，先数调用点再定语义。**
 - [2026-10-26 · 文档钩子 / 过滤方向] 同一个过滤规则在 load 与 save 两侧**方向相反**：save 侧要按 source 过滤（否则污染撤销快照），load 侧绝不能过滤（崩溃恢复读的正是自己写出去的文本）。这条如果只写在文档里，下一个写插件的人一定会抄反——所以示例插件 `plugins/ext-hook` 的两个 hook 一正一反摆在一起，并在类型注释里点明"自己写出去的格式，自己必须无条件认得"。
 - [2026-10-26 · 元件事件 / 设计取向] 选中状态只是 `CircuitElm` 上的一个布尔位，改它的地方散落在 MouseManager（框选/拖动）、CommandManager（全选/删除）、UndoManager、菜单里。挨个包方法既漏又绑死私有实现，于是改成**旁观-比对**：听画布与键盘，动作结束后比对"选中集合指纹"（下标序列），变了才发事件。代价是插件自己 `setSelected()` 不会自动发事件——补一个 `refreshSelection()` 手动同步入口，而不是假装支持。

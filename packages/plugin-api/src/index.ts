@@ -1,6 +1,10 @@
 // @ext/plugin-api — 插件契约（不依赖 cordis；AbortSignal 作为 dispose 原语）
 // 语义对齐 cordis 的 fiber/effect/dispose/inject，但实现只有 ~100 行，浏览器/Node 通用。
 
+export * from "./permissions";
+// export * 不建立本地绑定，本文件自己用到这两个名字要单独引
+import type { ExtPermission } from "./permissions";
+
 export type PluginState = "discovered" | "loading" | "ready" | "failed" | "disposing" | "disposed";
 
 export type ExtDisposer = () => void;
@@ -71,16 +75,25 @@ export interface ExtPluginContext {
     readonly version: string;
     readonly signal: AbortSignal;
     readonly state: PluginState;
+    /** 实际授予的权限（manifest 声明 ∩ 未被站点策略拒绝） */
+    readonly permissions: readonly ExtPermission[];
+    /** 能力探测：想在缺权限时优雅降级就先问它，别靠 try/catch 摸 */
+    permits(permission: ExtPermission): boolean;
     /** 注册清理函数；dispose 时逆序执行 */
     effect(fn: ExtDisposer): ExtDisposer;
+    /** 需要 "sim.observe" */
     on(event: ExtEventName, h: (payload?: any) => void): ExtDisposer;
-    /** 打开/保存钩子（可改写文本）；见 ExtHookHandler 的幂等要求 */
+    /** 打开/保存钩子（可改写文本）；需要 "document.hook"。见 ExtHookHandler 的幂等要求 */
     hook(name: ExtHookName, h: ExtHookHandler): ExtDisposer;
+    /** 需要 "ui.command" */
     command(cmd: ExtCommand): ExtDisposer;
+    /** 需要 "ui.panel" */
     panel(el: HTMLElement, slot?: string): ExtDisposer;
-    /** 自定义元件（类/存档类型/菜单一次到位） */
+    /** 自定义元件（类/存档类型/菜单一次到位）；需要 "element.register"（带菜单还要 "ui.menu"） */
     element: ExtElementFacet;
-    api: any;
+    /** 需要 "sim.control"；未声明时**取属性即抛** ExtPermissionError */
+    readonly api: any;
+    /** 存储按插件 id 隔离，不需要权限 */
     storage: {
         get<T = any>(key: string): T | null;
         set(key: string, value: any): void;

@@ -1,15 +1,33 @@
 {
   "schema": "extplugins/1",
   "apiVersion": "1.0.0",
+  "policy": {
+    "denyPermissions": [],
+    "strictClaims": false
+  },
   "plugins": [
     {
       "id": "hello",
       "entry": "index.js",
       "version": "0.1.0",
       "mode": "in-page",
-      "inject": ["api"],
-      "permissions": ["ui.panel", "ui.command"],
-      "claims": { "commands": ["ext.hello.poke"], "panels": ["right.sidebar"] },
+      "inject": [
+        "api"
+      ],
+      "permissions": [
+        "ui.panel",
+        "ui.command",
+        "sim.observe",
+        "sim.control"
+      ],
+      "claims": {
+        "commands": [
+          "ext.hello.poke"
+        ],
+        "panels": [
+          "right.sidebar"
+        ]
+      },
       "enabled": true
     },
     {
@@ -17,9 +35,17 @@
       "entry": "index.js",
       "version": "0.1.0",
       "mode": "in-page",
-      "inject": ["api"],
-      "permissions": ["ui.panel"],
-      "claims": { "panels": ["right.sidebar"] },
+      "inject": [
+        "api"
+      ],
+      "permissions": [
+        "ui.panel"
+      ],
+      "claims": {
+        "panels": [
+          "right.sidebar"
+        ]
+      },
       "enabled": true
     },
     {
@@ -27,9 +53,17 @@
       "entry": "index.js",
       "version": "0.1.0",
       "mode": "in-page",
-      "inject": ["api"],
-      "permissions": ["ui.command"],
-      "claims": { "commands": ["ext.command.ping"] },
+      "inject": [
+        "api"
+      ],
+      "permissions": [
+        "ui.command"
+      ],
+      "claims": {
+        "commands": [
+          "ext.command.ping"
+        ]
+      },
       "enabled": true
     },
     {
@@ -37,8 +71,12 @@
       "entry": "index.js",
       "version": "0.1.0",
       "mode": "in-page",
-      "inject": ["api"],
-      "permissions": [],
+      "inject": [
+        "api"
+      ],
+      "permissions": [
+        "sim.observe"
+      ],
       "claims": {},
       "enabled": true
     },
@@ -47,9 +85,18 @@
       "entry": "index.js",
       "version": "0.1.0",
       "mode": "in-page",
-      "inject": ["api"],
-      "permissions": ["ui.menu", "element.register"],
-      "claims": { "elements": ["ExtShuntElm"] },
+      "inject": [
+        "api"
+      ],
+      "permissions": [
+        "ui.menu",
+        "element.register"
+      ],
+      "claims": {
+        "elements": [
+          "ExtShuntElm"
+        ]
+      },
       "enabled": true
     },
     {
@@ -57,9 +104,23 @@
       "entry": "index.js",
       "version": "0.1.0",
       "mode": "in-page",
-      "inject": ["api"],
-      "permissions": ["document.hook", "ui.command"],
-      "claims": { "commands": ["ext-hook.about"], "hooks": ["load", "save"] },
+      "inject": [
+        "api"
+      ],
+      "permissions": [
+        "document.hook",
+        "ui.command",
+        "sim.control"
+      ],
+      "claims": {
+        "commands": [
+          "ext-hook.about"
+        ],
+        "hooks": [
+          "load",
+          "save"
+        ]
+      },
       "enabled": true
     }
   ]

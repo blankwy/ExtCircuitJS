@@ -5,7 +5,19 @@
   "apiVersion": "1.0.0",
   "entry": "index.js",
   "mode": "in-page",
-  "permissions": ["ui.panel", "ui.command"],
-  "claims": { "commands": ["ext.hello.poke"], "panels": ["right.sidebar"] },
+  "permissions": [
+    "ui.panel",
+    "ui.command",
+    "sim.observe",
+    "sim.control"
+  ],
+  "claims": {
+    "commands": [
+      "ext.hello.poke"
+    ],
+    "panels": [
+      "right.sidebar"
+    ]
+  },
   "description": "最小示例：面板 + 命令 + analyze 事件 + 通过 ctx.api 改参数"
 }

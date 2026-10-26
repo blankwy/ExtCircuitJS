@@ -1,0 +1,61 @@
+{
+  "schema": "extpermissions/1",
+  "_comment": [
+    "插件能力的唯一权威表：运行期（cover/ts/ExtPermissions.ts）与静态检查（tools/ext.mjs plugin lint）都读它。",
+    "加一个能力 = 这里加一条 + packages/plugin-api/src/permissions.ts 的 ExtPermission 联合类型同步加一个。",
+    "check 是 lint 用的源码特征（看不清的自觉删掉，别写一个永远匹配不上的正则）；null = 只能运行期判定。",
+    "注意：permissions 不是沙箱。同源 ESM 仍能摸到 window —— 它约束的是「插件经由 ctx 用到哪一面」，",
+    "用来把能力显式化、让漏声明在激活时就报错、让站点能按策略关掉某个面。"
+  ],
+  "permissions": [
+    {
+      "id": "sim.observe",
+      "label": "观察仿真",
+      "surface": "ctx.on(...)",
+      "summary": "订阅 analyze / update / timestep / svgren 与 select / elemclick",
+      "check": "\\bctx\\s*\\.\\s*on\\s*\\("
+    },
+    {
+      "id": "sim.control",
+      "label": "读写电路与仿真",
+      "surface": "ctx.api",
+      "summary": "读网表/元件/测量，改参数、载入电路、推进与暂停仿真",
+      "check": "\\bctx\\s*\\.\\s*api\\b"
+    },
+    {
+      "id": "ui.command",
+      "label": "命令面板",
+      "surface": "ctx.command(...)",
+      "summary": "向命令面板注册命令（卸载即撤销）",
+      "check": "\\bctx\\s*\\.\\s*command\\s*\\("
+    },
+    {
+      "id": "ui.panel",
+      "label": "侧栏面板",
+      "surface": "ctx.panel(el)",
+      "summary": "把自己的 DOM 节点挂进右侧 verticalPanel",
+      "check": "\\bctx\\s*\\.\\s*panel\\s*\\("
+    },
+    {
+      "id": "ui.menu",
+      "label": "菜单条目",
+      "surface": "ctx.element.register({ menu: true })",
+      "summary": "允许自定义元件出现在 Draw / 右键菜单；register({ menu: false }) 则不需要",
+      "check": null
+    },
+    {
+      "id": "element.register",
+      "label": "自定义元件",
+      "surface": "ctx.element.*",
+      "summary": "注册元件类与存档类型（文本 dumpType + XML xmlType），含 base/freeDumpType/list",
+      "check": "\\bctx\\s*\\.\\s*element\\s*\\."
+    },
+    {
+      "id": "document.hook",
+      "label": "打开/保存钩子",
+      "surface": "ctx.hook(\"load\"|\"save\", ...)",
+      "summary": "看见并改写存档文本（格式扩展、旧档迁移、注释持久化）",
+      "check": "\\bctx\\s*\\.\\s*hook\\s*\\("
+    }
+  ]
+}

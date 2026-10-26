@@ -210,7 +210,7 @@ test("B03 命令插槽：ctx.command 注册进调色板、返回的 disposer 精
     const baseline = Palette.commands.length;
     const host = new PluginHost(fakeApp, {});
 
-    await activate(host, "p3a");
+    await activate(host, "p3a", { permissions: ["ui.command"] });
     assert.equal(host.list()[0].state, "ready", "插件应激活到 ready");
 
     // 注册：调色板可见、可取、可运行（custom.execute → 插件 run）
@@ -251,12 +251,12 @@ test("B03 冲突拒绝：第二插件抢同 id 被拒（抛错非静默），先
     const baseline = Palette.commands.length;
     const host = new PluginHost(fakeApp, {});
 
-    await activate(host, "p4a");
+    await activate(host, "p4a", { permissions: ["ui.command"] });
     assert.equal(Palette.commands.length, baseline + 1);
 
     // 第二插件抢同 id：必须在 activate 时抛错（报错不静默，错误指明 id 与在册所有者）
     await assert.rejects(
-        () => activate(host, "p4b"),
+        () => activate(host, "p4b", { permissions: ["ui.command"] }),
         /command conflict: "p4\.shared" already registered by plugin "p4a"/,
         "第二插件抢同 id 必须被拒绝且错误信息可读",
     );
@@ -283,16 +283,16 @@ test("B03 claims 早拒：manifest 声明与在册所有者冲突 → activate �
     const baseline = Palette.commands.length;
     const host = new PluginHost(fakeApp, {});
 
-    await activate(host, "p5a");
+    await activate(host, "p5a", { permissions: ["ui.command"] });
     await assert.rejects(
-        () => activate(host, "p5b", { claims: { commands: ["p5.cmd"] } }),
+        () => activate(host, "p5b", { permissions: ["ui.command"], claims: { commands: ["p5.cmd"] } }),
         /command conflict: "p5\.cmd" already claimed by plugin "p5a"/,
         "manifest claims 撞上实际注册的所有者 → scanClaims 早拒",
     );
 
     // p5a 卸载 → 所有权随 disposer 释放 → 同 claims 的插件现在可激活并注册
     await host.dispose();
-    await activate(host, "p5b", { claims: { commands: ["p5.cmd"] } });
+    await activate(host, "p5b", { permissions: ["ui.command"], claims: { commands: ["p5.cmd"] } });
     assert.equal(host.list().find((s) => s.id === "p5b")?.state, "ready", "卸载后同 claims 插件可激活");
     assert.ok(Palette.get("p5.cmd"), "后到插件可注册该 id");
 
@@ -319,13 +319,13 @@ test("B03 卸载回基线：多插件交错注册/卸载命令数精确回落；
     const baseline = Palette.commands.length;
     const host = new PluginHost(fakeApp, {});
 
-    await activate(host, "p6a");
-    await activate(host, "p6b");
+    await activate(host, "p6a", { permissions: ["ui.command"] });
+    await activate(host, "p6b", { permissions: ["ui.command"] });
     assert.equal(Palette.commands.length, baseline + 3, "两插件共 3 条命令在册");
 
     // 抢核心命令 id → 拒绝（保护核心命令不被抢占、不被插件的撤销误删）
     await assert.rejects(
-        () => activate(host, "p6c"),
+        () => activate(host, "p6c", { permissions: ["ui.command"] }),
         /command conflict: "core:fake" already exists in the command palette/,
         "与核心调色板撞 id 必须被拒",
     );
@@ -428,7 +428,7 @@ test("B04 面板插槽：ctx.panel 把元素挂进宿主 verticalPanel（iFrame 
     const host = new PluginHost(dom.app, {});
     const baseline = dom.childCount;
 
-    await activate(host, "p7a");
+    await activate(host, "p7a", { permissions: ["ui.command", "ui.panel"] });
     assert.equal(host.list()[0].state, "ready", "插件应激活到 ready");
 
     // 挂载：元素真的进了 verticalPanel 容器，且插在 iFrame 之前（core 的 iFrame 分支）
@@ -467,8 +467,8 @@ test("B04 DOM 卸载清理：多插件交错挂面板，逐个卸载后子节点
     const host = new PluginHost(dom.app, {});
     const baseline = dom.childCount;
 
-    await activate(host, "p8a");
-    await activate(host, "p8b");
+    await activate(host, "p8a", { permissions: ["ui.panel"] });
+    await activate(host, "p8b", { permissions: ["ui.panel"] });
     assert.equal(dom.childCount, baseline + 3, "两插件共 3 块面板挂载");
     assert.equal(dom.indexOf(rec.el["p8b.1"]), dom.childCount - 2, "后挂面板同样在 iFrame 之前");
 
@@ -497,7 +497,7 @@ test("B04 激活失败回滚：activate 中途抛错，已挂面板随 LIFO 回�
     const baseline = dom.childCount;
 
     await assert.rejects(
-        () => activate(host, "p9a"),
+        () => activate(host, "p9a", { permissions: ["ui.panel"] }),
         /boom after panel/,
         "activate 中途抛错应向外传播（宿主 rethrow）",
     );
@@ -519,7 +519,7 @@ test("B04 清理弹性：插件自行摘除面板后，宿主卸载不抛、无�
     const host = new PluginHost(dom.app, {});
     const baseline = dom.childCount;
 
-    await activate(host, "p10a");
+    await activate(host, "p10a", { permissions: ["ui.panel"] });
     assert.equal(dom.childCount, baseline, "插件挂了又自摘，计数停在基线");
 
     const errMock = mock.method(console, "error", () => {});

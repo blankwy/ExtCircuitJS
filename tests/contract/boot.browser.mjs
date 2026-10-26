@@ -82,9 +82,10 @@ try {
             out.lifecycle.afterReload = ext.plugins.list();
             await ext.plugins.deactivate("hello");
             out.lifecycle.afterDeactivate = ext.plugins.list();
-            await ext.plugins.activate({
-                id: "hello", entry: "index.js", version: "0.1.0", rev: Date.now(),
-            });
+            // entry 从 manifest 取（权限/claims 都在里面），别手写一份会过期的副本
+            const manifest = await (await fetch("/plugins/plugins.manifest.json", { cache: "no-store" })).json();
+            const hello = manifest.plugins.find((p) => p.id === "hello");
+            await ext.plugins.activate({ ...hello, rev: Date.now() });
             out.lifecycle.afterReactivate = ext.plugins.list();
         } catch (e) {
             out.errors.push(String(e && e.stack || e));

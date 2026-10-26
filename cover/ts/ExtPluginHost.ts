@@ -10,7 +10,9 @@ import type {
     ExtElementDef,
     ExtHookName,
     ExtHookHandler,
+    ExtPermission,
 } from "@ext/plugin-api";
+import { ExtPermissionError, resolveDeclaredPermissions, applyPermissionPolicy } from "@ext/plugin-api";
 import { CommandPaletteRegistry, PaletteCommand } from "./CommandPaletteRegistry";
 import { ExtHooks } from "./ExtHooks";
 import {
@@ -28,8 +30,21 @@ export interface PluginEntry {
     version?: string;
     enabled?: boolean;
     rev?: string | number;
-    claims?: { commands?: string[]; panels?: string[]; hooks?: string[] };
+    /** 申请的 ctx 能力；权威表见 packages/plugin-api/permissions.json */
+    permissions?: string[];
+    claims?: { commands?: string[]; panels?: string[]; hooks?: string[]; elements?: string[] };
     [k: string]: any;
+}
+
+/**
+ * 站点级策略（由 plugins.manifest.json 的 policy 或宿主显式传入）。
+ * 这里只做「减法」：插件自己声明的能力，站点可以整体否掉；站点不能凭空授予。
+ */
+export interface PluginPolicy {
+    /** 无论 manifest 怎么声明，这些能力一律不授予（相关 ctx 面调用即抛 ExtPermissionError） */
+    denyPermissions?: string[];
+    /** claims 与 permissions 不一致时是否直接失败；缺省 false = 记 warning（可在 list() 里看到） */
+    strictClaims?: boolean;
 }
 
 export interface PluginStatus {
@@ -38,6 +53,12 @@ export interface PluginStatus {
     version?: string;
     error?: string | null;
     disposables: number;
+    /** 实际授予的权限 */
+    permissions: ExtPermission[];
+    /** 声明了但被站点策略拒掉的权限 */
+    denied: string[];
+    /** 漏声明 / 策略拦截 / 声明与实现不一致等非致命提示 */
+    warnings: string[];
 }
 
 const STORAGE_PREFIX = "ext.plugin.";
@@ -53,6 +74,18 @@ function pluginsRoot(): string {
     return "/plugins/";
 }
 
+/** 策略合并：只能做减法，所以 deny 取并集、strictClaims 取或。构造参数与 manifest 的 policy 都走这里。 */
+function mergePolicy(...policies: (PluginPolicy | null | undefined)[]): PluginPolicy {
+    const deny = new Set<string>();
+    let strictClaims = false;
+    for (const p of policies) {
+        if (!p) continue;
+        for (const d of Array.isArray(p.denyPermissions) ? p.denyPermissions : []) deny.add(String(d));
+        if (p.strictClaims) strictClaims = true;
+    }
+    return { denyPermissions: Array.from(deny), strictClaims };
+}
+
 export class PluginHost {
     private fibers = new Map<string, Fiber>();
     private mods = new Map<string, ExtPluginModule>();
@@ -60,18 +93,28 @@ export class PluginHost {
     private disposables = new Map<string, number>();
     /** 命令 id → 实际注册者插件 id（B03）。ctx.command 注册时登记，disposer 撤销时释放。 */
     private commandOwners = new Map<string, string>();
+    /** 每个插件的授予集 / 被策略拒掉的 / 非致命提示（list() 暴露出去） */
+    private granted = new Map<string, ExtPermission[]>();
+    private denied = new Map<string, string[]>();
+    private warnings = new Map<string, string[]>();
+    /** 构造时给的策略（不随 load 变化；与 manifest policy 取并集得到 effective policy） */
+    private readonly basePolicy: PluginPolicy;
+    /** 当前生效的策略 = basePolicy ∪ manifest.policy（只能做减法，见 mergePolicy） */
+    private policy: PluginPolicy = {};
     // 显式字段而非构造器参数属性：Node 契约测试（tests/contract/fiber.test.mjs）以
     // strip-only 模式加载本文件，参数属性属不可擦除语法会直接报错；语义与原写法完全一致。
     private readonly app: any;
     private readonly api: any;
     private readonly hooks: ExtHooks;
 
-    constructor(app: any, api: any, hooks?: ExtHooks) {
+    constructor(app: any, api: any, hooks?: ExtHooks, policy?: PluginPolicy) {
         this.app = app;
         this.api = api;
         // 缺省自建一条空总线：Node 契约测试直接 new PluginHost(app, api) 也不会炸，
         // ctx.hook 只是没人跑（真正的接线在 ExtBoot 里用 wireAppHooks 完成）
         this.hooks = hooks ?? new ExtHooks();
+        this.basePolicy = mergePolicy(policy);
+        this.policy = this.basePolicy;
     }
 
     async load(manifestUrl = pluginsRoot() + "plugins.manifest.json"): Promise<void> {
@@ -85,6 +128,10 @@ export class PluginHost {
             console.warn("[ExtCircuitJS] plugin manifest unavailable:", e);
             return;
         }
+        // 站点策略随 manifest 走：这是"部署侧能不能关掉某一面"的唯一入口。
+        // 每次都从 basePolicy 重新合并（而不是累加到上一轮），否则反复 load 会一直做减法、
+        // 把 manifest 里已经去掉的 deny 永久留在内存里。
+        this.policy = mergePolicy(this.basePolicy, manifest?.policy);
         const entries: PluginEntry[] = (manifest?.plugins ?? []).filter((p: PluginEntry) => p.enabled !== false);
         for (const entry of entries) {
             try {
@@ -102,6 +149,28 @@ export class PluginHost {
         const fiber = new Fiber();
         fiber.state = "loading";
         this.fibers.set(entry.id, fiber);
+        const warnings: string[] = [];
+        this.warnings.set(entry.id, warnings);
+
+        // 权限先于 import 解析：名字拼错时连插件的代码都不加载。
+        // 失败也要留在 fibers 里（state=failed）——否则 list() 里凭空少一个插件，
+        // 排障的人只会看到"它没启动"，看不到"为什么"。
+        let granted: ExtPermission[] = [];
+        let denied: string[] = [];
+        try {
+            const declared = resolveDeclaredPermissions(entry.permissions, entry.id);
+            const applied = applyPermissionPolicy(declared, this.policy.denyPermissions);
+            granted = applied.granted;
+            denied = applied.denied;
+        } catch (e: any) {
+            fiber.state = "failed";
+            this.errors.set(entry.id, String(e?.message ?? e));
+            throw e;
+        }
+        this.granted.set(entry.id, granted);
+        this.denied.set(entry.id, denied);
+        for (const p of denied) warnings.push(`权限 "${p}" 已被站点策略禁用，对应的 ctx 面不可用`);
+        if (denied.length) console.warn(`[ExtCircuitJS] plugin "${entry.id}": denied by policy → ${denied.join(", ")}`);
 
         // ?rev= 是热重载的换版本键：不同 rev → 不同 URL → 浏览器必然拉新模块实例，
         // 不会命中 ESM 模块图里的旧条目（core 只读，宿主侧解决"能加不能减"）。
@@ -115,7 +184,7 @@ export class PluginHost {
             throw e;
         }
 
-        const ctx = this.createContext(entry, fiber);
+        const ctx = this.createContext(entry, fiber, granted, denied, warnings);
         try {
             await mod.activate?.(ctx);
             fiber.state = "ready";
@@ -140,6 +209,9 @@ export class PluginHost {
         fiber?.dispose();
         this.fibers.delete(id);
         this.mods.delete(id);
+        this.granted.delete(id);
+        this.denied.delete(id);
+        this.warnings.delete(id);
     }
 
     /** 热重载（B05）：重新 fetch manifest 拿最新 entry，deactivate 旧 fiber（全部
@@ -162,6 +234,9 @@ export class PluginHost {
                 version: (this.mods.get(id) as any)?.version,
                 error: this.errors.get(id) ?? null,
                 disposables: this.disposables.get(id) ?? 0,
+                permissions: (this.granted.get(id) ?? []).slice(),
+                denied: (this.denied.get(id) ?? []).slice(),
+                warnings: (this.warnings.get(id) ?? []).slice(),
             };
         });
     }
@@ -194,27 +269,59 @@ export class PluginHost {
         }
     }
 
-    private createContext(entry: PluginEntry, fiber: Fiber): ExtPluginContext {
+    private createContext(
+        entry: PluginEntry,
+        fiber: Fiber,
+        granted: ExtPermission[],
+        denied: string[],
+        warnings: string[],
+    ): ExtPluginContext {
         const self = this;
         const id = entry.id;
+        const grantedSet = new Set(granted);
+        const deniedSet = new Set(denied);
+
+        /** 能力闸门：没授予就抛。区分"没声明"与"被策略拦"——两者的处置完全不同。 */
+        const require = (perm: ExtPermission, surface: string): void => {
+            if (grantedSet.has(perm)) return;
+            throw new ExtPermissionError(id, perm, deniedSet.has(perm) ? "denied-by-policy" : "undeclared", surface);
+        };
+        /** claims 与实现不一致：默认只是 warning（可在 plugins.list() 里看到），
+         *  strictClaims 下升级为失败——claims 是冲突检测的依据，偷偷扩面会让它失准。 */
+        const noteClaim = (what: string, declared: string[] | undefined, actual: string): void => {
+            if (!declared?.length || declared.includes(actual)) return;
+            const msg = `${what} "${actual}" 未在 manifest 的 claims 里声明`;
+            if (self.policy.strictClaims) throw new Error(`plugin "${id}": ${msg}`);
+            warnings.push(msg);
+            console.warn(`[ExtCircuitJS] plugin "${id}": ${msg}`);
+        };
+
         return {
             id,
             version: entry.version ?? "0.0.0",
             get signal() { return fiber.signal; },
             get state() { return fiber.state; },
+            // 授予集不可变副本：插件改它不该影响宿主判定
+            get permissions() { return Object.freeze(granted.slice()); },
+            permits: (perm: ExtPermission) => grantedSet.has(perm),
             effect: (fn) => fiber.effect(fn),
             on: (name, h) => {
+                require("sim.observe", "ctx.on");
                 const off = self.api.on(name, h);
                 fiber.add(off);
                 return off;
             },
             hook: (name: ExtHookName, h: ExtHookHandler) => {
+                require("document.hook", `ctx.hook("${name}")`);
                 if (typeof h !== "function") throw new Error(`hook "${name}" needs a function`);
+                noteClaim("钩子", entry.claims?.hooks, name);
                 const off = self.hooks.on(name, h);
                 fiber.add(off);
                 return off;
             },
             command: (cmd: ExtCommand) => {
+                require("ui.command", "ctx.command");
+                noteClaim("命令", entry.claims?.commands, String(cmd?.id ?? ""));
                 // B03 冲突拒绝：目标 id 已被其他插件实际注册 → 抛错，绝不静默。
                 // core 的 addCommand 对重复 id 是静默忽略（core/ts/CommandPaletteRegistry.ts:84-89），
                 // 若不先拒绝，第二插件看似注册成功，其撤销 disposer 反而会删掉第一插件的命令。
@@ -244,6 +351,7 @@ export class PluginHost {
                 return off;
             },
             panel: (el: HTMLElement) => {
+                require("ui.panel", "ctx.panel");
                 self.app.addWidgetToVerticalPanel(el);
                 const off = () => self.app.removeWidgetFromVerticalPanel(el);
                 fiber.add(off);
@@ -251,6 +359,10 @@ export class PluginHost {
             },
             element: {
                 register: (def: ExtElementDef) => {
+                    require("element.register", "ctx.element.register");
+                    // 菜单是另一件事：注册了类不等于该出现在用户菜单里
+                    if (def?.menu !== false) require("ui.menu", "ctx.element.register({ menu: true })");
+                    noteClaim("元件", entry.claims?.elements, String(def?.className ?? ""));
                     const r = registerExtElement(self.app, id, def);
                     // 与 ctx.command 同口径：注册不成立就让 activate 失败并整体回滚，
                     // 绝不"看起来装上了其实没装上"。
@@ -259,12 +371,29 @@ export class PluginHost {
                     fiber.add(off);
                     return off;
                 },
-                unregister: (className: string) => unregisterExtElement(self.app, className, id),
-                list: () => listExtElements(id),
-                base: (className: string) => baseElement(className),
-                freeDumpType: (from?: number) => findFreeDumpType(self.app, from),
+                unregister: (className: string) => {
+                    require("element.register", "ctx.element.unregister");
+                    return unregisterExtElement(self.app, className, id);
+                },
+                list: () => {
+                    require("element.register", "ctx.element.list");
+                    return listExtElements(id);
+                },
+                base: (className: string) => {
+                    require("element.register", "ctx.element.base");
+                    return baseElement(className);
+                },
+                freeDumpType: (from?: number) => {
+                    require("element.register", "ctx.element.freeDumpType");
+                    return findFreeDumpType(self.app, from);
+                },
             },
-            api: self.api,
+            // 取属性即校验：写成 getter 而不是先赋值，是为了"没权限时连读都不许"，
+            // 而不是给一个"存在但一用就炸"的对象（后者更难发现）。
+            get api() {
+                require("sim.control", "ctx.api");
+                return self.api;
+            },
             storage: {
                 get<T = any>(key: string): T | null {
                     try {

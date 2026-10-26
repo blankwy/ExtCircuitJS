@@ -1,5 +1,52 @@
 # Changelog
 
+## v0.1.4（未发布）
+
+`permissions` 从"装饰性字段"变成真的闸门：**运行期强制 + 构建期 lint + 站点策略**三处同口径。
+此前 manifest 里写着 `permissions` 和 `claims`，但没有任何代码读它——安全模型是摆设。
+
+### 权限目录（唯一权威表）
+- 新增 `packages/plugin-api/permissions.json`：7 项能力（`sim.observe` / `sim.control` /
+  `ui.command` / `ui.panel` / `ui.menu` / `element.register` / `document.hook`），
+  每项带 `label` / `surface` / `summary` 与 lint 用的源码特征 `check`
+- 新增 `packages/plugin-api/src/permissions.ts`：`ExtPermission` 联合类型、
+  `resolveDeclaredPermissions`（名字拼错直接抛，不静默忽略）、`applyPermissionPolicy`
+- 同一份 JSON 被运行期（`ExtPluginHost`）与 `tools/ext.mjs plugin lint` 共同读取，避免"文档一套、检查一套"
+
+### 运行期强制
+- `ctx` 每个面调用前校验：`ctx.on`→`sim.observe`、`ctx.api`→`sim.control`、`ctx.command`→`ui.command`、
+  `ctx.panel`→`ui.panel`、`ctx.hook`→`document.hook`、`ctx.element.*`→`element.register`，
+  带菜单注册额外要 `ui.menu`（`register({ menu: false })` 不需要）
+- 未授予即抛 `ExtPermissionError`（`code: "ext/eperm"`），`denial` 区分
+  `undeclared`（作者漏写）/ `denied-by-policy`（站点拦）/ `unknown`（拼错并列出可用项）
+- `ctx.api` 写成 getter：**读属性就校验**，不给"存在但一用就炸"的对象
+- 新增 `ctx.permits(perm)` 与 `ctx.permissions`：缺权限时能体面降级，而不必靠 try/catch 探
+- 权限解析发生在 `import(url)` **之前**：拼错权限名的插件连代码都不会被加载
+- `plugins.list()` 新增 `permissions` / `denied` / `warnings`；`claims` 与实现不一致时记 warning
+  （`policy.strictClaims` 下升级为激活失败）
+
+### 站点策略
+- `plugins.manifest.json` 顶层可写 `"policy": { "denyPermissions": [...], "strictClaims": false }`
+  —— 部署侧能整体关掉某一面（如演示站禁 `document.hook`，别改访客的存档）；策略只能做减法
+- 传 `policy` 也可由宿主构造参数给（`new PluginHost(app, api, hooks, policy)`），两者取并集
+
+### 构建期检查（`ext plugin lint`）
+- 未知权限、`claims` 有内容却没申请对应权限、**源码用了某面却没声明** 全部报错（带文件行号）
+- 扫描前先抹掉注释与字符串（`maskNonCode`），注释里写一句 `ctx.panel` 不会误报
+- 声明了却没用到 → 只提示不失败（动态取用 `ctx[name]` 看不出来）
+- 单个插件目录带 `plugin.json` 时也能 lint（`ext plugin lint plugins/x`），不必先进 manifest
+
+### 修
+- 示例插件的权限声明补齐（`hello` 缺 `sim.observe`/`sim.control`、`ext-event` 缺 `sim.observe`、
+  `ext-hook` 缺 `sim.control`）——这三个缺口正是新模型要抓的东西
+- `tests/contract/plugin-element.browser.test.mjs` 与 `boot.browser.mjs` 里手写的插件 entry
+  改为从 manifest 派生（手写副本会在插件加权限后立刻过期）
+
+### 测试
+- 新增 `tests/contract/permissions.test.mjs`（9 例，纯 Node，进 CI）：目录自洽 / 七个面各自抛 /
+  未捕获时激活失败零残留 / 声明了就通 / 拼错时插件代码不被加载 / 策略 deny 降级 /
+  claims 不一致 / `ui.menu` 独立 / lint 与运行期同口径（含"注释不算使用"的对照组）
+
 ## v0.1.3（未发布）
 
 插件补齐了"用户动作"这一层：**打开/保存**可以介入并改写文本，**选中/点击元件**有事件了。

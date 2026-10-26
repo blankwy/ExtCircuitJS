@@ -16,6 +16,7 @@
 | 6 | CI / sync-drill / 菜单插槽 / REL v0.1.0 | ✅ | handoffs/stage6.md |
 | 7 | 插件自定义元件（`ctx.element`：类/存档类型/菜单/卸载一条链）+ 静态部署/站点配置/MCP stdio | ✅ | CHANGELOG v0.1.2 |
 | 8 | 打开/保存钩子（`ctx.hook`）+ 元件交互事件（`select`/`elemclick`） | ✅ | CHANGELOG v0.1.3 |
+| 9 | 插件能力权限（运行期强制 + lint 同口径 + 站点策略） | ✅ | CHANGELOG v0.1.4 |
 
 全量门禁（2026-10-26 Lead 亲跑）：**全绿**——doctor、build、plugin lint、cover status、cover scan、Node 契约 94 例
 （`node --test tests/contract/*.test.mjs`，含 hooks.test.mjs 9 例）、浏览器/产物脚本 6 个
@@ -91,6 +92,18 @@
     （数量、集合、卸载后剩余），以后加插件不用再动测试。
 
 
+24. **`permissions` 不是沙箱，别把它当安全感**（v0.1.4）：插件是同源 ESM，`window` 照样摸得到。
+    这套东西的真实价值是三件事——能力显式化、漏声明在「激活现场 / 构建期」就报错、站点能收紧某一面。
+    写文档或对外介绍时说清这一点，比多写十个权限名重要。
+25. **声明与实现是两套东西，必须双向对齐**：v0.1.4 一上手就发现三个示例插件早就"用了没声明"
+    （`hello` 用 `ctx.on`/`ctx.api`、`ext-event` 用 `ctx.on`、`ext-hook` 用 `ctx.api`），
+    而此前没人知道，因为**没有任何代码读 `permissions`**。加能力时先写权限表 + 让 lint 报错，
+    再谈"插件写起来方不方便"——否则约束会一直停留在注释里。
+26. **手写一份插件 entry 的测试，会在插件加权限后立刻过期**：`plugin-element.browser.test.mjs`
+    与 `boot.browser.mjs` 都用 `activate({ id, entry, rev })` 手搓过 entry，加权限后当场红。
+    一律改为 `fetch("/plugins/plugins.manifest.json")` 取真身再 spread（与坑位 23 同一个道理：
+    **测试里不该有第二份 manifest**）。
+
 ## 5. 测试地图（改哪里跑什么）
 
 **全量本地跑法（唯一推荐命令）**：`node --test --test-concurrency=1 tests/contract/*.test.mjs`
@@ -108,6 +121,8 @@
 | plugins/* | `ext plugin lint` + `plugins-smoke.browser.test.mjs` + `plugin-element.browser.test.mjs`（改 `ctx.element` 时）+ `plugin-hooks.browser.test.mjs`（改 `ctx.hook` 时） |
 | cover/ts/ExtHooks.ts（打开/保存钩子） | `node --test tests/contract/hooks.test.mjs` + `plugin-hooks.browser.test.mjs` + `dist-site.browser.mjs`（产物形态下钩子同样要跑通） |
 | cover/ts/ExtElementEvents.ts（元件交互事件） | `element-events.browser.test.mjs` + `boot.browser.mjs`（启动期不得多发空选择） |
+| packages/plugin-api/permissions.json（能力目录） | `node --test tests/contract/permissions.test.mjs` + `ext plugin lint`（两边读同一份表，改一处必跑两处） |
+| cover/ts/ExtPluginHost.ts 的权限闸门 | 同上 + `plugins-smoke.browser.test.mjs`（真 manifest 下六个插件仍要全 ready） |
 | cover/ts/ExtElements.ts（插件自定义元件） | `plugin-element.browser.test.mjs` + `menu.browser.mjs` + `ext build` + `fiber.test.mjs`（Node 侧加载约束，见坑位 17） |
 | tools/ext.mjs | doctor + 受影响子命令的手工验证 |
 | tools/coverOverlay.mjs | `ext build` + 上表浏览器契约（dev 走同一解析器）+ `dist-site.browser.mjs`（§4 坑位 9） |
@@ -132,11 +147,13 @@
 2. ~~**元件交互事件**~~ ✅ 已完成（v0.1.3）：`select` / `elemclick`（`cover/ts/ExtElementEvents.ts`）。
    还没做的：拖动中的高频事件（`elemdrag`）与"元件被删除/新增"通知——目前由 `select` 指纹间接覆盖，
    真要监听增删仍需轮询或包 `undoManager`。
-3. **钩子权限化**（与 permissions 合并）：`claims.hooks` 已在 manifest 里声明但没人校验；
-   真正落地时要按 `permissions` 裁剪 `ctx`（没有 `document.hook` 就不给 `ctx.hook`）。
-4. **`permissions` 落地**：manifest 里的 `permissions` 目前只声明、不校验（`plugin lint` 只查三条文本规则）。
-   真正的收口是按 permission 裁剪 `ctx`（没有 `ui.menu` 就不给 `ctx.element` 的菜单入口），
-   并让 lint 把"用了未声明的能力"报出来。
+3. ~~**钩子权限化**~~ ✅ 已完成（v0.1.4）：`ctx.hook` 需要 `document.hook`；`claims.hooks`
+   与实现不一致会记 warning（`strictClaims` 下失败）。
+4. ~~**`permissions` 落地**~~ ✅ 已完成（v0.1.4）：七个 ctx 面全部按权限裁剪、`ctx.api` 读属性即校验、
+   `ExtPermissionError.denial` 区分漏声明/策略拦截/拼错；lint 与运行期读同一份
+   `packages/plugin-api/permissions.json`，源码用了没声明的面直接报错（带行号）。
+   剩下没做的：`inject: ["api"]` 这个老字段现在纯属冗余（权限才是权威），下次动 manifest 时删掉；
+   配置驱动加载（`"enabled"` 已有，但没有"按站点覆盖某个插件的 permissions"的细粒度开关）。
 5. **两个上游辅助页**：`iframe.html` / `jsinterface.html` 已经进产物，但 `dist-site.browser.mjs` 只开主页面；
    这两个页面是外部站点嵌入的老接口，坏掉没人知道。
 6. 可选功能债（不变）：B08 Worker 沙箱、`decodeCompact`（C05 只做了编码）、probe op 的 ScopeElm 映射。
