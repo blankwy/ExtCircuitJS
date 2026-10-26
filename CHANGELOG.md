@@ -1,5 +1,51 @@
 # Changelog
 
+## v0.1.5（未发布）
+
+元件交互事件补齐成完整一面：**拖动**有了高频事件，**元件增删**有了结构事件。
+此前插件只能知道"选中了什么、点了谁"，用户拖走一个元件、删掉一个元件、载入另一份电路，
+对插件完全不可见（只能自己轮询 `listComponents()` 比对）。
+
+### `elemdrag`（拖动中）
+- 按下时给整张元件表打几何快照（`x,y,x2,y2`），移动时比对，**只报真的动过的元件**
+- `phase` = `start` / `move` / `end`，payload 带 `{ elms, indices, ids, grid, delta }`
+  （`grid` 是指针当前格点，`delta` 是相对按下的格点位移）
+- 一帧最多一条（rAF 合并，100ms 兜底）：`mousemove` 的频次由浏览器决定，插件不该被它控制节奏
+- 判定不看 `tempMouseMode`，只看几何是否变化 —— 上游改拖动实现（reroute / post 拖动 / 整选拖动）
+  都不用改这里；新建元件的预览实例不在 `elmList` 里，所以不会被误报成拖动
+- 松手在画布外也收得到 `end`（document 冒泡阶段收尾，此时 core 的 `draggingDone` 已经跑完）
+
+### `elementschange`（增删）
+- 按**对象身份**比对整张元件表（不按下标：删掉中间一个元件会让后面全体下标 -1，
+  按下标比对会把"删一个"报成"全删全加"）。纯换序不算变化
+- payload：`{ added: [{index,id,type,elm}], removed: [...], count, source }`；
+  `removed` 的 `index/id` 是移除前最后已知值
+- `source` 与 `ctx.hook` 的 `meta.source` 同一套词汇（`document` → `load`），外加三类用户动作：
+  `pointer`（画布）/ `ui`（菜单、工具栏、对话框）/ `keyboard`；另有 `undo` / `paste` /
+  `recovery` / `internal` / `manual`。**插件必须按 source 过滤**：撤销和载入也走这条路
+- 结构比对是**同步**的，且调用点都选在"上游已经改完"之后（画布 mouseup/click、document keyup、
+  菜单动作之后的 0ms 定时器、载入完成回调）——这样 source 才不会张冠李戴
+- 载入电路时 `elmList` 被整体重建，但那是普通方法调用、没有任何 DOM 事件：
+  新增 `ExtHooks.afterLoad()`（宿主内部旁观者，不进 ctx）在 `readCircuit` 返回后同步一次，
+  嵌套/子电路载入只在最外层结束时通知
+
+### 修的坑
+- `document.removeEventListener` 的 capture 标志必须与 `addEventListener` 一致，
+  否则监听器静默留在 document 上（Node 契约的假 EventTarget 现在按 `type|capture` 记账，写错就红）
+- 文本格式每行要 5 个字段（`x1 y1 x2 y2 flags`）：导线少写 `flags` 会被上游**静默丢掉**
+  （浏览器契约里踩到，已把该电路改成合法写法）
+- `plugins-smoke` / `reload` 里的监听器增量断言原本写死 1，改为 `EVENT_SUBS`
+  （示例插件现在订阅 3 个事件；断言仍要精确，不能放宽成 `>=1`，否则漏监听器查不出来）
+
+### 测试
+- 新增 `tests/contract/element-events.test.mjs`（10 例，纯 Node，进 CI）：身份比对 / 纯换序 /
+  替换 / 几何快照 / 无 canvas 时 no-op / refresh 双同步 / 拖动三相位 / 拖动中的新建不算拖动 /
+  keyup 来源 / ui 来源 / dispose 后零监听零事件
+- 扩 `element-events.browser.test.mjs`（真实鼠标键盘）：拖 48px → `start…move…end` 且
+  `delta` 与画布缩放一致；Delete 删元件 → `source=keyboard`；Ctrl+Z → `source=undo`；
+  载入另一份电路 → `source=load` 且 `count` 正确；并验证示例插件经 `ctx.on` 的正式通道确实收到
+- 扩 `hooks.test.mjs`（10 例）：`afterLoad` 只在最外层载入结束后触发、来源正确、旁观者抛错不影响载入
+
 ## v0.1.4（未发布）
 
 `permissions` 从"装饰性字段"变成真的闸门：**运行期强制 + 构建期 lint + 站点策略**三处同口径。

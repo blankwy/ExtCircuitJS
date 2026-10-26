@@ -36,6 +36,10 @@ export class ExtHooks {
     /** 每个钩子的重入深度：处理器自己触发同类调用（如 save 里再 dumpCircuit）时不再套娃 */
     private busy: Record<ExtHookName, number> = { load: 0, save: 0 };
     private src: ExtHookSource = "document";
+    /** 载入**完成**后的旁观者（宿主内部用：ExtBoot 拿它同步元件事件），拿不到也改不了文本 */
+    private afterLoadSet = new Set<(meta: ExtHookMeta) => void>();
+    private loadDepth = 0;
+    private loadSrc: ExtHookSource = "document";
 
     get source(): ExtHookSource {
         return this.src;
@@ -99,8 +103,46 @@ export class ExtHooks {
         return n;
     }
 
+    /**
+     * 载入**完成后**的通知（不改文本、没有 ctx 入口，只给宿主自己用）。
+     * 为什么要它：`readCircuit` 返回时 elmList 已经被整体重建，但这是普通方法调用，
+     * 宿主之外没有任何可观察点 —— 元件事件（elementschange）需要在这里补一次同步。
+     * 只在外层载入结束时触发一次（子电路/嵌套载入不会连发），meta.source 取**进入时**的来源。
+     */
+    afterLoad(h: (meta: ExtHookMeta) => void): () => void {
+        this.afterLoadSet.add(h);
+        let live = true;
+        return () => {
+            if (!live) return;
+            live = false;
+            this.afterLoadSet.delete(h);
+        };
+    }
+
+    /** 记录一次载入开始（由 wireAppHooks 的包装调用；返回本次载入的层级） */
+    noteLoadStart(): number {
+        if (this.loadDepth === 0) this.loadSrc = this.src;
+        return ++this.loadDepth;
+    }
+
+    /** 记录一次载入结束；最外层结束时才通知 afterLoad */
+    noteLoadEnd(flags?: number): void {
+        if (this.loadDepth > 0) this.loadDepth--;
+        if (this.loadDepth > 0) return;
+        if (this.afterLoadSet.size === 0) return;
+        const meta: ExtHookMeta = { hook: "load", source: this.loadSrc, flags };
+        for (const h of Array.from(this.afterLoadSet)) {
+            try {
+                h(meta);
+            } catch (e) {
+                console.error("[ExtCircuitJS] afterLoad handler failed:", e);
+            }
+        }
+    }
+
     clear(): void {
         this.handlers.clear();
+        this.afterLoadSet.clear();
     }
 }
 
@@ -119,7 +161,13 @@ export function wireAppHooks(app: any, hooks: ExtHooks): () => void {
         const wrapped = function (this: any, text: string, flags: number = 0) {
             // 非字符串输入（极少见：上游可能传 null）原样透传，别让钩子把加载搞坏
             if (typeof text !== "string") return raw.call(this, text, flags);
-            return raw.call(this, hooks.run("load", text, { flags }), flags);
+            hooks.noteLoadStart();
+            try {
+                return raw.call(this, hooks.run("load", text, { flags }), flags);
+            } finally {
+                // 载入完成：此刻 elmList 已经重建好，元件事件可以据此同步（见 afterLoad）
+                hooks.noteLoadEnd(flags);
+            }
         };
         loader.readCircuit = wrapped;
         restore.push(() => { loader.readCircuit = raw; });

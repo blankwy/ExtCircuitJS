@@ -64,3 +64,4 @@ jobs:
           tests/contract/site-config.test.mjs
           tests/contract/hooks.test.mjs
           tests/contract/permissions.test.mjs
+          tests/contract/element-events.test.mjs

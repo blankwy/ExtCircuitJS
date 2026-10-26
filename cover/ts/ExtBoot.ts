@@ -43,6 +43,11 @@ export async function ExtBoot(app: any): Promise<ExtRuntime> {
     const unwireHooks = wireAppHooks(app, hooks);
     // 元件交互事件：旁观画布，不包 core 任何私有方法
     const elementEvents = wireElementEvents(app, events);
+    // 载入完成后再同步一次：readCircuit 返回时 elmList 已整体重建，但没有任何 DOM 事件可言
+    // （载入一个电路=可能"删掉全部旧的、新增 7 个"，插件必须能看到）
+    const offAfterLoad = hooks.afterLoad((meta) => {
+        elementEvents.refresh(meta.source === "document" ? "load" : meta.source);
+    });
     const api = new ExtApi(app, events);
     const plugins = new PluginHost(app, api, hooks);
 
@@ -55,6 +60,7 @@ export async function ExtBoot(app: any): Promise<ExtRuntime> {
         dispose() {
             unwire();
             unwireHooks();
+            offAfterLoad();
             elementEvents.dispose();
             void plugins.dispose();
             events.clear();
@@ -73,8 +79,9 @@ export async function ExtBoot(app: any): Promise<ExtRuntime> {
         events,
         plugins,
         hooks,
-        // 选中集合的手动同步（插件自己改完选择、或外部脚本直接 setSelected 后调用）
-        refreshSelection: () => elementEvents.refresh(),
+        // 选中集合 / 元件表的手动同步（插件自己改完电路或选择、或外部脚本直接改完后调用）
+        refreshSelection: () => elementEvents.refresh("manual"),
+        refreshElements: () => elementEvents.refresh("manual"),
         // 元件工厂的**同一实例**（不是同名模块再 import 一份）。
         // dev 下 `/ElementFactory.ts` 与 `@fs/...` 是两个模块 URL、两份 classMap，
         // 外部代码（控制台/契约测试/未来的 MCP 工具）一律从这里拿，否则注册了却放置不了。

@@ -3,7 +3,7 @@
 //
 // 断言（docs/task-board.md B07 / zcode-goal_step.md Stage 3 步骤 6）：
 //   1. manifest 注册的三个示例插件随启动自动 activate，state=ready（与 hello 共存）
-//   2. 同时 deactivate 三插件 → 记录基线；与启动态对比：监听器/命令/面板 DOM 各恰好少 1
+//   2. 同时 deactivate 三插件 → 记录基线；与启动态对比：监听器少 EVENT_SUBS（ext-event 的订阅数）、命令/面板 DOM 各少 1
 //      （证明激活确实持有资源，而非空转；也覆盖宿主 disposer 的启动路径）
 //   3. Promise.all 同时 activate 三插件 → 各自生效：
 //      - ext-panel：[data-ext-plugin="ext-panel"] 挂进 #painel，面板子节点数 +1
@@ -40,6 +40,14 @@ const CHROME = process.env.EXT_CHROME ?? "C:\\Program Files\\Google\\Chrome\\App
 const BASE = process.env.EXC_BASE ?? "http://127.0.0.1:5174";
 
 const DEMO_IDS = ["ext-panel", "ext-command", "ext-event"];
+
+/**
+ * ext-event 订阅的事件数（analyze / elementschange / elemdrag）。
+ * 这里是"示例插件当前订阅了几个事件"，不是宿主常量 —— 改 `plugins/ext-event/index.js`
+ * 的 ctx.on 次数就必须同步改这里（增量断言的意义是"启停后计数精确回到基线"，
+ * 所以这个数字不能写成">=1"，否则漏一个监听器也看不出来）。
+ */
+const EVENT_SUBS = 3;
 
 /** GET 探活 dev server（只判 2xx/3xx） */
 function probeServer(url) {
@@ -146,7 +154,7 @@ test("B07 plugins-smoke：三示例插件同时启停无泄漏", { timeout: 180_
         assert.ok(B.plugins.some((p) => p.id === "hello" && p.state === "ready"),
             "hello 不受影响，应仍 ready");
         // 启动态 - 基线 = 三插件各自持有的资源（监听器 +1、命令 +1、面板节点 +1）
-        assert.equal(A.listenersTotal - B.listenersTotal, 1, "启动态应比基线多 1 个事件订阅（ext-event）");
+        assert.equal(A.listenersTotal - B.listenersTotal, EVENT_SUBS, "启动态应比基线多 ext-event 的全部事件订阅");
         assert.equal(A.listenersAnalyze - B.listenersAnalyze, 1, "analyze 订阅应恰好多 1 个");
         assert.equal(A.commands - B.commands, 1, "启动态应比基线多 1 条命令（ext-command）");
         assert.equal(A.byIdSize - B.byIdSize, 1, "byId 应恰好多 1 条命令");
@@ -215,7 +223,7 @@ test("B07 plugins-smoke：三示例插件同时启停无泄漏", { timeout: 180_
         assert.equal(ran.cmdRan, 1, "ext-command：命令执行后 storage pings 应为 1");
         assert.equal(ran.analyzeBefore, B.listenersAnalyze + 1, "activate 后 analyze 订阅应比基线多 1");
         assert.equal(ran.eventCount, 1, "ext-event：触发 analyze 后 storage analyzes 应为 1");
-        assert.equal(ran.snap.listenersTotal - B.listenersTotal, 1, "activate 后监听器应比基线多 1");
+        assert.equal(ran.snap.listenersTotal - B.listenersTotal, EVENT_SUBS, "activate 后监听器应比基线多 ext-event 的全部事件订阅");
         assert.equal(ran.snap.commands - B.commands, 1, "activate 后命令应比基线多 1");
         assert.equal(ran.snap.byIdSize - B.byIdSize, 1, "activate 后 byId 应比基线多 1");
         assert.equal(ran.snap.panelChildren - B.panelChildren, 1, "activate 后面板子节点应比基线多 1");

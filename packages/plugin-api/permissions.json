@@ -12,7 +12,7 @@
       "id": "sim.observe",
       "label": "观察仿真",
       "surface": "ctx.on(...)",
-      "summary": "订阅 analyze / update / timestep / svgren 与 select / elemclick",
+      "summary": "订阅 analyze / update / timestep / svgren 与 select / elemclick / elemdrag / elementschange",
       "check": "\\bctx\\s*\\.\\s*on\\s*\\("
     },
     {

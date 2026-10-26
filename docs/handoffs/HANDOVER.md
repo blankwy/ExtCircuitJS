@@ -17,10 +17,12 @@
 | 7 | 插件自定义元件（`ctx.element`：类/存档类型/菜单/卸载一条链）+ 静态部署/站点配置/MCP stdio | ✅ | CHANGELOG v0.1.2 |
 | 8 | 打开/保存钩子（`ctx.hook`）+ 元件交互事件（`select`/`elemclick`） | ✅ | CHANGELOG v0.1.3 |
 | 9 | 插件能力权限（运行期强制 + lint 同口径 + 站点策略） | ✅ | CHANGELOG v0.1.4 |
+| 10 | 元件拖动事件 + 元件增删事件（`elemdrag` / `elementschange`，含载入后同步） | ✅ | CHANGELOG v0.1.5 |
 
-全量门禁（2026-10-26 Lead 亲跑）：**全绿**——doctor、build、plugin lint、cover status、cover scan、Node 契约 94 例
-（`node --test tests/contract/*.test.mjs`，含 hooks.test.mjs 9 例）、浏览器/产物脚本 6 个
-（boot/menu/netlist-g2/reload/mcp-stdio/dist-site，其中 dist-site 双形态：根路径 + `/<repo>/`）。
+全量门禁（2026-10-26 最后一轮亲跑，v0.1.5）：**全绿**——doctor、build、plugin lint、cover status、cover scan、
+Node 契约 **116 例**（`node --test --test-concurrency=1 tests/contract/*.test.mjs`，含 hooks.test.mjs 10 例、
+element-events.test.mjs 10 例）、浏览器/产物脚本 6 个（boot/menu/netlist-g2/reload/mcp-stdio/dist-site，
+其中 dist-site 双形态：根路径 + `/<repo>/`）。
 
 ## 2. 环境与常用命令
 
@@ -103,12 +105,28 @@
     与 `boot.browser.mjs` 都用 `activate({ id, entry, rev })` 手搓过 entry，加权限后当场红。
     一律改为 `fetch("/plugins/plugins.manifest.json")` 取真身再 spread（与坑位 23 同一个道理：
     **测试里不该有第二份 manifest**）。
+27. **`removeEventListener` 的 capture 标志必须与 `addEventListener` 一致**（v0.1.5）：监听器注册时传
+    `true`、移除时漏了它，浏览器不会报错，监听器就静默留在 `document` 上 —— 每次启动多一份、每次卸载漏一份，
+    表现为"事件发了两遍""插件停了还在收事件"。测试里的假 `EventTarget` 必须按 `type|capture` 记账，
+    否则这类 bug 永远测不出来（`element-events.test.mjs` 的 `makeTarget` 就是这么写的）。
+28. **文本电路格式每行都要 5 个字段**（`x1 y1 x2 y2 flags`，元件再加值）：导线写成 `w 300 100 400 100`
+    会在 `CircuitLoader.readCircuitText` 里抛异常→被 `catch` 吞掉→**元件静默消失**（不报错、不提示）。
+    这是"我明明写了 2 个元件却只有 1 个"的标准原因，写测试电路时先数一眼字段。
+29. **撤销 = 重解析 = 全新对象**：`ctx.on("elementschange")` 按对象身份判定，所以撤销/载入会如实报成
+    "一删一加"（旧对象没了、新对象来了）。这不是 bug，别试图在插件里按 id 把两者配对 —— core 没有稳定 id，
+    `c<index>` 只是当下标用。要"跨撤销记住某个元件"只能自己存特征（类型 + 坐标 + 值）。
+30. **rAF 在无头浏览器里会停摆**：所有"合并到下一帧"的逻辑都必须配一个 `setTimeout` 兜底
+    （本仓库统一 100ms），否则事件要等到下一次真正绘制才发出来；反过来，**结构判定不要用 rAF 合并**——
+    兜底定时器会把别的动作（键盘删除）的结果算到上一个动作（鼠标松开）的 source 上，v0.1.5 踩过。
+31. **`document` 上的捕获监听器看不到目标元素的处理器**：菜单动作跑在菜单项的 `click` 里，捕获阶段收到
+    `click` 时动作还没执行。要观察"菜单点了之后电路变了什么"，得把比对排到事件派发结束之后（0ms 定时器），
+    或者改在冒泡阶段。混用两种阶段时，`onCanvas(e.target)` 这类判断要写清楚，否则画布上的动作会被记成 `ui`。
 
 ## 5. 测试地图（改哪里跑什么）
 
 **全量本地跑法（唯一推荐命令）**：`node --test --test-concurrency=1 tests/contract/*.test.mjs`
-—— 13 个浏览器契约共用同一个 dev server，并行跑会互相挤（`plugins-smoke` 偶发 `commands`/`listeners`
-增量断言为 0）。串行约 40s，并行约 15s 但会假失败。
+—— 14 个浏览器契约共用同一个 dev server，并行跑会互相挤（`plugins-smoke` 偶发 `commands`/`listeners`
+增量断言为 0）。串行约 50s（116 例），并行会假失败。
 另有一批老式脚本不进 glob，需单独跑：`boot/menu/netlist-g2/reload/mcp-stdio/dist-site` 的 `.browser.mjs`。
 
 | 改动 | 必跑 |
@@ -120,7 +138,9 @@
 | tools/ts-resolve.mjs（TS 加载钩子） | `node --test tests/contract/mcp-session.test.mjs`（shim 路径）+ `node tools/ext.mjs mcp --help` |
 | plugins/* | `ext plugin lint` + `plugins-smoke.browser.test.mjs` + `plugin-element.browser.test.mjs`（改 `ctx.element` 时）+ `plugin-hooks.browser.test.mjs`（改 `ctx.hook` 时） |
 | cover/ts/ExtHooks.ts（打开/保存钩子） | `node --test tests/contract/hooks.test.mjs` + `plugin-hooks.browser.test.mjs` + `dist-site.browser.mjs`（产物形态下钩子同样要跑通） |
-| cover/ts/ExtElementEvents.ts（元件交互事件） | `element-events.browser.test.mjs` + `boot.browser.mjs`（启动期不得多发空选择） |
+| cover/ts/ExtElementEvents.ts（元件交互事件） | `node --test tests/contract/element-events.test.mjs`（纯 Node：身份比对/来源/卸载）+ `element-events.browser.test.mjs`（真鼠标拖动、Delete、Ctrl+Z、载入）+ `boot.browser.mjs`（启动期不得多发空选择） |
+| cover/ts/ExtElementEvents.ts 里新增/删除 document 监听 | 同上 + `plugins-smoke`/`reload`（监听器计数必须精确回基线；**capture 标志漏写会泄漏**，见坑位 27） |
+| cover/ts/ExtHooks.ts 的 `afterLoad`（载入后同步） | `node --test tests/contract/hooks.test.mjs` + `element-events.browser.test.mjs`（载入 → `elementschange(source=load)`）+ `dist-site.browser.mjs` |
 | packages/plugin-api/permissions.json（能力目录） | `node --test tests/contract/permissions.test.mjs` + `ext plugin lint`（两边读同一份表，改一处必跑两处） |
 | cover/ts/ExtPluginHost.ts 的权限闸门 | 同上 + `plugins-smoke.browser.test.mjs`（真 manifest 下六个插件仍要全 ready） |
 | cover/ts/ExtElements.ts（插件自定义元件） | `plugin-element.browser.test.mjs` + `menu.browser.mjs` + `ext build` + `fiber.test.mjs`（Node 侧加载约束，见坑位 17） |
@@ -144,9 +164,10 @@
 
 1. ~~**加载/保存钩子**~~ ✅ 已完成（v0.1.3）：`ctx.hook("load"|"save")`，包 `loader.readCircuit` 与
    `app.dumpCircuit`，带 `meta.source`（见坑位 19/20），示例 `plugins/ext-hook`。
-2. ~~**元件交互事件**~~ ✅ 已完成（v0.1.3）：`select` / `elemclick`（`cover/ts/ExtElementEvents.ts`）。
-   还没做的：拖动中的高频事件（`elemdrag`）与"元件被删除/新增"通知——目前由 `select` 指纹间接覆盖，
-   真要监听增删仍需轮询或包 `undoManager`。
+2. ~~**元件交互事件**~~ ✅ 已完成（v0.1.3 / v0.1.5）：`select` / `elemclick` / `elemdrag` / `elementschange`
+   （`cover/ts/ExtElementEvents.ts`）。拖动与增删都不靠轮询、也不包 core 任何私有方法：
+   拖动 = 按下时几何快照 + 移动时比对；增删 = 元件表对象身份比对，触发点覆盖画布、键盘、菜单/工具栏、
+   以及载入完成（`ExtHooks.afterLoad`）。剩下的已知边界写在文件头注释里（自动恢复的定时落盘不算用户动作）。
 3. ~~**钩子权限化**~~ ✅ 已完成（v0.1.4）：`ctx.hook` 需要 `document.hook`；`claims.hooks`
    与实现不一致会记 warning（`strictClaims` 下失败）。
 4. ~~**`permissions` 落地**~~ ✅ 已完成（v0.1.4）：七个 ctx 面全部按权限裁剪、`ctx.api` 读属性即校验、
@@ -155,7 +176,7 @@
    剩下没做的：`inject: ["api"]` 这个老字段现在纯属冗余（权限才是权威），下次动 manifest 时删掉；
    配置驱动加载（`"enabled"` 已有，但没有"按站点覆盖某个插件的 permissions"的细粒度开关）。
 5. **两个上游辅助页**：`iframe.html` / `jsinterface.html` 已经进产物，但 `dist-site.browser.mjs` 只开主页面；
-   这两个页面是外部站点嵌入的老接口，坏掉没人知道。
+   这两个页面是外部站点嵌入的老接口，坏掉没人知道。**（下一步最便宜的一件：给 dist-site 加两个断言）**
 6. 可选功能债（不变）：B08 Worker 沙箱、`decodeCompact`（C05 只做了编码）、probe op 的 ScopeElm 映射。
 7. CI 跑浏览器测试（装 Chrome + playwright-core）。
 

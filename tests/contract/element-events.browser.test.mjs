@@ -1,17 +1,26 @@
-// 元件交互事件契约（select / elemclick，真实 Chromium + 真实鼠标/键盘）
+// 元件交互事件契约（select / elemclick / elemdrag / elementschange，真实 Chromium + 真实鼠标/键盘）
 //   node --test tests/contract/element-events.browser.test.mjs
 //
-// 为什么要真鼠标键盘：这两个事件的整个价值就是"用户动了，插件知道"。
+// 为什么要真鼠标键盘：这些事件的整个价值就是"用户动了，插件知道"。
 // 只调 API 再断言，测的是测试自己。所以这里用 Playwright 的光标与按键，
-// 经由 core 自己的 MouseManager / UIManager 路径产生选择变化。
+// 经由 core 自己的 MouseManager / UIManager 路径产生选择/拖动/删除。
 //
-// 断言：
+// 用例一（select / elemclick）：
 //   1. 在元件上真的点一下 → elemclick 带正确的元件、下标、类型、格点坐标
 //   2. Ctrl+A（core 的全选命令）→ select 报出 count=1、ids=["c0"]
 //   3. 点空白处（MODE_SELECT 下 mouseup 清空选择）→ select 报出 count=0
 //   4. 插件/脚本自己改选择后调用 refreshSelection() → 同样发事件（手动同步通道）
 //   5. 事件不重不漏：以上三步一共恰好 3 条 select，指纹无重复
 //   6. 无 pageerror
+//
+// 用例二（elemdrag / elementschange）：
+//   7. 真拖一个电阻（core 有 150ms 防误拖延迟，所以按下后要等）→
+//      elemdrag start…move…end 成对、delta 与格点位移一致、只报动过的元件
+//   8. 拖动不算结构变化（elementschange 不发）
+//   9. Delete 键删元件 → elementschange(source=keyboard) removed=[ResistorElm]
+//  10. Ctrl+Z 还原 → elementschange(source=undo) added=[ResistorElm]
+//  11. 载入另一份电路 → elementschange(source=load) 且 count 正确
+//  12. 示例插件（走 ctx.on 的正式通道）确实收到了 lastDrag/lastChange
 //
 // 环境约定同 boot.browser.mjs：EXT_PW_CORE / EXT_CHROME / EXC_BASE（默认 5174）。
 
@@ -160,6 +169,143 @@ test("element-events：select / elemclick 由真实交互产生", { timeout: 180
         assert.deepEqual(out.sel[1], { count: 0, ids: [], indices: [] }, "点空白未清空选择");
         assert.deepEqual(out.sel[2], { count: 1, ids: ["c0"], indices: [0] }, "refreshSelection 未发出事件");
         assert.equal(out.count, 1, "收尾时选中态与最后一条事件不一致");
+
+        assert.deepEqual(pageErrors, [], `pageerror: ${pageErrors.join(" | ")}`);
+    } finally {
+        await browser.close();
+    }
+});
+
+test("element-events：拖动/删除/撤销/载入产生 elemdrag 与 elementschange", { timeout: 180_000 }, async () => {
+    assert.ok(fs.existsSync(PW_CORE), `playwright-core 不存在: ${PW_CORE}（可用 EXT_PW_CORE 覆盖）`);
+    assert.ok(fs.existsSync(CHROME), `Chrome 不存在: ${CHROME}（可用 EXT_CHROME 覆盖）`);
+    const status = await probeServer(`${BASE}/circuitjs.html`);
+    assert.ok(status >= 200 && status < 400, `dev server 未就绪: ${BASE}（先跑 node tools/ext.mjs dev --port 5174）`);
+
+    const { chromium } = await import("file:///" + PW_CORE.replace(/\\/g, "/"));
+    const browser = await chromium.launch({
+        executablePath: CHROME,
+        headless: true,
+        args: ["--no-first-run", "--no-default-browser-check", "--disable-gpu", "--mute-audio"],
+    });
+    const page = await browser.newPage({ viewport: { width: 1280, height: 800 } });
+    page.on("dialog", (d) => d.dismiss().catch(() => {}));
+    const pageErrors = [];
+    page.on("pageerror", (e) => pageErrors.push(e.message));
+
+    try {
+        await page.goto(`${BASE}/circuitjs.html`, { waitUntil: "load", timeout: 60000 });
+        await page.waitForFunction(
+            () => {
+                const list = window.ExtCircuitJS?.plugins?.list?.() ?? [];
+                return list.length > 0 && list.every((p) => p.state === "ready");
+            },
+            null,
+            { timeout: 60000 },
+        );
+
+        // ── 布置：一个电阻 + 记录器；布置期间的载入事件不计入断言 ─────────────
+        await page.evaluate(() => {
+            const ext = window.ExtCircuitJS;
+            const app = ext.app;
+            window.__drag = [];
+            window.__chg = [];
+            ext.events.on("elemdrag", (p) => window.__drag.push({
+                phase: p.phase, ids: p.ids, indices: p.indices, grid: p.grid, delta: p.delta,
+            }));
+            ext.events.on("elementschange", (p) => window.__chg.push({
+                source: p.source, count: p.count,
+                added: p.added.map((r) => r.type), removed: p.removed.map((r) => r.type),
+            }));
+            app.clearCircuit();
+            ext.api.loadCircuitText("r 100 100 300 100 0 1000\n");
+            app.showPropsOnClick = false; // 拖动/点击都不弹属性框（模态会吃掉后续按键）
+        });
+        await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
+        await page.evaluate(() => { window.__drag.length = 0; window.__chg.length = 0; });
+
+        const geom = await page.evaluate(() => {
+            const app = window.ExtCircuitJS.app;
+            const rect = app.ui.cv.getBoundingClientRect();
+            return {
+                x: rect.left + app.mouse.transformX(200),
+                y: rect.top + app.mouse.transformY(100),
+                count: window.ExtCircuitJS.app.elmList.length,
+                // 断言类型列表而不只是数量：少写一个字段时上游会静默丢元件，
+                // 只报"数量不对"根本看不出是被吞了导线还是事件系统坏了
+                types: window.ExtCircuitJS.api.listComponents().map((c) => c.type),
+                // 一格 = 多少像素（缩放后不是 16；用大跨度取平均，避开 transformX 的取整）
+                pxPerUnit: (app.mouse.transformX(100) - app.mouse.transformX(0)) / 100,
+            };
+        });
+        assert.deepEqual(geom.types, ["ResistorElm"], `基准电路没摆好（types=${JSON.stringify(geom.types)}）`);
+
+        // ── 7/8) 真拖：按下 → 等过 core 的 150ms 防误拖 → 拖 48px（3 格）→ 松开 ──
+        await page.mouse.move(geom.x, geom.y);
+        await page.mouse.down();
+        await page.waitForTimeout(300);
+        await page.mouse.move(geom.x + 48, geom.y, { steps: 8 });
+        await page.waitForTimeout(50);
+        await page.mouse.up();
+        await page.waitForFunction(() => window.__drag.some((d) => d.phase === "end"), null, { timeout: 10000 });
+
+        const dragOut = await page.evaluate(() => ({
+            drag: window.__drag,
+            chg: window.__chg,
+            x: window.ExtCircuitJS.app.elmList[0]?.x ?? null,
+            classes: window.ExtCircuitJS.app.elmList.map((e) => e.getClassName()),
+        }));
+        assert.equal(dragOut.drag[0].phase, "start", `第一条 elemdrag 应是 start：${JSON.stringify(dragOut.drag[0])}`);
+        assert.equal(dragOut.drag.at(-1).phase, "end", "最后一条 elemdrag 应是 end");
+        assert.ok(dragOut.drag.length >= 2, `拖动应至少 start+end 两条，实际 ${dragOut.drag.length}`);
+        assert.deepEqual(dragOut.drag[0].ids, ["c0"], "拖动事件应报出被拖的元件");
+        assert.deepEqual(dragOut.drag[0].indices, [0]);
+        const wantDelta = 48 / geom.pxPerUnit;
+        assert.ok(
+            Math.abs(dragOut.drag.at(-1).delta.x - wantDelta) <= 1,
+            `48px 应约等于 ${wantDelta.toFixed(1)} 格位移，实际 ${JSON.stringify(dragOut.drag.at(-1).delta)}`,
+        );
+        assert.ok(dragOut.x > 100, `元件没真的被拖走（x=${dragOut.x}）—— 先看 150ms 防误拖有没有等够`);
+        assert.equal(dragOut.chg.length, 0, `只挪位置不该报结构变化：${JSON.stringify(dragOut.chg)}`);
+
+        // ── 9) Delete 删掉选中的电阻 → elementschange(keyboard) ──────────────
+        await page.keyboard.press("Delete");
+        await page.waitForFunction(() => window.__chg.some((c) => c.removed.length > 0), null, { timeout: 10000 });
+        const afterDelete = await page.evaluate(() => window.__chg.at(-1));
+        assert.equal(afterDelete.source, "keyboard", `键盘删除的来源应是 keyboard：${JSON.stringify(afterDelete)}`);
+        assert.deepEqual(afterDelete.removed, ["ResistorElm"]);
+        assert.equal(afterDelete.count, 0);
+
+        // ── 10) Ctrl+Z 还原 → elementschange(undo)。上游撤销是重解析，对象身份变了，
+        //        所以这里如实报"一删一加"（不必假装是同一条元件，插件本来也拿不到稳定 id）
+        await page.keyboard.press("Control+z");
+        await page.waitForFunction(() => window.__chg.some((c) => c.source === "undo"), null, { timeout: 10000 });
+        const afterUndo = await page.evaluate(() => window.__chg.at(-1));
+        assert.equal(afterUndo.source, "undo");
+        assert.deepEqual(afterUndo.added, ["ResistorElm"], `撤销后应报出恢复的元件：${JSON.stringify(afterUndo)}`);
+        assert.equal(afterUndo.count, 1);
+
+        // ── 11) 载入另一份电路 → elementschange(load) ─────────────────────────
+        //       文本格式每行都要 5 个字段（x1 y1 x2 y2 flags）；导线少写 flags 会被上游静默丢掉
+        await page.evaluate(() => {
+            window.ExtCircuitJS.api.loadCircuitText("r 100 100 300 100 0 1000\nw 300 100 400 100 0\n");
+        });
+        const afterLoad = await page.evaluate(() => window.__chg.at(-1));
+        assert.equal(afterLoad.source, "load", `载入的来源应是 load：${JSON.stringify(afterLoad)}`);
+        assert.equal(afterLoad.count, 2);
+        assert.deepEqual(afterLoad.added, ["ResistorElm", "WireElm"], "新电路的两个元件都要报出来");
+
+        // ── 12) 示例插件走 ctx.on 的正式通道，也确实收到了 ────────────────────
+        const plug = await page.evaluate(() => {
+            const read = (k) => {
+                const raw = localStorage.getItem("ext.plugin.ext-event." + k);
+                return raw == null ? null : JSON.parse(raw);
+            };
+            return { drag: read("lastDrag"), change: read("lastChange") };
+        });
+        assert.ok(plug.drag && Array.isArray(plug.drag.ids), "示例插件没收到 elemdrag（ctx.on 通道）");
+        assert.deepEqual(plug.drag.ids, ["c0"]);
+        assert.equal(plug.change?.source, "load", `示例插件最后一条 elementschange 应是载入：${JSON.stringify(plug.change)}`);
 
         assert.deepEqual(pageErrors, [], `pageerror: ${pageErrors.join(" | ")}`);
     } finally {

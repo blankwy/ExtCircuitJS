@@ -42,6 +42,9 @@ const BASE = process.env.EXC_BASE
     ?? (process.argv.includes("--base") ? process.argv[process.argv.indexOf("--base") + 1] : "http://127.0.0.1:5174");
 
 const DEMO_IDS = ["ext-panel", "ext-command", "ext-event"];
+// ext-event 订阅了几个事件（analyze / elementschange / elemdrag）。改示例插件的 ctx.on 次数要同步这里 ——
+// 这条断言的意义是"卸载后计数精确回到基线"，写成 >=1 就查不出漏掉的监听器。
+const EVENT_SUBS = 3;
 const REVS = ["b05-1", "b05-2", "b05-3"];
 
 function fail(msg) {
@@ -264,7 +267,7 @@ try {
         };
     }, DEMO_IDS);
 
-    assert.equal(F.listenersTotal, A.listenersTotal - 1, "三轮 reload 后卸载，监听器应精确回落 boot-1");
+    assert.equal(F.listenersTotal, A.listenersTotal - EVENT_SUBS, "三轮 reload 后卸载，监听器应精确回落 boot-ext-event 的订阅数");
     assert.equal(F.listenersAnalyze, A.listenersAnalyze - 1, "analyze 订阅应精确回落 boot-1");
     assert.equal(F.commands, A.commands - 1, "命令数应精确回落 boot-1");
     assert.equal(F.byIdSize, A.byIdSize - 1, "byId 应精确回落 boot-1");

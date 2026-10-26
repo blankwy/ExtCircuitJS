@@ -207,3 +207,40 @@ test("wireAppHooks：缺少某些宿主方法时不抛（上游版本差异）",
     assert.doesNotThrow(() => bare.dumpCircuit());
     assert.doesNotThrow(() => dispose());
 });
+
+// ── 9：afterLoad —— 载入**完成后**的旁观者 ──────────────────────────────────
+// 宿主内部用（ExtBoot 拿它同步元件事件）：它不改文本、不进 ctx，但必须是"此刻 elmList 已就绪"。
+test("afterLoad：载入完成才回调，来源取进入时的标注，嵌套载入不连发", () => {
+    const { app } = fakeApp();
+    const hooks = new ExtHooks();
+    const dispose = wireAppHooks(app, hooks);
+    const seen = [];
+    const off = hooks.afterLoad((meta) => seen.push(meta));
+
+    app.loader.readCircuit("a", 0);
+    assert.deepEqual(seen, [{ hook: "load", source: "document", flags: 0 }], "普通载入应通知一次");
+
+    app.commands.doPaste();
+    assert.deepEqual(seen[1], { hook: "load", source: "paste", flags: 4 }, "粘贴来源要带对");
+
+    // 嵌套（子电路/连续载入）：只有最外层结束才通知，避免插件看见"半截电路"
+    seen.length = 0;
+    hooks.noteLoadStart();
+    hooks.noteLoadStart();
+    hooks.noteLoadEnd();
+    assert.equal(seen.length, 0, "内层结束不得通知");
+    hooks.noteLoadEnd();
+    assert.equal(seen.length, 1, "外层结束必须通知且只通知一次");
+
+    // 旁观者抛错不能把载入搞坏
+    const restoreErr = mock.method(console, "error", () => {});
+    off();
+    const off2 = hooks.afterLoad(() => { throw new Error("boom"); });
+    assert.doesNotThrow(() => app.loader.readCircuit("b", 0), "旁观者抛错不得影响载入");
+    assert.equal(restoreErr.mock.callCount(), 1, "旁观者抛错应记一条 console.error");
+    off2();
+
+    hooks.clear();
+    app.loader.readCircuit("c", 0);
+    dispose();
+});

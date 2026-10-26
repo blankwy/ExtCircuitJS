@@ -68,7 +68,31 @@ export interface ExtHookMeta {
  *  ⚠ 改写必须**幂等**（同一段文本过两遍结果相同），否则 保存→打开→保存 会越改越多。 */
 export type ExtHookHandler = (text: string, meta: ExtHookMeta) => string | void | null;
 
-export type ExtEventName = "analyze" | "update" | "timestep" | "svgren" | "select" | "elemclick";
+/**
+ * 事件名（都由 `ctx.on(name, h)` 订阅，需要 "sim.observe"）。
+ *
+ * | 事件 | payload | 时机 |
+ * |---|---|---|
+ * | analyze / update / timestep / svgren | 上游回调参数 | 仿真钩子（单槽覆盖原语的多路复用） |
+ * | select | `{ count, elms, indices, ids }` | 选中集合变了（用户动作后比对一次，不是每次点击都发） |
+ * | elemclick | `{ elm, index, type, grid, screen, button }` | 真的点在某个元件上 |
+ * | elemdrag | `{ phase, elms, indices, ids, grid, delta }` | 按下期间元件几何变了；phase = start/move/end |
+ * | elementschange | `{ added, removed, count, source }` | elmList 增删（按下标无关的对象身份判定） |
+ *
+ * 两条使用纪律：
+ *   1. `elementschange.source` 要按需过滤 —— 撤销/恢复/载入也走这条路，只有 "pointer"/"ui"/"keyboard"
+ *      才是用户真的在改电路；
+ *   2. `elemdrag` 是**合并帧**语义（一帧最多一条），不要在里面做重活，也别指望拿到每个像素。
+ */
+export type ExtEventName =
+    | "analyze"
+    | "update"
+    | "timestep"
+    | "svgren"
+    | "select"
+    | "elemclick"
+    | "elemdrag"
+    | "elementschange";
 
 export interface ExtPluginContext {
     readonly id: string;

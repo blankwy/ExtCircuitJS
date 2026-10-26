@@ -107,7 +107,7 @@ GitHub Pages 由 `.github/workflows/pages.yml` 负责：`main` 每次推送都�
 
 细节、宿主配置的可选项与排障见 [docs/mcp.md](docs/mcp.md) §6。
 
-## 现在能跑什么（v0.1.4）
+## 现在能跑什么（v0.1.5）
 
 | 能力 | 状态 | 入口 |
 |---|---|---|
@@ -117,7 +117,7 @@ GitHub Pages 由 `.github/workflows/pages.yml` 负责：`main` 每次推送都�
 | 插件：activate / deactivate / 热重载 / 失败回滚 / 命令 / 面板 | ✅ | `cover/ts/ExtPluginHost.ts、packages/plugin-api` |
 | 插件自定义元件（类 + 存档类型 + 菜单 + 卸载，`ctx.element`） | ✅ | `cover/ts/ExtElements.ts`、`plugins/ext-element` |
 | 插件打开/保存钩子（可改写存档文本，带来源标记，`ctx.hook`） | ✅ | `cover/ts/ExtHooks.ts`、`plugins/ext-hook` |
-| 元件交互事件（`select` / `elemclick`，`ctx.on`） | ✅ | `cover/ts/ExtElementEvents.ts` |
+| 元件交互事件（`select` / `elemclick` / `elemdrag` / `elementschange`，`ctx.on`） | ✅ | `cover/ts/ExtElementEvents.ts` |
 | 插件能力权限（声明 → 运行期强制 → lint 同口径 + 站点策略） | ✅ | `packages/plugin-api/permissions.json`、`cover/ts/ExtPluginHost.ts` |
 | 网表导出（引擎 nodeList 权威）+ 稳定 id + set/delete ops | ✅ | `packages/netlist` |
 | 紧凑编码（聚合 0.26× XML）+ registry 再生成 CLI | ✅ | `packages/netlist/src/compact.ts；ext netlist registry/bench` |
@@ -170,9 +170,25 @@ ctx.hook("save", (text, meta) => {
 });
 ```
 
-元件交互同样有事件：`ctx.on("select", ({ count, elms, ids }) => …)`、
-`ctx.on("elemclick", ({ elm, index, type, grid }) => …)`——"选中元件显示扩展信息"这类需求
-不必再轮询 `listComponents()`。
+元件交互同样有事件——"选中元件显示扩展信息""拖动时实时算网表""元件被删了要善后"这类需求
+不必再轮询 `listComponents()`：
+
+| 事件 | payload | 什么时候来 |
+|---|---|---|
+| `select` | `{ count, elms, indices, ids }` | 选中集合变了（用户动作结束后比对一次，不是每次点击都发） |
+| `elemclick` | `{ elm, index, type, grid, screen, button }` | 真的点在某个元件上 |
+| `elemdrag` | `{ phase, elms, indices, ids, grid, delta }` | 按下期间几何变了；`phase` = start/move/end，一帧最多一条 |
+| `elementschange` | `{ added, removed, count, source }` | 元件表增删（按对象身份判定；`source` 区分用户/撤销/载入） |
+
+```js
+ctx.on("elementschange", ({ added, removed, source, count }) => {
+    if (source !== "pointer" && source !== "ui" && source !== "keyboard") return; // 撤销/载入也在广播里
+    console.log(`+${added.length} -${removed.length} → ${count}`);
+});
+ctx.on("elemdrag", ({ phase, ids, delta }) => {
+    if (phase === "end") rebuildNetlist();   // 拖动中每帧都来，别在 move 里做重活
+});
+```
 
 ### 权限（permissions）
 
@@ -181,7 +197,7 @@ ctx.hook("save", (text, meta) => {
 
 | 权限 | 对应的 ctx 面 | 说明 |
 |---|---|---|
-| `sim.observe` | `ctx.on(...)` | 订阅 analyze / update / timestep / svgren / select / elemclick |
+| `sim.observe` | `ctx.on(...)` | 订阅 analyze / update / timestep / svgren 与 select / elemclick / elemdrag / elementschange |
 | `sim.control` | `ctx.api` | 读写网表与元件、改参数、载入电路、控制仿真 |
 | `ui.command` | `ctx.command(...)` | 命令面板条目 |
 | `ui.panel` | `ctx.panel(el)` | 右侧栏面板节点 |

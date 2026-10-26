@@ -7,9 +7,11 @@ export type ExtEventName =
     | "update"
     | "timestep"
     | "svgren"
-    // 元件交互（由 ExtElementEvents 旁观画布产生，见该文件头注释）
+    // 元件交互（由 ExtElementEvents 旁观画布/文档产生，见该文件头注释）
     | "select"
-    | "elemclick";
+    | "elemclick"
+    | "elemdrag"
+    | "elementschange";
 
 type Handler = (payload?: any) => void;
 
