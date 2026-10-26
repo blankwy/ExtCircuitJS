@@ -5,9 +5,16 @@
 //
 // 口径（docs/task-board.md C05；spike 基线见 spike/netlist-codec/out/variants.json：
 // jsonCompact 聚合 0.331× / 中位 0.320×；docs/format-strategy.md §1/§6 目标 0.32×）：
-//   - 每例 ratio = JSON.stringify(encodeCompact(nl)) 的 UTF-8 字节数 / 语料 XML 文件字节数；
-//   - 聚合 ratio = Σ compactBytes / Σ xmlBytes，验收线 **≤ 0.35×**，超过 → process.exitCode = 1；
-//   - compact 编码是有损投影（剔除 WireElm 行 + 坐标字段 + 空壳段），见 compact.ts 文件头。
+//   - 每例 ratio = JSON.stringify(encodeCompact(nl, {legend:false})) 的 UTF-8 字节数 / 语料 XML 字节数
+//     —— 即**纯投影**形态，验收线 **≤ 0.35×**（C05 原线，不变）；
+//   - 每例 selfRatio 用**默认形态**（自描述，带 `t` 类型图例）计，验收线 **≤ 0.50×**；
+//   - namedRatio 用当前 `circuit.get_netlist` 实际返回的命名 JSON 计，只作对照（无验收线）。
+// 为什么两条线不一样：图例是**每电路固定成本**（本语料 40–560 字节：大电路约占 19%，
+// 小电路 30–60%），它换来"不解码也能读懂"——位置化的 props 没有字段名就是一串数字。
+// 两条线的意义不同：投影线守住格式对 XML 的体量承诺；自描述线守住 MCP 实际吐出去的东西
+// 别把优势吃光（且逐例要求 self ≤ 1.0×，即"自描述也不会比 XML 更大"，极小电路例外会报出来）。
+// 任一超线 → process.exitCode = 1。
+// compact 编码是有损投影（剔除 WireElm 行 + 坐标字段 + 空壳段），见 compact.ts 文件头。
 //
 // 除体积外，本脚本还逐例对拍**解码器**（checkRoundtrip）：
 //   · 幂等律 encode(decode(encode(nl))) ≡ encode(nl)（解码不引入新损失）；
@@ -31,7 +38,8 @@ const BASE = process.env.EXC_BASE ?? "http://127.0.0.1:5174";
 const ROOT = path.resolve(import.meta.dirname, "../..");
 const FIX_DIR = path.join(ROOT, "tests/fixtures/corpus-xml");
 const OUT_PATH = path.join(ROOT, "build/netlist-bench.json");
-const RATIO_LIMIT = 0.35;
+const RATIO_LIMIT = 0.35;      // 纯投影形态（C05 原验收线）
+const SELF_RATIO_LIMIT = 0.50; // 自描述形态（图例 = 每电路固定成本，见文件头）
 const BATCH = 20; // 每批电路数：与 C02 相同的分批 evaluate 序列
 
 /** GET 探活 dev server（只判 2xx/3xx） */
@@ -72,10 +80,19 @@ const TYPE_SET = new Set(compactTypes());
  * 只证明 (1) 是不够的：一个"把属性全丢掉"的解码器同样满足 (1)。
  */
 function checkRoundtrip(nl) {
+    // 两种形态各跑一遍：自描述（默认，带图例）与纯投影（legend:false）。图例只是序列化差异，
+    // 解出来的网表必须**逐字段相同**，否则说明解码在某条路径上偷偷依赖了图例之外的东西。
     const c1 = encodeCompact(nl);
+    const proj = encodeCompact(nl, { legend: false });
     const { netlist: back, losses } = decodeCompact(c1);
     const law = canon(encodeCompact(back)) === canon(c1);
+    const projLaw = canon(encodeCompact(decodeCompact(proj).netlist, { legend: false })) === canon(proj);
     const problems = [];
+    // 图例形态与纯投影形态必须解出同一份东西
+    const backProj = decodeCompact(proj).netlist;
+    if (canon(backProj.components) !== canon(back.components)) problems.push("图例形态与纯投影形态解出的元件不一致");
+    if (canon(backProj.nets) !== canon(back.nets)) problems.push("图例形态与纯投影形态解出的 net 不一致");
+    if (losses.legendDrift !== 0) problems.push(`图例与本机 registry 漂移 ${losses.legendDrift} 次`);
 
     const orig = (nl.components ?? []).filter((c) => c.type !== "WireElm");
     if (orig.length !== back.components.length) problems.push(`元件数 ${back.components.length}≠${orig.length}`);
@@ -107,7 +124,7 @@ function checkRoundtrip(nl) {
         if (live && backNet.get(id) !== i) problems.push(`net ${id} 落在下标 ${backNet.get(id)}≠${i}`);
     }
     // 计入"对拍过多少东西"：防止对拍写成空转（0 个元件对比也能全绿）
-    return { law, problems, losses, checked: { components: orig.length, nets: origNet.size } };
+    return { law: law && projLaw, problems, losses, checked: { components: orig.length, nets: origNet.size } };
 }
 
 async function main() {
@@ -200,20 +217,34 @@ async function main() {
     const rows = results.map((r) => {
         const byName = cases.find((c) => c.name === r.name);
         const rt = checkRoundtrip(r.nl);
-        const compactBytes = Buffer.byteLength(JSON.stringify(encodeCompact(r.nl)), "utf8");
+        const compactBytes = Buffer.byteLength(JSON.stringify(encodeCompact(r.nl, { legend: false })), "utf8");
+        const selfBytes = Buffer.byteLength(JSON.stringify(encodeCompact(r.nl)), "utf8");
+        // 当前 get_netlist 的实际返回（命名 JSON，含 meta/probes/subcircuits 空壳段）
+        const namedBytes = Buffer.byteLength(JSON.stringify(r.nl), "utf8");
         return {
             file: r.name,
             xmlBytes: byName.xmlBytes,
+            namedBytes,
             compactBytes,
+            selfBytes,
+            legendBytes: selfBytes - compactBytes,
             ratio: compactBytes / byName.xmlBytes,
+            selfRatio: selfBytes / byName.xmlBytes,
+            namedRatio: namedBytes / byName.xmlBytes,
             roundtrip: { law: rt.law, problems: rt.problems, losses: rt.losses, checked: rt.checked },
         };
     });
 
     const totalXml = rows.reduce((s, r) => s + r.xmlBytes, 0);
     const totalCompact = rows.reduce((s, r) => s + r.compactBytes, 0);
+    const totalSelf = rows.reduce((s, r) => s + r.selfBytes, 0);
+    const totalNamed = rows.reduce((s, r) => s + r.namedBytes, 0);
     const aggregateRatio = totalCompact / totalXml;
+    // 验收线管**自描述形态**：那是 MCP 实际吐出去的东西；纯投影只作对照
+    const selfRatio = totalSelf / totalXml;
     const medianRatio = median(rows.map((r) => r.ratio));
+    const medianSelf = median(rows.map((r) => r.selfRatio));
+    const overXml = rows.filter((r) => r.selfBytes > r.xmlBytes);
 
     // ── 6) 解码器对拍汇总 ───────────────────────────────────────────────────
     const badLaw = rows.filter((r) => !r.roundtrip.law);
@@ -236,8 +267,14 @@ async function main() {
         skipped,
         files: rows.length,
         rows,
-        aggregate: { totalXml, totalCompact, ratio: aggregateRatio },
+        aggregate: {
+            totalXml, totalCompact, ratio: aggregateRatio,
+            totalSelf, selfRatio, legendBytes: totalSelf - totalCompact,
+            totalNamed, namedRatio: totalNamed / totalXml,
+            selfOverXmlFiles: overXml.map((r) => r.file),
+        },
         median: medianRatio,
+        medianSelf,
         roundtrip: {
             checked: rows.length,
             lawFailed: badLaw.map((r) => r.file),
@@ -248,13 +285,22 @@ async function main() {
     fs.mkdirSync(path.dirname(OUT_PATH), { recursive: true });
     fs.writeFileSync(OUT_PATH, JSON.stringify(report, null, 2));
 
-    const worst = [...rows].sort((a, b) => b.ratio - a.ratio).slice(0, 5)
-        .map((r) => `${r.file} ${r.compactBytes}/${r.xmlBytes}=${r.ratio.toFixed(3)}`);
+    const worst = [...rows].sort((a, b) => b.selfRatio - a.selfRatio).slice(0, 5)
+        .map((r) => `${r.file} ${r.selfBytes}/${r.xmlBytes}=${r.selfRatio.toFixed(3)}`);
     console.log("[C05 netlist-bench] ─────────────────────────────────");
     console.log(`[C05 netlist-bench] 例数: ${rows.length}/${fp.circuits.length}（跳过 ${skipped.length}: ${
         skipped.map((s) => s.name).join(", ") || "无"}）`);
-    console.log(`[C05 netlist-bench] 聚合: ${totalCompact}/${totalXml} = ${aggregateRatio.toFixed(4)}× XML（验收线 ≤ ${RATIO_LIMIT}×）`);
-    console.log(`[C05 netlist-bench] 中位 ratio: ${medianRatio.toFixed(4)}×`);
+    console.log(`[C05 netlist-bench] 自描述（带图例，MCP 实际输出）: ${totalSelf}/${totalXml} = ${selfRatio.toFixed(4)}× XML`
+        + `（验收线 ≤ ${SELF_RATIO_LIMIT}×）；中位 ${medianSelf.toFixed(4)}×`);
+    console.log(`[C05 netlist-bench] 纯投影（legend:false）: ${totalCompact}/${totalXml} = ${aggregateRatio.toFixed(4)}× XML`
+        + `（验收线 ≤ ${RATIO_LIMIT}×）；中位 ${medianRatio.toFixed(4)}×；图例成本 ${totalSelf - totalCompact} 字节`
+        + `（占自描述 ${((totalSelf - totalCompact) / totalSelf * 100).toFixed(1)}%）`);
+    console.log(`[C05 netlist-bench] 命名 JSON（get_netlist 现状）: ${totalNamed}/${totalXml} = ${(totalNamed / totalXml).toFixed(4)}× XML`
+        + ` → 自描述紧凑是它的 ${(totalSelf / totalNamed).toFixed(3)}（省 ${(100 - totalSelf / totalNamed * 100).toFixed(0)}%）`);
+    if (overXml.length) {
+        console.log(`[C05 netlist-bench]   ⚠ 自描述比 XML 还大 ${overXml.length} 例（极小电路上图例是纯开销）: `
+            + overXml.slice(0, 5).map((r) => `${r.file} ${r.selfBytes}/${r.xmlBytes}`).join(", "));
+    }
     console.log(`[C05 netlist-bench] 最差 5 例: ${worst.join(", ")}`);
     console.log(`[C05 netlist-bench] 解码对拍: 幂等律 ${rows.length - badLaw.length}/${rows.length} 通过`
         + `，内容 ${rows.length - badContent.length}/${rows.length} 通过`
@@ -270,10 +316,14 @@ async function main() {
         console.error(`[C05 netlist-bench] FAIL：解码对拍不通过（幂等律 ${badLaw.length} 例 / 内容 ${badContent.length} 例）`);
         process.exitCode = 1;
     } else if (aggregateRatio > RATIO_LIMIT) {
-        console.error(`[C05 netlist-bench] FAIL：聚合比 ${aggregateRatio.toFixed(4)}× 超过 ${RATIO_LIMIT}×`);
+        console.error(`[C05 netlist-bench] FAIL：纯投影聚合比 ${aggregateRatio.toFixed(4)}× 超过 ${RATIO_LIMIT}×`);
+        process.exitCode = 1;
+    } else if (selfRatio > SELF_RATIO_LIMIT) {
+        console.error(`[C05 netlist-bench] FAIL：自描述聚合比 ${selfRatio.toFixed(4)}× 超过 ${SELF_RATIO_LIMIT}×`);
         process.exitCode = 1;
     } else {
-        console.log(`[C05 netlist-bench] PASS：聚合比 ${aggregateRatio.toFixed(4)}× ≤ ${RATIO_LIMIT}×`);
+        console.log(`[C05 netlist-bench] PASS：纯投影 ${aggregateRatio.toFixed(4)}× ≤ ${RATIO_LIMIT}×，`
+            + `自描述 ${selfRatio.toFixed(4)}× ≤ ${SELF_RATIO_LIMIT}×`);
     }
 }
 

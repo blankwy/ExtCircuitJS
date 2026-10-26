@@ -49,20 +49,36 @@ export interface McpToolSpec {
 export const MCP_TOOLS: McpToolSpec[] = [
     {
         name: "circuit.get_netlist",
-        description: "读取当前电路的 JSON 网表（会话内稳定 id e1..eN；layout:true 时附带坐标）",
+        description:
+            "读取当前电路的网表。format=netlist（默认）返回命名 JSON（会话内稳定 id e1..eN，layout:true 时附带坐标）；" +
+            "format=compact 返回紧凑投影（自描述：带 t 类型图例，约 0.41× XML、约为命名 JSON 的 1/6）——" +
+            "它**没有坐标、没有导线行**，是只读视图，不能喂回 load_netlist",
         inputSchema: {
             type: "object",
-            properties: { layout: { type: "boolean", description: "是否输出 x1 y1 x2 y2 坐标（默认 false）" } },
+            properties: {
+                layout: { type: "boolean", description: "是否输出 x1 y1 x2 y2 坐标（仅 format=netlist，默认 false）" },
+                format: {
+                    type: "string",
+                    enum: ["netlist", "compact"],
+                    description: "netlist = 命名 JSON（默认）；compact = 紧凑投影（自描述、无坐标）",
+                },
+                legend: {
+                    type: "boolean",
+                    description: "format=compact 时是否带类型图例 t（默认 true；关掉更小，但要自己拿 registry 翻译）",
+                },
+            },
         },
     },
     {
         name: "circuit.load_netlist",
         description:
-            "载入电路文本（core 电路文本 / 网表 JSON / XML，由页面 loader 区分），时间轴归零；" +
-            "内容失败返回 {ok:false, unsupported[]}，不改 error 通道",
+            "载入电路文本（core 电路文本 / XML），时间轴归零；" +
+            "内容失败返回 {ok:false, unsupported[]}，不改 error 通道。" +
+            "注意：**网表 JSON（含紧凑格式）不能载入**（引擎只认文本/XML，且紧凑格式无坐标），" +
+            "传入会得到明确的 unsupported 而不是静默空电路",
         inputSchema: {
             type: "object",
-            properties: { text: { type: "string", description: "电路文本" } },
+            properties: { text: { type: "string", description: "电路文本（core 文本格式或 XML）" } },
             required: ["text"],
         },
     },
@@ -303,15 +319,24 @@ export class AttachToolset {
             this.bridge.request(method, { sessionId: sid, params, timeoutMs: timeoutMs ?? this.timeoutMs });
         switch (name) {
             case "circuit.get_netlist": {
-                const r = await req("export", { format: "netlist", layout: args.layout === true });
+                const format = args.format === "compact" ? "compact" : "netlist";
+                const r = await req("export", {
+                    format,
+                    layout: args.layout === true,
+                    // 图例默认开：位置化的 props 不带字段名就是一串数字，
+                    // 消费方要么读不懂、要么得自带 255 个类型的 registry
+                    legend: args.legend !== false,
+                });
                 if (!isPayloadOk(r)) return r as ToolResult;
-                let netlist: unknown;
+                let parsed: unknown;
                 try {
-                    netlist = JSON.parse(r.payload);
+                    parsed = JSON.parse(r.payload);
                 } catch (e) {
-                    return fail("internal_error", `netlist payload 不是合法 JSON: ${(e as Error).message}`);
+                    return fail("internal_error", `${format} payload 不是合法 JSON: ${(e as Error).message}`);
                 }
-                return { ok: true, netlist, bytes: r.bytes };
+                return format === "compact"
+                    ? { ok: true, format, compact: parsed, bytes: r.bytes }
+                    : { ok: true, format, netlist: parsed, bytes: r.bytes };
             }
             case "circuit.load_netlist": {
                 // 内容失败 {ok:false,unsupported[]} 原样透传（loader 形状，不走 error）

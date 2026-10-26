@@ -78,8 +78,8 @@ JSON，失败形如 `{ok:false, error:{code,message}}`，**绝不抛异常**。
 
 | 工具 | 作用 | 关键参数 |
 |---|---|---|
-| `circuit.get_netlist` | 读 JSON 网表（稳定 id e1..eN + 参数 + nets） | `layout`（带坐标） |
-| `circuit.load_netlist` | 载入电路文本（重置时间轴） | `text` |
+| `circuit.get_netlist` | 读 JSON 网表（稳定 id e1..eN + 参数 + nets） | `layout`（带坐标）、`format: netlist\|compact` |
+| `circuit.load_netlist` | 载入电路文本（重置时间轴）；**网表 JSON 不能载入**（见下） | `text` |
 | `circuit.list_components` | 元件清单（id/类型/参数） | — |
 | `circuit.set_param` | 按稳定 id 改参数，自动重分析 | `target, prop, value` |
 | `sim.run` / `sim.stop` | 恢复/暂停宿主实时步进（墙钟，**数值不可复现**） | — |
@@ -88,6 +88,23 @@ JSON，失败形如 `{ok:false, error:{code,message}}`，**绝不抛异常**。
 | `sim.read_measurements` | 瞬时电压/电流/功率 | `nets` 或 `components`（缺省=全网电压） |
 | `sim.read_scope` | scope 波形全量（**不降采样**，防爆 token 由调用方负责） | `index` |
 | `schematic.screenshot` | 画布截图 | `format: png\|svg` |
+
+`circuit.get_netlist` 的两种形态（v0.1.7）：
+
+| format | 形状 | 体积（372 例语料） | 什么时候用 |
+|---|---|---|---|
+| `netlist`（默认） | 命名 JSON：`components[{id,type,f,props,pins}]` + `nets[]` + `meta/models/probes` 空壳段 | 2.51× XML | 需要坐标（`layout:true`）、需要改完再喂回去 |
+| `compact` | 紧凑投影：`{v,g?,n?,t?,c:[[typeIdx,f,[netIdx], [props]]]}` | **0.415× XML**，是命名 JSON 的 0.165（省 83%） | 长上下文批量读；**只读**视图 |
+
+`compact` 是**自描述**的：`t` 是类型图例 `{ "<typeIdx>": ["ResistorElm", ["resistance"]] }`，
+只含本电路用到的类型、且只报实际用到的属性名前缀。所以调用方不需要注入整份 registry 就能把
+`[243,0,[0,1],[1,1000,5]]` 读成"VoltageElm，waveform=1, frequency=1000, maxVoltage=5"。
+代价是每电路几十到几百字节（实测占自描述体积的 37.7%），`legend:false` 可关掉换体积。
+
+`compact` **不能喂回 `load_netlist`**：它没有坐标、没有导线行，引擎也没有网表导入器
+（`CircuitLoader.readCircuit` 只认 core 文本与 XML）。这样调用会得到
+`{ok:false, unsupported:[{code:"netlist_json_not_loadable", reason:"…"}]}` —— 明确拒绝且**不动电路**，
+不会静默变成"空电路"。改参数用 `circuit.set_param`，换电路用 XML/电路文本。
 
 会话管理：`tools.openSession()` 显式开会话；`tools.id` 即 sessionId；`bridge.request("step",
 {sessionId, params:{seconds}})` 做确定性步进；页面断线重连后会话仍存活（连接与会话解耦）。

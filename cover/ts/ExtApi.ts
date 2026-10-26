@@ -1,7 +1,7 @@
 // Cover 层新增：对外 API facade（window.ExtCircuitJS.api）
 // 只做"薄转发 + 结构化返回"，不放业务逻辑；网表逻辑在 @ext/netlist。
 
-import { exportNetlist, applyOps } from "@ext/netlist";
+import { exportNetlist, applyOps, encodeCompact } from "@ext/netlist";
 import type { NetlistOp } from "@ext/netlist";
 import type { ExtEvents } from "./ExtEvents";
 
@@ -21,6 +21,15 @@ export class ExtApi {
 
     dumpNetlist(opts: { layout?: boolean; dropDefaults?: boolean } = {}) {
         return exportNetlist(this.app, opts);
+    }
+
+    /**
+     * 紧凑投影（C05）。默认形态**自描述**：带 `t` 类型图例（类型名 + 该类型实际用到的
+     * 属性名前缀），所以消费方不需要外部 registry 就能读懂位置化的 props。
+     * `legend:false` 是纯投影形态（更小，但要自己拿 registry 翻译）。
+     */
+    dumpCompact(opts: { layout?: boolean; legend?: boolean } = {}) {
+        return encodeCompact(this.dumpNetlist({ layout: opts.layout === true }), { legend: opts.legend !== false });
     }
 
     listComponents(): { id: string; type: string; tag: string; info: string[] }[] {

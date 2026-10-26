@@ -324,6 +324,75 @@ test("schematic.screenshot：png dataURL 与 svg 文本两种格式", { timeout:
     assert.ok(svg.data.includes("<svg"), "svg 导出必须含 <svg 根元素");
 });
 
+test("circuit.get_netlist format=compact：自描述紧凑投影，无需 registry 即可本地解码回同一张网表", { timeout: 60_000 }, async () => {
+    const { decodeCompact } = await import("../../packages/netlist/src/compact.ts");
+    const named = await tools.call("circuit.get_netlist");
+    const r = await tools.call("circuit.get_netlist", { format: "compact" });
+    assert.equal(r.ok, true, `紧凑导出失败: ${JSON.stringify(r).slice(0, 300)}`);
+    assert.equal(r.format, "compact", "返回里要说清是哪种形态（别让调用方猜 payload 是 netlist 还是 compact）");
+
+    const compact = r.compact;
+    assert.equal(compact.v, 1);
+    assert.ok(compact.t != null && Object.keys(compact.t).length > 0, "必须是自描述形态：带 t 类型图例");
+    assert.equal(compact.netlist, undefined, "紧凑形态放在 compact 字段，不冒用 netlist");
+
+    // 自描述的核心不变量：**每个已用槽位都有名字**（否则那一位就是个无法解读的数字）
+    for (const row of compact.c) {
+        const [t, , , vals] = row;
+        const entry = compact.t[t];
+        assert.ok(entry != null, `组件用了类型 ${t} 但图例里没有它`);
+        assert.ok((vals?.length ?? 0) <= entry[1].length,
+            `类型 ${entry[0]} 的数据有 ${vals?.length} 个槽，图例只给了 ${entry[1].length} 个名字`);
+    }
+
+    // 体积：紧凑必须显著小于命名 JSON（否则这个格式没有存在意义）
+    assert.ok(r.bytes < named.bytes,
+        `紧凑 ${r.bytes} 应小于命名 JSON ${named.bytes}`);
+    assert.ok(!JSON.stringify(compact).includes('"layout"'), "紧凑格式不含坐标");
+
+    // 本地解码：元件类型序列 + 逐元件 props 必须与命名网表一致（图例映射正确的证据）
+    const back = decodeCompact(compact);
+    assert.equal(back.losses.unresolved, 0, "不该有解析不出的类型");
+    assert.equal(back.losses.legendDrift, 0, "同一进程内编解码，两端 registry 不该漂移");
+    const want = named.netlist.components.filter((c) => c.type !== "WireElm");
+    assert.deepEqual(back.netlist.components.map((c) => c.type), want.map((c) => c.type),
+        "解码后的元件类型序列必须与命名网表一致（导线行被刻意剔除）");
+    for (let i = 0; i < want.length; i++) {
+        assert.deepEqual(back.netlist.components[i].props, want[i].props,
+            `#${i} ${want[i].type} 的属性必须逐字段相等`);
+    }
+    // 连通性：命名网表里每个 post 的 net 下标，解码后落到同名 net
+    const namedNet = new Map(named.netlist.nets.map((n, i) => [n.id, i]));
+    const backNet = new Map(back.netlist.nets.map((n, i) => [n.id, i]));
+    for (let i = 0; i < want.length; i++) {
+        for (const [post, netId] of Object.entries(want[i].pins)) {
+            assert.equal(backNet.get(back.netlist.components[i].pins[post]), namedNet.get(netId),
+                `#${i} post${post} 应落在同一个 net`);
+        }
+    }
+});
+
+test("circuit.load_netlist：网表 JSON（含紧凑）明确拒绝，且不改动当前电路", { timeout: 60_000 }, async () => {
+    const before = await tools.call("circuit.list_components");
+    const compact = (await tools.call("circuit.get_netlist", { format: "compact" })).compact;
+
+    const r = await tools.call("circuit.load_netlist", { text: JSON.stringify(compact) });
+    assert.equal(r.ok, false, "紧凑格式不能载入（没有坐标/导线，引擎也没有网表导入器）");
+    assert.equal(r.error, undefined, "内容级失败走 unsupported 通道，不占用 error");
+    assert.equal(r.unsupported?.[0]?.code, "netlist_json_not_loadable", `实际 ${JSON.stringify(r).slice(0, 300)}`);
+    assert.match(r.unsupported[0].reason, /circuit\.set_param|XML/, "拒绝理由要给出可行方向，而不是只说不行");
+
+    // 命名网表 JSON 同样不行：别把"能导出"误读成"能导入"
+    const named = await tools.call("circuit.get_netlist");
+    const r2 = await tools.call("circuit.load_netlist", { text: JSON.stringify(named.netlist) });
+    assert.equal(r2.ok, false);
+    assert.equal(r2.unsupported?.[0]?.code, "netlist_json_not_loadable");
+
+    // 关键：被拒绝的载入不得把电路清空（这是"静默失败"最坏的形态）
+    const after = await tools.call("circuit.list_components");
+    assert.equal(after.counts.components, before.counts.components, "拒绝必须发生在动电路之前");
+});
+
 test("收尾：同一会话全程存活；工具全覆盖；无 pageerror", { timeout: 30_000 }, async () => {
     const seen = new Set(toolRecords.map((r) => r.tool));
     const missing = MCP_TOOLS.map((t) => t.name).filter((n) => !seen.has(n));

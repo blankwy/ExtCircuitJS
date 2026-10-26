@@ -35,6 +35,9 @@
 // invalid_args / load_failed / unknown_method），另有桥内两个扩展码：
 //   sim_stopped    引擎 stopMessage 置位（奇异矩阵等），step 中止（只报不清理）
 //   internal_error 分发中未预期的异常（兜底，正常不应出现）
+// 内容级失败（不走 error 通道，返回 {ok:false, unsupported[]}）：
+//   load 的解析失败 + **网表 JSON 拒绝**（`netlist_json_not_loadable`：紧凑格式是只读投影，
+//   连命名网表 JSON 都没有导入器——见 load() 里的注释）。
 //
 // D03 方法语义（与 tools.ts 工具一一对应；会话纪律同上——live+loaded 校验，
 // screenshot 只要求 live：画布截图是「视觉兜底」，不依赖会话是否载入过电路）：
@@ -311,6 +314,21 @@ export class ExtMcpBridge {
         if (typeof text !== "string") {
             return fail("invalid_args", "load 需要 string 类型的 text 参数");
         }
+        // 网表 JSON（含 C05 紧凑格式）**不是**可载入格式：引擎只能从 core 电路文本或 XML
+        // 建电路（CircuitLoader.readCircuit 只认 `<` 与文本）。不挡的话它会被当电路文本
+        // 逐行解析、静默丢掉全部内容，报出来的是"空电路"——看不出真正原因。
+        // 紧凑格式还额外丢了坐标与导线行，就算有导入器也拼不回一张能画的图。
+        const head = text.replace(/^\uFEFF/, "").trimStart();
+        if (head.startsWith("{")) {
+            return {
+                ok: false,
+                unsupported: [{
+                    code: "netlist_json_not_loadable",
+                    reason: "网表 JSON（含紧凑格式）不能用于载入：引擎只从 core 电路文本或 XML 建电路；"
+                        + "紧凑格式还是只读投影（不含坐标/导线）。改参用 circuit.set_param，换电路用 XML 或电路文本。",
+                }],
+            };
+        }
         const app = this.app();
         // 桥接管时间轴：暂停宿主自动步进（轮询拉取模型；不改 core 仿真循环）
         try { app.setSimRunning(false); } catch { /* UI 未就绪时忽略 */ }
@@ -456,14 +474,18 @@ export class ExtMcpBridge {
         if (!s.loaded) return fail("no_circuit", "load a netlist before export");
 
         const format = args?.format;
-        if (format !== "netlist" && format !== "xml") {
-            return fail("invalid_args", `format 必须是 netlist|xml，收到 ${JSON.stringify(format)}`);
+        if (format !== "netlist" && format !== "xml" && format !== "compact") {
+            return fail("invalid_args", `format 必须是 netlist|compact|xml，收到 ${JSON.stringify(format)}`);
         }
         // D03 get_netlist 工具：layout 透传给导出（默认 false，坐标不输出）
+        // compact 走 C05 紧凑投影（默认自描述，带类型图例；layout 对紧凑格式无意义——
+        // 坐标正是它刻意剔掉的东西，传了也只影响不了输出）。
         const payload =
             format === "netlist"
                 ? JSON.stringify(this.ext.api.dumpNetlist({ layout: args?.layout === true }))
-                : String(this.app().dumpCircuit());
+                : format === "compact"
+                    ? JSON.stringify(this.ext.api.dumpCompact({ legend: args?.legend !== false }))
+                    : String(this.app().dumpCircuit());
         return { ok: true, format, payload, bytes: new TextEncoder().encode(payload).length };
     }
 

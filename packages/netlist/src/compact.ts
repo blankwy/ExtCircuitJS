@@ -11,7 +11,9 @@
 //   2. 坐标字段（x / y / x2 / y2）剔除：layout 语义不进入紧凑通道；
 //   3. meta / models / probes / subcircuits 等空壳段不输出。
 //
-// 解码所需 schema = packages/netlist/src/registry.json（一次性注入上下文）：
+// schema 来源有两处，**图例优先**：
+//   - 类型图例 `t`（默认输出，见下）：本电路用到的那几个类型的名字与属性名；
+//   - 兜底 registry.json（packages/netlist/src/registry.json）：
 //   - 类型：registry.elements 键的**字典序**即类型索引（compactTypes() 可取回该表）；
 //   - 属性：该类型 xmlAttrs 的出现顺序即 props 数组位置（跳过 field 为 null 的
 //     dump-only 项与上述坐标项）；靠前的缺失属性用 null 占位，尾部缺失省略。
@@ -20,9 +22,19 @@
 //   { v: 1,
 //     g?: <ground 的 net 索引>,          // 仅存在接地时
 //     n?: { <net 索引>: <名称> },        // 仅有命名的 net（来自 LabeledNode 等）
+//     t?: { <typeIdx>: [<类名>, [<props 位置对应的字段名>...]] },   // 类型图例（自描述）
 //     c: [ [typeIdx, flags, [netIdx|-1...], [props...]], ... ],
 //     u?: [ ...unsupported... ] }
 // net 索引 = nl.nets 数组下标；-1 表示该 post 无 net（内部节点 / 未连）。
+//
+// ── 为什么要有 `t`（类型图例，v0.1.7）──────────────────────────────────
+// 位置化的 props 单看 `[1,1000,5,0,0,0.5,0,0.001]` 无法解读：消费方（尤其是 AI）
+// 必须知道第 3 个槽位是 `frequency` 才能用。而喂整份 registry 是 255 个类型 × 若干
+// 属性名的开销，远超本电路实际用到的类型。图例只带**用到的**类型，成本与电路复杂度
+// 同阶（典型几十到几百字节），换来"无需外部 schema 即可解读"。
+// 附带的好处（不是巧合）：图例就是**编码端的 registry 快照**，解码优先按图例还原字段名，
+// 于是 registry 重新生成、属性顺序变动之后，历史紧凑数据仍能解对——`losses.legendDrift`
+// 记下两端不一致的次数（见 HANDOVER 坑位 34）。
 //
 // ── 解码（decodeCompact）────────────────────────────────────────────────
 // 有损格式不可能"解回原样"，所以解码器的正确性用一条**幂等律**来钉：
@@ -90,7 +102,19 @@ const WIRE_CLS = "WireElm";
 /** 坐标字段：紧凑通道剔除（format-strategy §6 去坐标）。 */
 const GEOMETRY_FIELDS = new Set(["x", "y", "x2", "y2"]);
 
-export function encodeCompact(nl: CompactInputNetlist): unknown {
+/** 类型图例：`{ "<typeIdx>": [<类名>, [<props 位置对应的字段名>...]] }` */
+export type CompactLegend = Record<string, [string, string[]]>;
+
+export interface CompactEncodeOptions {
+    /**
+     * 是否输出类型图例 `t`（默认 **true**）。设 false 得到纯投影形态：更小，
+     * 但消费方必须自己拿 registry 才能把 typeIdx 与 props 位置翻译成人能读的名字。
+     */
+    legend?: boolean;
+}
+
+export function encodeCompact(nl: CompactInputNetlist, opts: CompactEncodeOptions = {}): unknown {
+    const withLegend = opts.legend !== false;
     const netIdx = new Map<string, number>();
     (nl.nets ?? []).forEach((net, i) => netIdx.set(net.id, i));
 
@@ -101,6 +125,9 @@ export function encodeCompact(nl: CompactInputNetlist): unknown {
         if (net.name) named[i] = net.name;
     });
 
+    const legend: CompactLegend = {};
+    /** 每个用到的类型：其组件 props 数组的**最大已用长度**（图例只报这个前缀，见下面组装） */
+    const legendDepth = new Map<number, number>();
     const comps: unknown[] = [];
     for (const c of nl.components ?? []) {
         if (c.type === WIRE_CLS) continue; // 有损：见文件头
@@ -136,11 +163,34 @@ export function encodeCompact(nl: CompactInputNetlist): unknown {
         }
 
         comps.push([t ?? -1, c.f ?? 0, pins, vals]);
+        if (withLegend && t != null) {
+            const depth = legendDepth.get(t) ?? 0;
+            if (vals.length > depth) legendDepth.set(t, vals.length);
+        }
     }
 
-    const out: Record<string, unknown> = { v: 1, c: comps };
+    // 图例条目在**组件全部遍历完之后**按"该类型实际用到的 props 前缀长度"组装：
+    // 数据里从不出现的位置不必报名字。ResistorElm 只带 1 个值时就只写 1 个字段名，
+    // 而不是把 registry 里该类型的全部属性名抄一遍（实测这一条把图例成本砍掉约四成）。
+    if (withLegend) {
+        for (const [t, depth] of legendDepth) {
+            const cls = TYPE_TABLE[t];
+            legend[String(t)] = [cls, propFields(cls).slice(0, depth)];
+        }
+    }
+
+    // 键序固定为 v / g / n / t / c / u：图例排在组件数组之前，人（和 AI）从上往下读
+    // 就能先拿到字典再读数据。同一电路编两次必须字节相同，故图例按**数字**索引升序
+    // （字典序会把 "17" 排到 "9" 前面）。
+    const out: Record<string, unknown> = { v: 1 };
     if (ground >= 0) out.g = ground;
     if (Object.keys(named).length) out.n = named;
+    if (withLegend && Object.keys(legend).length) {
+        const sorted: CompactLegend = {};
+        for (const k of Object.keys(legend).map(Number).sort((a, b) => a - b)) sorted[String(k)] = legend[String(k)];
+        out.t = sorted;
+    }
+    out.c = comps;
     if (nl.unsupported?.length) out.u = nl.unsupported;
     return out;
 }
@@ -164,6 +214,12 @@ export interface CompactLosses {
     unresolved: number;
     /** props 位置越出该类型的属性表（编码端 registry 与解码端版本不一致的典型症状） */
     orphanProps: number;
+    /**
+     * 图例与本机 registry 不一致的类型数（图例说 `17 = ResistorElm`，本机 registry 不这么认）。
+     * 不为 0 **不代表解错**——解码按图例走（图例才是编码端的意思），但两端 registry 已经漂了：
+     * 这一批数据要么来自旧版本、要么本机 registry 该重新生成。
+     */
+    legendDrift: number;
     /** 反推出的 net 里没有任何引脚引用（只剩一个空 net；计入这个数说明电路里有悬空导线网） */
     unreferencedNets: number;
 }
@@ -185,6 +241,28 @@ function propFields(cls: string | null): string[] {
         if (!a?.field) continue; // dump-only
         if (GEOMETRY_FIELDS.has(a.field)) continue;
         out.push(a.field);
+    }
+    return out;
+}
+
+/**
+ * 解析类型图例 `t`。形状不对直接抛：图例是机器产出的，坏掉的图例会让**每个**属性名都错位，
+ * 静默忽略等于把所有数据解成错的字段名。
+ */
+function parseLegend(raw: unknown): Map<number, { cls: string; fields: string[] }> {
+    const out = new Map<number, { cls: string; fields: string[] }>();
+    if (raw === undefined || raw === null) return out; // 纯投影形态（legend:false）合法
+    if (typeof raw !== "object" || Array.isArray(raw)) throw new Error("decodeCompact: t 图例必须是对象");
+    for (const [k, v] of Object.entries(raw as Record<string, unknown>)) {
+        const idx = Number(k);
+        if (!Number.isInteger(idx) || idx < 0) throw new Error(`decodeCompact: t 图例的键 ${JSON.stringify(k)} 不是类型索引`);
+        if (!Array.isArray(v) || v.length !== 2 || typeof v[0] !== "string" || !Array.isArray(v[1])) {
+            throw new Error(`decodeCompact: t[${k}] 必须是 [类名, [字段名...]]`);
+        }
+        if (!(v[1] as unknown[]).every((f) => typeof f === "string")) {
+            throw new Error(`decodeCompact: t[${k}] 的字段名必须都是字符串`);
+        }
+        out.set(idx, { cls: v[0] as string, fields: [...(v[1] as string[])] });
     }
     return out;
 }
@@ -234,12 +312,32 @@ export function decodeCompact(x: unknown): CompactDecoded {
     });
 
     // ── 3) 组件 ──────────────────────────────────────────────────────────────
+    const legend = parseLegend(src.t);
     let unresolved = 0;
     let orphanProps = 0;
+    let legendDrift = 0;
+    /** 按类型下标缓存 registry 的字段表（漂移比对用，同一类型只算一次） */
+    const registryFields = new Map<number, string[]>();
     const components: CompactInputComponent[] = src.c.map((row: any[], i: number) => {
         const [t, f, pins, vals] = row;
-        const cls = typeof t === "number" && Number.isInteger(t) ? (TYPE_TABLE[t] ?? null) : null;
+        const fromLegend = typeof t === "number" && Number.isInteger(t) ? legend.get(t) : undefined;
+        const fromRegistry = typeof t === "number" && Number.isInteger(t) ? (TYPE_TABLE[t] ?? null) : null;
+        // 图例是编码端的 registry 快照 → 优先；registry 只在该类型没进图例时兜底
+        const cls = fromLegend?.cls ?? fromRegistry;
         if (cls == null) unresolved++;
+        // 两端 registry 不一致：解出来的值仍按图例（那是编码端的意思），但如实记一笔漂移
+        if (fromLegend != null && fromRegistry != null) {
+            let regFields = registryFields.get(t);
+            if (regFields == null) {
+                regFields = propFields(fromRegistry);
+                registryFields.set(t, regFields);
+            }
+            const sameCls = fromRegistry === fromLegend.cls;
+            // 图例只报"实际用到的前缀"，所以只比这段前缀（而不是要求长度相等）
+            const sameFields = fromLegend.fields.length <= regFields.length
+                && fromLegend.fields.every((name, k) => name === regFields[k]);
+            if (!sameCls || !sameFields) legendDrift++;
+        }
 
         const comp: CompactInputComponent = {
             id: `e${i + 1}`,
@@ -250,7 +348,7 @@ export function decodeCompact(x: unknown): CompactDecoded {
         };
 
         // props：位置 → 字段名（null 是"靠前缺失"的占位，跳过即可，再编码会补回来）
-        const fields = propFields(cls);
+        const fields = fromLegend?.fields ?? propFields(cls);
         const arr: unknown[] = Array.isArray(vals) ? vals : [];
         for (let k = 0; k < arr.length; k++) {
             const v = arr[k];
@@ -282,6 +380,6 @@ export function decodeCompact(x: unknown): CompactDecoded {
             nets,
             unsupported: Array.isArray(src.u) ? src.u : [],
         },
-        losses: { geometry: true, wires: "unknown", unresolved, orphanProps, unreferencedNets },
+        losses: { geometry: true, wires: "unknown", unresolved, orphanProps, legendDrift, unreferencedNets },
     };
 }

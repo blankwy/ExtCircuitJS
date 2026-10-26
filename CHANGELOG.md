@@ -1,5 +1,53 @@
 # Changelog
 
+## v0.1.7（未发布）
+
+紧凑格式终于有了**消费方**：`circuit.get_netlist` 加了 `format: "compact"`。接的时候撞上一个
+设计问题——位置化的 props（`[1,1000,5,0,0,0.5,0,0.001]`）没有字段名就是一串数字，而喂整份
+registry（255 个类型）比数据本身还大。于是格式改成**自描述**：自己带一份"本电路用到的类型 +
+属性名前缀"的图例。
+
+### 类型图例 `t`（自描述，默认开）
+
+- 输出新增 `t: { "<typeIdx>": ["VoltageElm", ["waveform","frequency","maxVoltage"]] }`，
+  只含本电路**用到的**类型，字段名只报**实际用到的槽位前缀**（同类型元件里最长的那个决定深度）
+- 键按**数字**索引升序（字典序会把 `"17"` 排到 `"9"` 前），同一电路编两次字节相同
+- `encodeCompact(nl, { legend: false })` 仍可拿到纯投影形态（更小，但要自己拿 registry 翻译）
+- 解码**优先按图例**还原字段名：图例就是编码端的 registry 快照，于是 registry 重新生成、
+  属性顺序变动之后历史数据仍解得对。两端不一致时记 `losses.legendDrift`（类名或字段前缀不符）
+- 图例形状不对直接抛：坏图例会让**每个**字段名错位，静默忽略等于把数据解成错的字段名
+
+体积代价（372 例语料实测，`ext netlist bench` 现在同时报两个口径）：
+
+| 形态 | 聚合 | 中位 | 说明 |
+|---|---|---|---|
+| 纯投影（`legend:false`） | 0.258× XML | 0.257× | C05 原验收线 ≤0.35×，不变 |
+| **自描述（默认，MCP 实际输出）** | **0.415× XML** | 0.497× | 新验收线 ≤0.50×；图例占 37.7% |
+| 命名 JSON（get_netlist 现状） | 2.513× XML | — | 自描述紧凑是它的 **0.165**（省 83%） |
+
+图例是**每电路固定成本**（40–560 字节）：大电路约占 19%，小电路 30–60%，1/372 例的极小电路
+上它甚至比 XML 还大——这些数字不藏，bench 里逐例报 `legendBytes` 并把"比 XML 还大"的例点名。
+
+### MCP
+
+- `circuit.get_netlist`：新增 `format: "netlist" | "compact"`（默认 netlist）与 `legend`（默认 true）；
+  返回 `{ok:true, format, compact|netlist, bytes}` —— 用字段名区分形态，不让调用方猜 payload 是什么
+- `circuit.load_netlist`：**修正描述里的谎**。它一直写着"网表 JSON / XML 由 loader 区分"，
+  但 `CircuitLoader.readCircuit` 只认 `<`（XML）与文本，网表 JSON 从来没有导入器 —— 传进去会被
+  当电路文本逐行解析、静默丢掉全部内容，报出来的是 `empty circuit`。现在见到 `{` 开头的内容直接
+  返回 `{ok:false, unsupported:[{code:"netlist_json_not_loadable", reason:"…"}]}`，
+  **且发生在动电路之前**（不会把当前电路清空）。理由里给出可行方向（改参用 `set_param`，换电路用 XML）
+- 页面桥 `export` 支持 `format:"compact"`；`ExtApi.dumpCompact()` 作为薄转发
+
+### 测试
+
+- `netlist-compact.test.mjs` 9 → 15 例：图例只含用到的类型 / 只报已用前缀 / 解码按图例还原且记
+  `legendDrift` / registry 不认识的类型也能解 / 纯投影与自描述解出同一份网表 / 图例形状非法逐项抛
+- `mcp-tools.browser.test.mjs` +2 例（真实引擎）：`format=compact` 的**每个已用槽位都有名字**、
+  本地 `decodeCompact` 解出的元件类型/props/连通性与命名网表逐项相等、体积更小；
+  紧凑与命名 JSON 两种 `load_netlist` 都被明确拒绝且电路元件数不变
+- bench 的 `checkRoundtrip` 现在两种形态都过幂等律，并要求二者解出**同一份网表**
+
 ## v0.1.6（未发布）
 
 紧凑网表补上**解码器**，并且用 373 例真实语料把它钉住。此前 C05 只有编码：格式小到 0.26× XML，

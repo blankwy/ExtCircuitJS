@@ -19,11 +19,13 @@
 | 9 | 插件能力权限（运行期强制 + lint 同口径 + 站点策略） | ✅ | CHANGELOG v0.1.4 |
 | 10 | 元件拖动事件 + 元件增删事件（`elemdrag` / `elementschange`，含载入后同步） | ✅ | CHANGELOG v0.1.5 |
 | 11 | 紧凑网表**解码**（`decodeCompact` + 幂等律/内容对拍，372 例语料） | ✅ | CHANGELOG v0.1.6 |
+| 12 | 紧凑格式**自描述**（类型图例 `t`）+ MCP 消费方（`get_netlist format=compact`、`load_netlist` 拒绝网表 JSON） | ✅ | CHANGELOG v0.1.7 |
 
-全量门禁（2026-10-26 最后一轮亲跑，v0.1.6）：**全绿**——doctor、build、plugin lint、cover status、cover scan、
-`ext netlist bench`（372 例，体积 0.258× XML + 解码对拍 372/372）、
-Node 契约 **127 例**（`node --test --test-concurrency=1 tests/contract/*.test.mjs`，含 hooks.test.mjs 10 例、
-element-events.test.mjs 10 例、permissions.test.mjs 12 例、netlist-compact.test.mjs 9 例）、
+全量门禁（2026-10-26 最后一轮亲跑，v0.1.7）：**全绿**——doctor、build、plugin lint、cover status、cover scan、
+`ext netlist bench`（372 例：纯投影 0.258× / 自描述 0.415× XML，解码对拍 372/372，两形态解出同一份网表）、
+Node 契约 **135 例**（`node --test --test-concurrency=1 tests/contract/*.test.mjs`，含 hooks.test.mjs 10 例、
+element-events.test.mjs 10 例、permissions.test.mjs 12 例、netlist-compact.test.mjs 15 例、
+mcp-tools.browser.test.mjs 14 例）、
 浏览器/产物脚本 6 个（boot/menu/netlist-g2/reload/mcp-stdio/dist-site，
 其中 dist-site 双形态：根路径 + `/<repo>/`，且两形态都要跑通 `jsinterface.html` 那条老接口）。
 
@@ -140,6 +142,21 @@ element-events.test.mjs 10 例、permissions.test.mjs 12 例、netlist-compact.t
     历史紧凑数据就整体错位，而且**不会报错**——只会读到错的值。所以解码器把"位置越出属性表"单独计数
     （`losses.orphanProps`），bench 里一旦非零就是编解码两端版本不一致的信号。紧凑数据要长期存盘，
     必须连 registry 版本一起存。
+35. **工具描述里的"能力"也要被测试盯住**（v0.1.7）：`circuit.load_netlist` 的描述从 D03 起就写着
+    "core 电路文本 / 网表 JSON / XML，由页面 loader 区分"，而 `CircuitLoader.readCircuit` 只认
+    `<`（XML）与文本 —— 网表 JSON 从来没有导入器。传进去会被当电路文本逐行解析、**静默丢掉全部内容**，
+    报出来的是 `empty circuit (no elements parsed)`，看上去像"电路文件有问题"。这是 `inject` 的同族病
+    （坑位 32）的第三次发作：**描述许诺了实现没有的东西**。处置：① 描述改成实际行为；
+    ② 对可识别的"不可能成功"的输入（`{` 开头的 JSON）给出带 code 的明确拒绝，且**发生在动电路之前**；
+    ③ 契约里钉一条"拒绝后元件数不变"——静默清空电路是最坏的失败形态。
+    判断标准：**描述里每个"支持/接受/自动"都要能指到一行代码和一条断言。**
+36. **自描述是有固定成本的，别拿一个验收线管两种形态**（v0.1.7）：给紧凑格式加类型图例后，体积从
+    0.258× 涨到 0.415× XML。图例是**每电路固定成本**（本语料 40–560 字节）：大电路摊薄到 19%，
+    小电路要 30–60%，1/372 例的极小电路上它甚至比 XML 还大。教训不是"图例不值"，而是
+    **两种形态回答不同问题**（"投影本身多小" vs "一次不用带 schema 的读多小"），验收线必须分开，
+    且两个数都要打出来 —— 只报好看的那个（0.258）等于把 MCP 实际吐出去的东西藏起来。
+    压缩图例的正确方向是"只报数据里真的出现过的槽位前缀"（本语料省了约 1/10），不是砍类型名。
+
 ## 5. 测试地图（改哪里跑什么）
 
 **全量本地跑法（唯一推荐命令）**：`node --test --test-concurrency=1 tests/contract/*.test.mjs`
@@ -151,7 +168,8 @@ element-events.test.mjs 10 例、permissions.test.mjs 12 例、netlist-compact.t
 |---|---|
 | cover/ts/*（宿主/桥/菜单/boot） | `ext build` + 对应浏览器契约 + `boot.browser.mjs` 回归 |
 | packages/netlist/* | `node --test ops/netlist-ids` + `netlist-export` + `netlist-roundtrip`（浏览器）+ `ext netlist registry`（若动 registry-gen） |
-| packages/netlist/src/compact.ts（编码/解码） | `node --test tests/contract/netlist-compact.test.mjs`（纯 Node，边界语义）+ `ext netlist bench`（372 例：体积比 + 幂等律 + 内容对拍，任一失败退出码 1） |
+| packages/netlist/src/compact.ts（编码/解码/**图例**） | `node --test tests/contract/netlist-compact.test.mjs`（纯 Node，边界语义 + 图例 6 例）+ `ext netlist bench`（372 例：两种形态的体积比 + 幂等律 + 内容对拍，任一失败退出码 1） |
+| packages/mcp/src/tools.ts（工具面） | `node --test tests/contract/mcp-tools.browser.test.mjs`（真实引擎，含 `format=compact` 与 `load_netlist` 拒绝）+ `mcp-stdio.test.mjs`/`mcp-stdio.browser.mjs`（协议层）+ `docs/mcp.md` 工具表要同步 |
 | packages/mcp/* | `mcp-session` + `mcp-stdio`（纯 Node）+ `mcp-bridge` + `mcp-tools`（浏览器）+ `mcp-stdio.browser.mjs`（独立进程端到端）+ `examples/ai-loop.mjs` |
 | packages/mcp/src/{stdio,server,backend,dev-server}.ts | 上面全部 + `node tools/ext.mjs mcp --help` + 手工 `initialize`/`tools/list` 各一条（stdout 必须是纯协议帧） |
 | tools/ts-resolve.mjs（TS 加载钩子） | `node --test tests/contract/mcp-session.test.mjs`（shim 路径）+ `node tools/ext.mjs mcp --help` |
@@ -201,8 +219,12 @@ element-events.test.mjs 10 例、permissions.test.mjs 12 例、netlist-compact.t
    整条老链路（两种挂载形态都跑）。`iframe.html` 经查是**上游空壳（0 字节）**，没有内容可测。
 6. 可选功能债：B08 Worker 沙箱、probe op 的 ScopeElm 映射。
    ~~`decodeCompact`~~ ✅ 已完成（v0.1.6）：`{ netlist, losses }`，幂等律 + 372 例内容对拍。
-   **下一步（把格式真正用起来）**：MCP `circuit.get_netlist` 加 `format: "compact"`、
-   `circuit.load_netlist` 接受紧凑 JSON（解码器已就位，长度约 0.26×），否则 C05 只是"能编码"而没有消费方。
+   ~~紧凑格式接 MCP~~ ✅ 已完成（v0.1.7）：`get_netlist format=compact`（自描述，0.415× XML，
+   是命名 JSON 的 0.165）。**剩下的真空白是"网表 JSON 不能载入"** —— 引擎没有导入器，
+   `load_netlist` 现在会明确拒绝（`netlist_json_not_loadable`）。要做的话是"网表 → 电路"编译器：
+   用 `layout`（或紧凑格式做不到，因为它刻意丢坐标）+ `place.ts` 的布线规则生成 XML，
+   再走 `importCircuitFromText`。**这是一个新卡（C07），不是补丁**：难点在坐标与导线重建，
+   以及"同一张网表可以有无数种摆法"该选哪种。
 7. CI 跑浏览器测试（装 Chrome + playwright-core）。
 
 ## 7. 纪律（沿用 goal 手册，对任何执行者有效）

@@ -13,6 +13,10 @@ import { assignStableIds, elmOf, idOf } from "./ids";
 import { placeElement } from "./place";
 import type { PlaceFail } from "./place";
 export { resetIds, idOf, elmOf } from "./ids";
+// 紧凑投影（C05）：编码 + 解码 + 图例。浏览器侧经 @ext/netlist 一并拿到，
+// 免得 ExtApi / 页面桥各自去相对路径捞（v0.1.7 接 MCP 消费方时统一到这里）。
+export { encodeCompact, decodeCompact, compactTypes } from "./compact";
+export type { CompactEncodeOptions, CompactLegend, CompactLosses, CompactDecoded, CompactInputNetlist } from "./compact";
 
 type AttrDef = { attr: string; field: string | null; kind: string };
 type ElemDef = { cls: string; parent?: string; xmlType?: string | null; xmlAttrs?: AttrDef[] };
