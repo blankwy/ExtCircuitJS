@@ -1,7 +1,7 @@
 // Cover 层新增：对外 API facade（window.ExtCircuitJS.api）
 // 只做"薄转发 + 结构化返回"，不放业务逻辑；网表逻辑在 @ext/netlist。
 
-import { exportNetlist, applyOps, encodeCompact } from "@ext/netlist";
+import { exportNetlist, applyOps, encodeCompact, compileNetlist, loadNetlist } from "@ext/netlist";
 import type { NetlistOp } from "@ext/netlist";
 import type { ExtEvents } from "./ExtEvents";
 
@@ -30,6 +30,26 @@ export class ExtApi {
      */
     dumpCompact(opts: { layout?: boolean; legend?: boolean } = {}) {
         return encodeCompact(this.dumpNetlist({ layout: opts.layout === true }), { legend: opts.legend !== false });
+    }
+
+    /**
+     * 网表 → 电路（C07）：布局 + 布线 + 引擎内编译，带拓扑硬闸。
+     * 默认 apply:false（编译完回滚，只返回电路文本）；apply:true 时保留新电路。
+     */
+    compileNetlist(nl: any, opts: { keepLayout?: boolean; apply?: boolean; grid?: number } = {}) {
+        return compileNetlist(this.app, nl, {
+            keepLayout: opts.keepLayout !== false,
+            apply: opts.apply === true,
+            ...(opts.grid ? { grid: opts.grid } : {}),
+        });
+    }
+
+    /** 同 compileNetlist，但接受 JSON 字符串（也是 MCP load 的入口） */
+    loadNetlist(input: string | any, opts: { keepLayout?: boolean; apply?: boolean } = {}) {
+        return loadNetlist(this.app, input, {
+            keepLayout: opts.keepLayout !== false,
+            apply: opts.apply !== false,
+        });
     }
 
     listComponents(): { id: string; type: string; tag: string; info: string[] }[] {

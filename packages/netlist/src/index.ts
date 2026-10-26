@@ -18,6 +18,13 @@ export { resetIds, idOf, elmOf } from "./ids";
 export { encodeCompact, decodeCompact, compactTypes } from "./compact";
 export type { CompactEncodeOptions, CompactLegend, CompactLosses, CompactDecoded, CompactInputNetlist } from "./compact";
 
+// 网表 → 电路（C07）：布局 + 布线 + 引擎内编译。算法层在 geom.ts（纯函数），
+// 引擎事务在 compile.ts（预校验 / 硬闸拓扑校验 / 失败回滚）。
+export { compileNetlist, netlistToCircuitText, loadNetlist } from "./compile";
+export type { CompileOptions, CompileResult, CompileOk, CompileFail, CompileStats, CompileLosses } from "./compile";
+export { autoLayout, routeNets, connectionOrder } from "./geom";
+export type { LayoutOptions, RouteResult, RouteConflict, GeomComponent, GeomNet } from "./geom";
+
 type AttrDef = { attr: string; field: string | null; kind: string };
 type ElemDef = { cls: string; parent?: string; xmlType?: string | null; xmlAttrs?: AttrDef[] };
 type Registry = { elements: Record<string, ElemDef> };

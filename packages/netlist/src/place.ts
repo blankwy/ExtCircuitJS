@@ -79,13 +79,13 @@ const MAX_WIRE_SAMPLES = 8; // 每条导线的内部格点采样上限
 const key = (x: number, y: number): string => `${x},${y}`;
 const manhattan = (a: Pt, b: Pt): number => Math.abs(a.x - b.x) + Math.abs(a.y - b.y);
 
-function gridSizeOf(app: any): number {
+export function gridSizeOf(app: any): number {
     const g = Number(app?.gridSize);
     return Number.isFinite(g) && g > 0 ? g : 16;
 }
 
 /** app.snapGrid 的鸭子类型兜底（CirSim.ts:581：(x+7)&~15，即就近取格点） */
-function gridSnapped(app: any, v: number): number {
+export function gridSnapped(app: any, v: number): number {
     if (typeof app?.snapGrid === "function") return app.snapGrid(v);
     const g = gridSizeOf(app);
     return Math.round(v / g) * g;
@@ -98,7 +98,7 @@ function gridSnapped(app: any, v: number): number {
  * analyzeCircuit 只同步 elmList，nodeList 在 preStampCircuit 里建；
  * preStampAndStampCircuit 是其超集（顺带 stamp），可用则用。
  */
-function ensureFreshAnalysis(app: any): string | null {
+export function ensureFreshAnalysis(app: any): string | null {
     const sim = app?.sim;
     if (typeof sim?.analyzeCircuit !== "function" || typeof sim?.preStampCircuit !== "function")
         return "app has no sim (analyzeCircuit/preStampCircuit unavailable)";
@@ -400,7 +400,7 @@ function rollback(app: any, journal: JournalEntry[]): void {
 }
 
 /** props 预校验（改动前）：全部键须能经 registry 的 attr/field 映射解析 */
-function validateProps(cls: string, props: Record<string, any>): string | null {
+export function validateProps(cls: string, props: Record<string, any>): string | null {
     const attrs = elementRegistry().elements?.[cls]?.xmlAttrs ?? [];
     for (const k of Object.keys(props ?? {})) {
         const hit = attrs.find((x) => x.field === k) ?? attrs.find((x) => x.attr === k);
@@ -409,7 +409,7 @@ function validateProps(cls: string, props: Record<string, any>): string | null {
     return null;
 }
 
-function applyProps(elm: any, props: Record<string, any>): void {
+export function applyProps(elm: any, props: Record<string, any>): void {
     const cls = elm?.getClassName?.() ?? "";
     const attrs = elementRegistry().elements?.[cls]?.xmlAttrs ?? [];
     for (const [k, v] of Object.entries(props ?? {})) {

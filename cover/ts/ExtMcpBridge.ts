@@ -36,8 +36,8 @@
 //   sim_stopped    引擎 stopMessage 置位（奇异矩阵等），step 中止（只报不清理）
 //   internal_error 分发中未预期的异常（兜底，正常不应出现）
 // 内容级失败（不走 error 通道，返回 {ok:false, unsupported[]}）：
-//   load 的解析失败 + **网表 JSON 拒绝**（`netlist_json_not_loadable`：紧凑格式是只读投影，
-//   连命名网表 JSON 都没有导入器——见 load() 里的注释）。
+//   load 的解析失败 + **网表编译失败**（C07 起 JSON 不再是"不可载入"：命名网表会走
+//   compile.ts 重建坐标与导线，失败返回预校验/拓扑校验的结构化码，电路保持原样）。
 //
 // D03 方法语义（与 tools.ts 工具一一对应；会话纪律同上——live+loaded 校验，
 // screenshot 只要求 live：画布截图是「视觉兜底」，不依赖会话是否载入过电路）：
@@ -314,24 +314,42 @@ export class ExtMcpBridge {
         if (typeof text !== "string") {
             return fail("invalid_args", "load 需要 string 类型的 text 参数");
         }
-        // 网表 JSON（含 C05 紧凑格式）**不是**可载入格式：引擎只能从 core 电路文本或 XML
-        // 建电路（CircuitLoader.readCircuit 只认 `<` 与文本）。不挡的话它会被当电路文本
-        // 逐行解析、静默丢掉全部内容，报出来的是"空电路"——看不出真正原因。
-        // 紧凑格式还额外丢了坐标与导线行，就算有导入器也拼不回一张能画的图。
-        const head = text.replace(/^\uFEFF/, "").trimStart();
-        if (head.startsWith("{")) {
-            return {
-                ok: false,
-                unsupported: [{
-                    code: "netlist_json_not_loadable",
-                    reason: "网表 JSON（含紧凑格式）不能用于载入：引擎只从 core 电路文本或 XML 建电路；"
-                        + "紧凑格式还是只读投影（不含坐标/导线）。改参用 circuit.set_param，换电路用 XML 或电路文本。",
-                }],
-            };
-        }
         const app = this.app();
         // 桥接管时间轴：暂停宿主自动步进（轮询拉取模型；不改 core 仿真循环）
         try { app.setSimRunning(false); } catch { /* UI 未就绪时忽略 */ }
+
+        // 网表 JSON（C07）：走编译器（布局 + 布线 + 拓扑硬闸），而不是当电路文本逐行解析。
+        // 只有两条路能到这里还长得像 JSON：命名网表 / 紧凑投影解出来的网表。
+        // 编译失败一律回滚，电路保持原样（半成品电路比"没载入"更糟）。
+        const head = text.replace(/^\uFEFF/, "").trimStart();
+        if (head.startsWith("{")) {
+            let r: any;
+            try {
+                r = this.ext.api.loadNetlist(text, { apply: true });
+            } catch (e) {
+                return fail("internal_error", `网表编译异常: ${errText(e)}`);
+            }
+            if (!r?.ok) {
+                return {
+                    ok: false,
+                    reason: r?.reason ?? "网表编译失败",
+                    unsupported: r?.unsupported?.length ? r.unsupported : [{ reason: r?.reason ?? "网表编译失败" }],
+                };
+            }
+            this.analyzeNow();
+            if (app.stopMessage != null) app.stopMessage = null;
+            s.loaded = true;
+            this.sim().resetTime();
+            return {
+                ok: true,
+                format: "netlist",
+                t: 0,
+                timeStepCount: 0,
+                stats: r.stats,
+                losses: r.losses,
+                unsupported: [],
+            };
+        }
         let loadError: string | null = null;
         try {
             this.ext.api.loadCircuitText(text, false);

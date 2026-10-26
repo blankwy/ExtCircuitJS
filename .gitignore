@@ -5,3 +5,6 @@ build/
 *.log
 .DS_Store
 coverage/
+
+# Mimosa 扫描/状态目录（工具生成，永不提交）
+.mimosa/

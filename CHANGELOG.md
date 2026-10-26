@@ -1,6 +1,55 @@
 # Changelog
 
-## v0.1.7（未发布）
+## v0.1.8（未发布）
+
+**网表终于能载入了。** 上一版 `load_netlist` 只会对 JSON 说"不"，理由成立但把路堵死了：
+引擎只认电路文本/XML，紧凑格式又刻意丢了坐标，于是"A I 读网表 → 改 → 写回电路"这条闭环
+缺了最后一环。这一版补的是**编译器**——拓扑是输入，坐标和导线是输出。
+
+### 两条路径，一个判据
+
+- **带 layout 的网表**（`exportNetlist({layout:true})`）：坐标照搬，**自带导线也照搬**
+  （`WireElm` 本来就在 `components` 里，再重新布一遍等于把同一段连接画两次）。
+  这是真正的无损往返。
+- **不带 layout 的网表**（AI 手写、`get_netlist` 默认输出、紧凑格式解码后）：
+  无坐标导线被剔除（导线是"连接"不是"元件"），元件按**连接序 BFS** 摆进网格
+  （行间留 64px 通道），再用 **A\* 网格搜索**重建导线。A\* 的障碍有三类：元件本体、
+  别人家的 post、**别的网已经布过的格子** —— 最后一条保证不会把两个网短接。
+
+判据只有一个，而且是硬闸：重建后强制重分析，按 `elm.nodes[i]` 的**对象身份**比对引脚
+划分（不看 net 名字，重编号合法），不一致就用快照回滚、返回
+`{ok:false, unsupported:[{code:"topology_mismatch"}]}`。接线是电气问题，不能"差不多就行"。
+
+### 行为变化
+
+- `circuit.load_netlist` 接受三种输入：core 文本 / XML / **网表 JSON**（命名或紧凑）。
+  紧凑格式会在 load 内部解码再编译，`netlist_json_not_loadable` 这个码随之退休。
+- 成功返回 `{ok:true, format:"netlist", stats:{components,wires,explicitWires,nets}, losses}`；
+  `losses` 如实报：坐标是照搬还是生成、哪些字段被丢弃、哪几段导线躲不开障碍（`conflicts`）、
+  哪几个元件的实际位置与网表有偏差（`positionDrift`）。
+- `apply:false` 时编译完会回滚，只交电路文本（给"先看看长什么样"的场景）。
+- 子电路实例明确拒绝：`subcircuit_not_supported`（网表不带子电路库，默默构造只会得到
+  1 脚的假元件）。
+
+### 撞出来的坑（都写进 HANDOVER 了）
+
+- 一端元件构造后**必须调一次 drag/setPoints**：`point1/point2` 只在 `setPoints()` 里赋值，
+  漏了 `getPost()` 返回 (0,0)，所有地和电源轨都掉到原点；
+- ChipElm 系列的 `pins[]` 由 `setupPins()` 建，而脚数取决于 `inputMode`/`dataBusWidth`/`bits`
+  这些属性 —— `applyProps` 之后必须补 `setupPins()`，否则 `setPoints` 读到 `undefined`；
+- `RoutedWireElm.setPoints()` 会启动全局 router 扫全图，构造期调用必崩（用 `setPoints(false)`）；
+- 总线宽度（`busWidth`/`bits`）没进 registry，但引脚数是它的整数倍 → 按引脚数反推；
+- "元件被自身短路""元件没有引脚"在真实语料里很常见，不是错误。
+
+### 验收
+
+| 命令 | 覆盖 |
+|---|---|
+| `node --test tests/contract/compile.test.mjs` | 16 例：几何算法（连接序 / 格点 / 绕障 / 异网不共格 / 围死记冲突）+ 迷你引擎上的编译事务（预校验、属性、确定性、回滚） |
+| `node tests/contract/netlist-compile.browser.mjs` | 真引擎：5 个语料 `export → compile → export` 引脚划分逐字相同；子电路负例按码拒绝；合成环（6 元件 / 5 网）自动布局出 18 段导线、0 冲突、拓扑一致 |
+| `node --test --test-concurrency=1 tests/contract/*.test.mjs` | 全量 151 例（原 135 + 新增 16） |
+
+## v0.1.7
 
 紧凑格式终于有了**消费方**：`circuit.get_netlist` 加了 `format: "compact"`。接的时候撞上一个
 设计问题——位置化的 props（`[1,1000,5,0,0,0.5,0,0.001]`）没有字段名就是一串数字，而喂整份

@@ -72,13 +72,15 @@ export const MCP_TOOLS: McpToolSpec[] = [
     {
         name: "circuit.load_netlist",
         description:
-            "载入电路文本（core 电路文本 / XML），时间轴归零；" +
-            "内容失败返回 {ok:false, unsupported[]}，不改 error 通道。" +
-            "注意：**网表 JSON（含紧凑格式）不能载入**（引擎只认文本/XML，且紧凑格式无坐标），" +
-            "传入会得到明确的 unsupported 而不是静默空电路",
+            "载入电路：三选一的字符串 —— core 电路文本 / XML / 网表 JSON。" +
+            "网表 JSON 会经编译器重建坐标与导线（C07）：带 layout 的网表坐标照搬，" +
+            "无 layout 时自动布局（只支持 2 端元件，多端元件会返回 needs_layout）。" +
+            "编译后按节点身份校验拓扑，不一致就回滚并返回 unsupported（电路不变）；" +
+            "成功返回 {ok:true, stats, losses}，时间轴归零。" +
+            "注意紧凑格式（C05）**不能**直接载入：它是只读投影、没有坐标，先用解码器转成命名网表",
         inputSchema: {
             type: "object",
-            properties: { text: { type: "string", description: "电路文本（core 文本格式或 XML）" } },
+            properties: { text: { type: "string", description: "电路文本（core 文本 / XML）或网表 JSON" } },
             required: ["text"],
         },
     },

@@ -157,12 +157,40 @@ mcp-tools.browser.test.mjs 14 例）、
     且两个数都要打出来 —— 只报好看的那个（0.258）等于把 MCP 实际吐出去的东西藏起来。
     压缩图例的正确方向是"只报数据里真的出现过的槽位前缀"（本语料省了约 1/10），不是砍类型名。
 
+37. **一端元件的 `point1/point2` 只在 `setPoints()` 里赋值**（v0.1.8）：`constructElement` 出来
+    的 `GroundElm` / `VarRailElm` 看着正常（x/y 都在位），但 `getPost()` 返回 **(0,0)** —— 因为
+    `CircuitElm` 的构造只设 `x/y`，`setPoints` 由 `drag()` 触发。编译器的第一版对 1 端元件
+    "聪明地"跳过了 drag，结果所有地和电源轨都掉到原点，拓扑校验（不是视觉）第一枪就打出来。
+    教训：**几何初始化不是"位置对不对"，而是"post 有没有值"**。
+38. **ChipElm 的 `pins[]` 是 `setupPins()` 建的，而脚数取决于属性**（v0.1.8）：`MultiplexerElm`
+    的 `inputMode`/`dataBusWidth`、`BusSplitterElm` 的 `bits` 一改，`getPostCount()` 立刻变，
+    但 `pins` 数组还停在旧尺寸 → `setPoints` 遍历 `this.pins[i]` 读到 `undefined`（报的是
+    `reading 'side0'`，跟根因隔了三层）。上游是在 `undumpXml` 末尾补 `setupPins()`；
+    任何"先 applyProps 再算几何"的路径都必须补同一步。
+39. **`RoutedWireElm.setPoints()` 会启动全局 router 扫整张图**（v0.1.8）：逐个构造元件时，
+    后面的元件还不存在，router 读到未初始化的 post 直接崩。它的**连接**只靠两端 + busWidth，
+    走线路径本来就不进网表（有损），所以用 `setPoints(false)` 只算几何、不路由，并记 loss。
+    这是"元件的方法有全局副作用"的典型：构造期不能调。
+40. **宽度字段（busWidth / bits）根本不在 registry 里**（v0.1.8）：`exportNetlist` 只输出
+    `xmlAttrs` 里有 `field` 的属性，而这两个字段没被收 → 网表里没有它们。但引脚数是宽度的
+    整数倍，**引脚数本身就编码了宽度**，按 `want / got` 反推即可（总线导线 8 脚、分流器 16 脚）。
+    反推不出来就结构化拒绝，别静默降级成 2 脚。
+41. **"元件被自身短路"和"元件没有引脚"不是错误**（v0.1.8）：真实语料里多脚开关的常闭对、
+    未接入的调试元件到处都是（`td4-add2` 里几十个）。第一版把它们当致命错误 → 一半语料直接
+    拒载。判据要问"它会不会让编译结果错"，而不是"它在电气上有没有意义"。
+42. **导线是"连接"不是"元件"**（v0.1.8）：`exportNetlist` 不跳过 `WireElm`，所以网表里带导线。
+    带坐标时就照搬（**不要再布一遍**，否则同一段连接会出现两条线）；不带坐标（`get_netlist`
+    默认）时直接剔除、按 `nets[].pins` 重建 —— pins 里已经记着每个网的全部成员，信息不丢。
+43. **子电路实例不能默默构造**（v0.1.8）：`SubcircuitElm` 在引擎里没有定义时只会变成一个
+    1 脚的假元件，拓扑全错却不报错。网表不带子电路库，就明确拒绝（`subcircuit_not_supported`）。
+
 ## 5. 测试地图（改哪里跑什么）
 
 **全量本地跑法（唯一推荐命令）**：`node --test --test-concurrency=1 tests/contract/*.test.mjs`
 —— 14 个浏览器契约共用同一个 dev server，并行跑会互相挤（`plugins-smoke` 偶发 `commands`/`listeners`
-增量断言为 0）。串行约 50s（116 例），并行会假失败。
-另有一批老式脚本不进 glob，需单独跑：`boot/menu/netlist-g2/reload/mcp-stdio/dist-site` 的 `.browser.mjs`。
+增量断言为 0）。串行约 58s（151 例），并行会假失败。
+另有一批老式脚本不进 glob，需单独跑：`boot/menu/netlist-g2/reload/mcp-stdio/dist-site/netlist-compile`
+的 `.browser.mjs`。
 
 | 改动 | 必跑 |
 |---|---|
@@ -186,6 +214,8 @@ mcp-tools.browser.test.mjs 14 例）、
 | tools/coverOverlay.mjs | `ext build` + 上表浏览器契约（dev 走同一解析器）+ `dist-site.browser.mjs`（§4 坑位 9） |
 | cover/vite.cover.config.ts（产物收尾） | `ext build` + `node tests/contract/dist-site.browser.mjs`（把 dist 挂在 `/<prefix>/` 下真开一次：`window.ExtCircuitJS` 就绪、插件全 ready、站内 0 个 404、V(n1) 与 G2 基线一致；再开 `jsinterface.html` 验证旧版 `window.CircuitJS1` 接口与 `startCircuit` 名字解析） |
 | core/ts 里的静态页（`jsinterface.html`、`circuits/*.txt` 路径） | `dist-site.browser.mjs`（dev 下这两个页面由 Vite 直接服务，看不出部署后的路径问题） |
+| packages/netlist/src/geom.ts（自动布局 + A* 布线） | `node --test tests/contract/compile.test.mjs`（G1–G7：连接序 / 格点对齐 / 绕障 / 异网不共格 / 被围死记 conflict）+ `netlist-compile.browser.mjs`（真引擎合成环：18 段 0 冲突） |
+| packages/netlist/src/compile.ts（网表→电路） | 同上 + `mcp-tools.browser.test.mjs`（`load_netlist` 的命名网表 / 紧凑格式 / 坏网表三态）+ `netlist-compile.browser.mjs`（5 个语料往返同构 + 子电路负例） |
 | cover/site.config.json（站点配置） | `node --test tests/contract/site-config.test.mjs`（默认值零改动 / 注入幂等 / 许可段落保留 / 转义）+ dev 下改配置刷新一次看标签页标题与「关于」 |
 
 ## 6. 待办（按优先级，接手即做）
@@ -220,11 +250,12 @@ mcp-tools.browser.test.mjs 14 例）、
 6. 可选功能债：B08 Worker 沙箱、probe op 的 ScopeElm 映射。
    ~~`decodeCompact`~~ ✅ 已完成（v0.1.6）：`{ netlist, losses }`，幂等律 + 372 例内容对拍。
    ~~紧凑格式接 MCP~~ ✅ 已完成（v0.1.7）：`get_netlist format=compact`（自描述，0.415× XML，
-   是命名 JSON 的 0.165）。**剩下的真空白是"网表 JSON 不能载入"** —— 引擎没有导入器，
-   `load_netlist` 现在会明确拒绝（`netlist_json_not_loadable`）。要做的话是"网表 → 电路"编译器：
-   用 `layout`（或紧凑格式做不到，因为它刻意丢坐标）+ `place.ts` 的布线规则生成 XML，
-   再走 `importCircuitFromText`。**这是一个新卡（C07），不是补丁**：难点在坐标与导线重建，
-   以及"同一张网表可以有无数种摆法"该选哪种。
+   是命名 JSON 的 0.165）。
+   ~~网表 JSON 不能载入~~ ✅ 已完成（v0.1.8，C07）：编译器落地（`geom.ts` 自动布局 + A* 绕障布线、
+   `compile.ts` 引擎内事务）。两条路：带 layout 的照搬坐标与自带导线（无损往返），
+   不带 layout 的自动布局 + 布线重建。判据是**拓扑硬闸**：重建后按 `elm.nodes[i]` 对象身份
+   比对引脚划分，不一致就回滚并返回 `topology_mismatch`。`get_netlist`（默认无 layout）→ 改 →
+   `load_netlist` 已闭环，紧凑格式也能直接载入；子电路实例明确拒绝（`subcircuit_not_supported`）。
 7. CI 跑浏览器测试（装 Chrome + playwright-core）。
 
 ## 7. 纪律（沿用 goal 手册，对任何执行者有效）

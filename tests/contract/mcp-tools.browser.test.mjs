@@ -372,25 +372,42 @@ test("circuit.get_netlist format=compact：自描述紧凑投影，无需 regist
     }
 });
 
-test("circuit.load_netlist：网表 JSON（含紧凑）明确拒绝，且不改动当前电路", { timeout: 60_000 }, async () => {
+test("circuit.load_netlist：网表 JSON 能载入（重建坐标与导线），坏网表拒绝且不改电路", { timeout: 90_000 }, async () => {
     const before = await tools.call("circuit.list_components");
-    const compact = (await tools.call("circuit.get_netlist", { format: "compact" })).compact;
 
-    const r = await tools.call("circuit.load_netlist", { text: JSON.stringify(compact) });
-    assert.equal(r.ok, false, "紧凑格式不能载入（没有坐标/导线，引擎也没有网表导入器）");
-    assert.equal(r.error, undefined, "内容级失败走 unsupported 通道，不占用 error");
-    assert.equal(r.unsupported?.[0]?.code, "netlist_json_not_loadable", `实际 ${JSON.stringify(r).slice(0, 300)}`);
-    assert.match(r.unsupported[0].reason, /circuit\.set_param|XML/, "拒绝理由要给出可行方向，而不是只说不行");
-
-    // 命名网表 JSON 同样不行：别把"能导出"误读成"能导入"
+    // 1) 命名网表：`get_netlist` 默认不带 layout → 无坐标导线被剔除、元件自动布局、
+    //    导线由 A* 重建。判据是网数不变（导线数量本来就允许不同）
     const named = await tools.call("circuit.get_netlist");
-    const r2 = await tools.call("circuit.load_netlist", { text: JSON.stringify(named.netlist) });
-    assert.equal(r2.ok, false);
-    assert.equal(r2.unsupported?.[0]?.code, "netlist_json_not_loadable");
+    const r = await tools.call("circuit.load_netlist", { text: JSON.stringify(named.netlist) });
+    assert.equal(r.ok, true, `网表应当能载入：${JSON.stringify(r).slice(0, 500)}`);
+    assert.equal(r.error, undefined, "成功路径不占用 error 通道");
+    assert.equal(r.format, "netlist");
+    assert.ok(r.stats?.components > 0, "应当报告编译统计");
+    assert.equal(r.losses?.geometry, "generated", "没有 layout → 坐标是生成的");
 
-    // 关键：被拒绝的载入不得把电路清空（这是"静默失败"最坏的形态）
-    const after = await tools.call("circuit.list_components");
-    assert.equal(after.counts.components, before.counts.components, "拒绝必须发生在动电路之前");
+    const afterLoad = await tools.call("circuit.get_netlist");
+    assert.equal(afterLoad.netlist.meta.counts.nets, named.netlist.meta.counts.nets,
+        "重建后网数必须一致（少一个网 = 静默开路）");
+
+    // 2) 紧凑格式（C05）也能直接载入：load 内解码 → 同一条编译路径
+    const compact = (await tools.call("circuit.get_netlist", { format: "compact" })).compact;
+    const r2 = await tools.call("circuit.load_netlist", { text: JSON.stringify(compact) });
+    assert.equal(r2.ok, true, `紧凑格式应当能载入：${JSON.stringify(r2).slice(0, 500)}`);
+
+    // 3) 坏网表：结构化拒绝，且**不动电路**（这是"静默失败"最坏的形态）
+    const snapshot = await tools.call("circuit.list_components");
+    const bad = await tools.call("circuit.load_netlist", {
+        text: JSON.stringify({
+            components: [{ id: "x", type: "NoSuchElm", pins: { "0": "a", "1": "b" } }],
+            nets: [{ id: "a", pins: ["x:0"] }, { id: "b", pins: ["x:1"] }],
+        }),
+    });
+    assert.equal(bad.ok, false);
+    assert.equal(bad.error, undefined, "内容级失败走 unsupported 通道，不占用 error");
+    assert.equal(bad.unsupported?.[0]?.code, "unknown_element_type", `实际 ${JSON.stringify(bad).slice(0, 300)}`);
+    const afterBad = await tools.call("circuit.list_components");
+    assert.equal(afterBad.counts.components, snapshot.counts.components, "拒绝必须发生在动电路之前");
+    assert.ok(before.counts.components > 0);
 });
 
 test("收尾：同一会话全程存活；工具全覆盖；无 pageerror", { timeout: 30_000 }, async () => {

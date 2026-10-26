@@ -66,3 +66,4 @@ jobs:
           tests/contract/permissions.test.mjs
           tests/contract/element-events.test.mjs
           tests/contract/netlist-compact.test.mjs
+          tests/contract/compile.test.mjs
