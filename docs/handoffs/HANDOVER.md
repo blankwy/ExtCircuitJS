@@ -57,7 +57,7 @@
 
 ## 6. 待办（按优先级，接手即做）
 
-1. **发布动作（人工，10 分钟）**：`git push origin main` → GitHub Actions 首绿确认（`.github/workflows/ci.yml`，Windows+Ubuntu；若 core/ts 的 npm install 在 CI 有平台差异，按报错调）→ `git tag v0.1.0 && git push origin v0.1.0` → GitHub Release 页贴 CHANGELOG.md。
+1. ~~**发布动作（人工，10 分钟）**~~ ✅ 已完成（2026-10-26）：`git push origin main` → CI 首绿（run 40274976842，Windows+Ubuntu 双 success；首跑失败的是 `ensureCoverDeps` 未接线，已修，见 §4 坑位 8）→ tag `v0.1.0` 移到修复提交 `bd7996e` 并推送 → Release 已发（https://github.com/blankwy/ExtCircuitJS/releases/tag/v0.1.0 ，正文取 CHANGELOG v0.1.0 段）。
 2. **外部 MCP 客户端验证（G4 补强，可选）**：按 `docs/mcp.md` §4 骨架接任一标准 stdio MCP 客户端跑通 8 组工具。当前等价覆盖 = ai-loop 全链路。
 3. **spike/ 销账（人工裁决）**：`V:\Vibe\circuitjs1\spike\` 是 spike 期产物（在 git 仓库外），Mimosa 对它的历史发现（SSRF/代码注入/路径穿越，均为 spike 原型的 dist 产物与 Expr.ts）与本仓库无关——建议整目录归档移走或加入扫描豁免，否则本地每次 commit 都可能被拦。
 4. **CI 浏览器测试上云（可选）**：CI 现只跑 Node 侧；若要上浏览器测试，需在 CI 装 Chrome + playwright-core 并设 EXT_PW_CORE/EXT_CHROME。

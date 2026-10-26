@@ -36,12 +36,14 @@ ExtCircuitJS 首个发布：CircuitJS1 二开——core 只读 + cover 覆盖层
 - **G4 门禁**：mcp-session 11 pass + ai-loop EXIT=0
 
 ### Stage 6 · 工程收尾
-- GitHub Actions CI（Windows+Ubuntu 双平台，本地自证 40 Node 契约测试绿）
+- GitHub Actions CI（Windows+Ubuntu 双平台，云端首绿：doctor / build / lint / scan + 40 Node 契约测试）
 - `core sync-drill`：假上游演练，scan 判定 upstream-changed / both-changed
 - 菜单插槽 ExtMenus.ts：自定义元件进 Draw/右键菜单且可点、可卸载
 - 版本 0.1.0、README 状态表刷新
 
+### 发布前修复（v0.1.0 首发同日）
+- **CI 潜伏 bug**：`tools/ext.mjs` 的 `ensureCoverDeps()`（给 `cover/node_modules` 建到 `core/ts/node_modules` 的链接）从 Stage 1 起只定义、从未被调用。开发机靠手工链接兜住，干净检出下 `vite build` 必报 `[UNRESOLVED_IMPORT] Could not resolve 'vitest/config'` → `ERR_MODULE_NOT_FOUND: vitest`。修复：dev/build 入口先建链接（失败即退出），Windows 依次 junction → `mklink /J` → symlink，doctor 增加该前置的 WARN 行。本 tag 已随修复移到该提交。
+
 ### 已知限制
 - 浏览器契约测试依赖本机 Chrome + playwright-core（EXT_PW_CORE/EXT_CHROME），CI 暂只跑 Node 侧
-- GitHub Actions 云端首绿、tag v0.1.0 推送、Release 页：需维护者 push 后确认
 - 仓库外 spike/ 目录的历史构建产物会触发本地 Mimosa 安全扫描误报（与 ExtCircuitJS 无关）
