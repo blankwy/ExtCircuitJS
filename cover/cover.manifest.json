@@ -1,71 +1,82 @@
 {
-  "schema": "extcover/1",
-  "core": {
-    "repo": "pfalstad/circuitjs1",
-    "commit": "e952e788a4135a693bfd4cee7883f9b3314e3e76",
-    "versionString": "5.0.3ts"
+ "schema": "extcover/1",
+ "core": {
+  "repo": "pfalstad/circuitjs1",
+  "commit": "e952e788a4135a693bfd4cee7883f9b3314e3e76",
+  "versionString": "5.0.3ts"
+ },
+ "entries": [
+  {
+   "upstreamPath": "ts/main.ts",
+   "localPath": "cover/ts/main.ts",
+   "kind": "override",
+   "tier": "L3",
+   "forkPointBlob": "502968a994a876112fa66e88c8f384c673014770",
+   "anchors": [
+    "HookRegistry.createJSInterface = (app: any) => new JSInterface(app);",
+    "const app = new CirSim();",
+    "await app.init();"
+   ],
+   "owner": "core",
+   "reason": "唯一 seam：启动后调用 ExtBoot(app)，暴露 window.ExtCircuitJS 并装载插件宿主",
+   "contracts": [
+    "tests/contract/boot.test.mjs"
+   ]
   },
-  "entries": [
-    {
-      "upstreamPath": "ts/main.ts",
-      "localPath": "cover/ts/main.ts",
-      "kind": "override",
-      "tier": "L3",
-      "forkPointBlob": "502968a994a876112fa66e88c8f384c673014770",
-      "anchors": [
-        "HookRegistry.createJSInterface = (app: any) => new JSInterface(app);",
-        "const app = new CirSim();",
-        "await app.init();"
-      ],
-      "owner": "core",
-      "reason": "唯一 seam：启动后调用 ExtBoot(app)，暴露 window.ExtCircuitJS 并装载插件宿主",
-      "contracts": ["tests/contract/boot.test.mjs"]
-    },
-    {
-      "upstreamPath": "ts/ElementFactory.ts",
-      "localPath": "cover/ts/ElementFactory.ts",
-      "kind": "override",
-      "tier": "L3",
-      "forkPointBlob": "1482a10b616b804234571c6d66627c90c4bcc98e",
-      "anchors": [
-        "private static classMap: Map<string, ElmCtor> = new Map();",
-        "static registerClass(name: string, ctor: ElmCtor): void {"
-      ],
-      "owner": "plugin",
-      "reason": "补 deregisterClass/listClasses/hasConflict + 插件命名空间，否则插件卸载不成立",
-      "contracts": ["tests/contract/element-factory.test.mjs"]
-    },
-    {
-      "upstreamPath": "ts/ExtBoot.ts",
-      "localPath": "cover/ts/ExtBoot.ts",
-      "kind": "add",
-      "tier": "L0",
-      "owner": "core",
-      "reason": "启动编排：事件桥 + API facade + 插件宿主"
-    },
-    {
-      "upstreamPath": "ts/ExtApi.ts",
-      "localPath": "cover/ts/ExtApi.ts",
-      "kind": "add",
-      "tier": "L0",
-      "owner": "netlist",
-      "reason": "对外 API：网表读写、测量、仿真控制"
-    },
-    {
-      "upstreamPath": "ts/ExtPluginHost.ts",
-      "localPath": "cover/ts/ExtPluginHost.ts",
-      "kind": "add",
-      "tier": "L0",
-      "owner": "plugin",
-      "reason": "插件宿主：fiber/effect/dispose/inject + 命令与面板插槽"
-    },
-    {
-      "upstreamPath": "ts/ExtEvents.ts",
-      "localPath": "cover/ts/ExtEvents.ts",
-      "kind": "add",
-      "tier": "L0",
-      "owner": "core",
-      "reason": "多路复用事件总线（对抗 CircuitJS1 单槽回调）"
-    }
-  ]
+  {
+   "upstreamPath": "ts/ElementFactory.ts",
+   "localPath": "cover/ts/ElementFactory.ts",
+   "kind": "override",
+   "tier": "L3",
+   "forkPointBlob": "1482a10b616b804234571c6d66627c90c4bcc98e",
+   "anchors": [
+    "private static classMap: Map<string, ElmCtor> = new Map();",
+    "static registerClass(name: string, ctor: ElmCtor): void {"
+   ],
+   "owner": "plugin",
+   "reason": "补 deregisterClass/listClasses/hasConflict + 插件命名空间，否则插件卸载不成立",
+   "contracts": [
+    "tests/contract/element-factory.test.mjs"
+   ]
+  },
+  {
+   "upstreamPath": "ts/ExtBoot.ts",
+   "localPath": "cover/ts/ExtBoot.ts",
+   "kind": "add",
+   "tier": "L0",
+   "owner": "core",
+   "reason": "启动编排：事件桥 + API facade + 插件宿主"
+  },
+  {
+   "upstreamPath": "ts/ExtApi.ts",
+   "localPath": "cover/ts/ExtApi.ts",
+   "kind": "add",
+   "tier": "L0",
+   "owner": "netlist",
+   "reason": "对外 API：网表读写、测量、仿真控制"
+  },
+  {
+   "upstreamPath": "ts/ExtPluginHost.ts",
+   "localPath": "cover/ts/ExtPluginHost.ts",
+   "kind": "add",
+   "tier": "L0",
+   "owner": "plugin",
+   "reason": "插件宿主：fiber/effect/dispose/inject + 命令与面板插槽"
+  },
+  {
+   "upstreamPath": "ts/ExtEvents.ts",
+   "localPath": "cover/ts/ExtEvents.ts",
+   "kind": "add",
+   "tier": "L0",
+   "owner": "core",
+   "reason": "多路复用事件总线（对抗 CircuitJS1 单槽回调）"
+  },
+  {
+   "upstreamPath": "ts/ExtMenus.ts",
+   "localPath": "cover/ts/ExtMenus.ts",
+   "kind": "added",
+   "owner": "core",
+   "reason": "A06 菜单插槽：向 Draw/右键菜单追加自定义元件项（不改 core Menus.ts、不改生成物 registerElements.ts）"
+  }
+ ]
 }
