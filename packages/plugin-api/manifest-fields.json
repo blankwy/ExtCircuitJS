@@ -1,0 +1,27 @@
+{
+  "schema": "extmanifestfields/1",
+  "_comment": [
+    "plugins.manifest.json 条目的**唯一权威字段表**：运行期（cover/ts/ExtPluginHost.ts）、",
+    "构建期（tools/ext.mjs plugin lint）、测试（tests/contract/permissions.test.mjs）都读这一份。",
+    "为什么需要它：`inject: [\"api\"]` 在六个插件里躺了三个阶段，而没有任何代码读它 —— 它看起来",
+    "像声明了依赖，实际只是装饰。规则：字段分三种（被运行的 / 被检查的 / 纯装饰的），",
+    "纯装饰的必须删掉；留下来的要么被运行期读取，要么被 lint 校验取值。",
+    "新增字段时先问：谁读它？读不到就别加 —— 或者加进 retired 说明为什么不再支持。"
+  ],
+  "entryFields": [
+    "id",
+    "entry",
+    "version",
+    "mode",
+    "enabled",
+    "rev",
+    "permissions",
+    "claims"
+  ],
+  "allowedMode": [
+    "in-page"
+  ],
+  "retired": {
+    "inject": "注入语义已由 permissions 取代，直接删掉"
+  }
+}

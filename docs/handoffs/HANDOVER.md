@@ -20,8 +20,8 @@
 | 10 | 元件拖动事件 + 元件增删事件（`elemdrag` / `elementschange`，含载入后同步） | ✅ | CHANGELOG v0.1.5 |
 
 全量门禁（2026-10-26 最后一轮亲跑，v0.1.5）：**全绿**——doctor、build、plugin lint、cover status、cover scan、
-Node 契约 **116 例**（`node --test --test-concurrency=1 tests/contract/*.test.mjs`，含 hooks.test.mjs 10 例、
-element-events.test.mjs 10 例）、浏览器/产物脚本 6 个（boot/menu/netlist-g2/reload/mcp-stdio/dist-site，
+Node 契约 **118 例**（`node --test --test-concurrency=1 tests/contract/*.test.mjs`，含 hooks.test.mjs 10 例、
+element-events.test.mjs 10 例、permissions.test.mjs 12 例）、浏览器/产物脚本 6 个（boot/menu/netlist-g2/reload/mcp-stdio/dist-site，
 其中 dist-site 双形态：根路径 + `/<repo>/`，且两形态都要跑通 `jsinterface.html` 那条老接口）。
 
 ## 2. 环境与常用命令
@@ -122,6 +122,13 @@ element-events.test.mjs 10 例）、浏览器/产物脚本 6 个（boot/menu/net
     `click` 时动作还没执行。要观察"菜单点了之后电路变了什么"，得把比对排到事件派发结束之后（0ms 定时器），
     或者改在冒泡阶段。混用两种阶段时，`onCanvas(e.target)` 这类判断要写清楚，否则画布上的动作会被记成 `ui`。
 
+32. **manifest 里的"装饰性字段"必须删掉，不是留着解释**（v0.1.5）：`inject: ["api"]` 在 6 个插件里躺了
+    三个阶段，没有任何代码读它 —— 它看起来像"声明依赖"，实际连 lint 都不看。这类字段最坏的不是浪费字节，
+    而是**让人以为它在生效**（谁也没去 grep 引用点）。处置：字段表落成
+    `packages/plugin-api/manifest-fields.json`（运行期警告 + lint 报错 + 测试自检三处共用），
+    把 `inject` 送进 `retired` 并给出迁移提示；`mode` 因为被 lint 校验取值所以留着。
+    判断标准只有一条：**谁读它？读不到就删。**
+
 ## 5. 测试地图（改哪里跑什么）
 
 **全量本地跑法（唯一推荐命令）**：`node --test --test-concurrency=1 tests/contract/*.test.mjs`
@@ -142,6 +149,7 @@ element-events.test.mjs 10 例）、浏览器/产物脚本 6 个（boot/menu/net
 | cover/ts/ExtElementEvents.ts 里新增/删除 document 监听 | 同上 + `plugins-smoke`/`reload`（监听器计数必须精确回基线；**capture 标志漏写会泄漏**，见坑位 27） |
 | cover/ts/ExtHooks.ts 的 `afterLoad`（载入后同步） | `node --test tests/contract/hooks.test.mjs` + `element-events.browser.test.mjs`（载入 → `elementschange(source=load)`）+ `dist-site.browser.mjs` |
 | packages/plugin-api/permissions.json（能力目录） | `node --test tests/contract/permissions.test.mjs` + `ext plugin lint`（两边读同一份表，改一处必跑两处） |
+| packages/plugin-api/manifest-fields.json（条目字段表） | 同上（三处共用：宿主警告 / lint 报错 / 测试自检；加字段先想清楚谁读它） |
 | cover/ts/ExtPluginHost.ts 的权限闸门 | 同上 + `plugins-smoke.browser.test.mjs`（真 manifest 下六个插件仍要全 ready） |
 | cover/ts/ExtElements.ts（插件自定义元件） | `plugin-element.browser.test.mjs` + `menu.browser.mjs` + `ext build` + `fiber.test.mjs`（Node 侧加载约束，见坑位 17） |
 | tools/ext.mjs | doctor + 受影响子命令的手工验证 |
@@ -174,8 +182,8 @@ element-events.test.mjs 10 例）、浏览器/产物脚本 6 个（boot/menu/net
 4. ~~**`permissions` 落地**~~ ✅ 已完成（v0.1.4）：七个 ctx 面全部按权限裁剪、`ctx.api` 读属性即校验、
    `ExtPermissionError.denial` 区分漏声明/策略拦截/拼错；lint 与运行期读同一份
    `packages/plugin-api/permissions.json`，源码用了没声明的面直接报错（带行号）。
-   剩下没做的：`inject: ["api"]` 这个老字段现在纯属冗余（权限才是权威），下次动 manifest 时删掉；
-   配置驱动加载（`"enabled"` 已有，但没有"按站点覆盖某个插件的 permissions"的细粒度开关）。
+   ~~`inject: ["api"]`~~ ✅ 已删（v0.1.5，见坑位 32：字段表落成 `manifest-fields.json`，写它会被 lint 报错）。
+   剩下没做的：配置驱动加载（`"enabled"` 已有，但没有"按站点覆盖某个插件的 permissions"的细粒度开关）。
 5. ~~**两个上游辅助页**~~ ✅ 已完成（v0.1.5）：`dist-site.browser.mjs` 现在会开 `jsinterface.html`，
    验证 iframe + `window.CircuitJS1` + `oncircuitjsloaded/onanalyze/onupdate` + `getElements/getTime`
    整条老链路（两种挂载形态都跑）。`iframe.html` 经查是**上游空壳（0 字节）**，没有内容可测。

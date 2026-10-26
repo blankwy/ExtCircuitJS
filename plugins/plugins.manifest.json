@@ -11,9 +11,6 @@
       "entry": "index.js",
       "version": "0.1.0",
       "mode": "in-page",
-      "inject": [
-        "api"
-      ],
       "permissions": [
         "ui.panel",
         "ui.command",
@@ -35,9 +32,6 @@
       "entry": "index.js",
       "version": "0.1.0",
       "mode": "in-page",
-      "inject": [
-        "api"
-      ],
       "permissions": [
         "ui.panel"
       ],
@@ -53,9 +47,6 @@
       "entry": "index.js",
       "version": "0.1.0",
       "mode": "in-page",
-      "inject": [
-        "api"
-      ],
       "permissions": [
         "ui.command"
       ],
@@ -71,9 +62,6 @@
       "entry": "index.js",
       "version": "0.1.0",
       "mode": "in-page",
-      "inject": [
-        "api"
-      ],
       "permissions": [
         "sim.observe"
       ],
@@ -85,9 +73,6 @@
       "entry": "index.js",
       "version": "0.1.0",
       "mode": "in-page",
-      "inject": [
-        "api"
-      ],
       "permissions": [
         "ui.menu",
         "element.register"
@@ -104,9 +89,6 @@
       "entry": "index.js",
       "version": "0.1.0",
       "mode": "in-page",
-      "inject": [
-        "api"
-      ],
       "permissions": [
         "document.hook",
         "ui.command",

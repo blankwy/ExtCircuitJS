@@ -219,6 +219,11 @@ export async function activate(ctx) {
 部署侧想关掉某一面，在 manifest 顶层写 `"policy": { "denyPermissions": ["document.hook"] }`
 ——策略只能做减法，不能凭空授予。
 
+manifest 里每个条目**只能写被契约承认的字段**（`id` / `entry` / `version` / `mode` / `enabled` /
+`rev` / `permissions` / `claims`，权威表在 `packages/plugin-api/manifest-fields.json`）。
+写别的键 —— 比如已经废弃的 `inject` —— `ext plugin lint` 直接报错，运行期也会在
+`plugins.list()[i].warnings` 里点名（不阻断激活，旧部署不会因为一个装饰键起不来）。
+
 ⚠ **这不是沙箱**：插件仍是同源 ESM，拿得到 `window`。permissions 管的是"经由 `ctx` 用到哪一面"，
 作用是把能力显式化、让漏声明在激活现场或构建期就报错、让站点能收紧。真隔离要等 B08（Worker/iframe）。
 

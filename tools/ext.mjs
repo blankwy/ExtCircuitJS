@@ -380,6 +380,32 @@ function lintPermissions(p, srcFiles) {
     return bad;
 }
 
+/** manifest 条目字段表（与 plugin-api 共用同一份 JSON，别在这里再抄一遍） */
+function manifestFields() {
+    return readJson(path.join(root, "packages", "plugin-api", "manifest-fields.json"));
+}
+
+/**
+ * 条目字段校验：写了契约不认的键 → 报错。
+ * 存在的理由：`inject: ["api"]` 在六个插件里躺了三个阶段，没有任何代码读它——
+ * 装饰性字段最坏的后果不是浪费字节，而是让人以为它在生效。
+ */
+function lintEntryFields(p, fields) {
+    const known = new Set(fields.entryFields ?? []);
+    let bad = 0;
+    for (const key of Object.keys(p)) {
+        if (known.has(key)) continue;
+        const hint = fields.retired?.[key] ? `（${fields.retired[key]}）` : "";
+        console.log(c.err(`  ${p.id}: manifest 字段 "${key}" 未被契约识别${hint}`));
+        bad++;
+    }
+    if (p.mode != null && !(fields.allowedMode ?? []).includes(p.mode)) {
+        console.log(c.err(`  ${p.id}: mode "${p.mode}" 不支持（只支持 ${(fields.allowedMode ?? []).join(" / ")}）`));
+        bad++;
+    }
+    return bad;
+}
+
 /** manifest 顶层 policy 的形状校验：拼错的能力名会让"禁用"静默失效，必须报出来 */
 function lintPolicy(policy) {
     if (policy == null) return 0;
@@ -451,11 +477,13 @@ function plugin(argv) {
         let bad = 0;
         const ids = new Set();
         const cmds = new Map();
+        const fields = manifestFields();
         bad += lintPolicy(manifest.policy);
         for (const p of plugins) {
             if (!p.id) { console.log(c.err("  plugin without id")); bad++; continue; }
             if (ids.has(p.id)) { console.log(c.err(`  duplicate plugin id: ${p.id}`)); bad++; }
             ids.add(p.id);
+            bad += lintEntryFields(p, fields);
             if (!exists(path.join(root, "plugins", p.id, p.entry))) { console.log(c.err(`  ${p.id}: missing entry ${p.entry}`)); bad++; }
             for (const cmd of p.claims?.commands ?? []) {
                 if (cmds.has(cmd)) { console.log(c.err(`  command conflict: ${cmd} (${cmds.get(cmd)} vs ${p.id})`)); bad++; }

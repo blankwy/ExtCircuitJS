@@ -4,6 +4,7 @@
 export * from "./permissions";
 // export * 不建立本地绑定，本文件自己用到这两个名字要单独引
 import type { ExtPermission } from "./permissions";
+import MANIFEST_FIELDS from "../manifest-fields.json";
 
 export type PluginState = "discovered" | "loading" | "ready" | "failed" | "disposing" | "disposed";
 
@@ -129,6 +130,29 @@ export interface ExtPluginModule {
     name?: string;
     activate(ctx: ExtPluginContext): void | Promise<void>;
     deactivate?(): void | Promise<void>;
+}
+
+// ── manifest 条目字段（唯一的权威清单）─────────────────────────────────────
+/**
+ * `plugins.manifest.json` 里每个插件条目**被契约承认**的字段，权威数据在
+ * `../manifest-fields.json`（同一份被 `tools/ext.mjs plugin lint` 读取）。
+ *
+ * 为什么要一张清单：`inject: ["api"]` 在六个插件里躺了三个阶段，而**没有任何代码读它**
+ * ——它看起来像"声明了依赖"，实际只是装饰，还让人误以为它在生效。所以规则是：
+ * 字段分三种（被运行的 / 被检查的 / 纯装饰的），**纯装饰的必须删掉**，
+ * 而被保留的字段要么被运行期读取，要么被 lint 校验取值（如 `mode` 目前只允许 `in-page`）。
+ */
+export const PLUGIN_ENTRY_FIELDS: readonly string[] = MANIFEST_FIELDS.entryFields;
+
+/** 已废弃字段 → 迁移提示（宿主警告与 lint 报错共用同一句文案） */
+export const RETIRED_ENTRY_FIELDS: Readonly<Record<string, string>> = MANIFEST_FIELDS.retired;
+
+/** 条目里不被承认的字段（按名字排序；空数组 = 干净） */
+export function unknownEntryFields(entry: Record<string, any>): string[] {
+    const known = new Set<string>(PLUGIN_ENTRY_FIELDS);
+    return Object.keys(entry ?? {})
+        .filter((k) => !known.has(k))
+        .sort();
 }
 
 /**

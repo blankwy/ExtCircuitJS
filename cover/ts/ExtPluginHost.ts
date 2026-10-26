@@ -12,7 +12,13 @@ import type {
     ExtHookHandler,
     ExtPermission,
 } from "@ext/plugin-api";
-import { ExtPermissionError, resolveDeclaredPermissions, applyPermissionPolicy } from "@ext/plugin-api";
+import {
+    ExtPermissionError,
+    resolveDeclaredPermissions,
+    applyPermissionPolicy,
+    unknownEntryFields,
+    RETIRED_ENTRY_FIELDS,
+} from "@ext/plugin-api";
 import { CommandPaletteRegistry, PaletteCommand } from "./CommandPaletteRegistry";
 import { ExtHooks } from "./ExtHooks";
 import {
@@ -171,6 +177,15 @@ export class PluginHost {
         this.denied.set(entry.id, denied);
         for (const p of denied) warnings.push(`权限 "${p}" 已被站点策略禁用，对应的 ctx 面不可用`);
         if (denied.length) console.warn(`[ExtCircuitJS] plugin "${entry.id}": denied by policy → ${denied.join(", ")}`);
+
+        // 装饰性字段：manifest 里写了但契约不认的键一律警告（构建期 lint 也报同一份清单）。
+        // 这条规则的由来：`inject: ["api"]` 曾是"声明依赖"，实际没有任何代码读它。
+        for (const key of unknownEntryFields(entry)) {
+            const hint = RETIRED_ENTRY_FIELDS[key] ? `（${RETIRED_ENTRY_FIELDS[key]}）` : "";
+            const msg = `manifest 字段 "${key}" 未被契约识别${hint}`;
+            warnings.push(msg);
+            console.warn(`[ExtCircuitJS] plugin "${entry.id}": ${msg}`);
+        }
 
         // ?rev= 是热重载的换版本键：不同 rev → 不同 URL → 浏览器必然拉新模块实例，
         // 不会命中 ESM 模块图里的旧条目（core 只读，宿主侧解决"能加不能减"）。

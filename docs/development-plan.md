@@ -116,7 +116,8 @@ ext-circuitjs/
   "apiVersion": "^1.0.0",
   "entry": "index.js",
   "mode": "in-page",              // in-page（可信）| worker（不可信/AI 生成）
-  "inject": ["sim", "circuit", "ui.commands"],   // 依赖的服务，就绪才激活
+  "inject": ["sim", "circuit", "ui.commands"],   // ⚠ 计划期设想的依赖声明，从未实现；v0.1.5 已废弃
+                                                 //   （能力改由 permissions 表达，写 inject 会被 lint 报错）
   "permissions": ["netlist.read", "ui.panel"],   // 未声明的能力 ctx 直接拒绝
   "claims": {                      // 声明式占用，供冲突粗扫描
     "commands": ["ext.netlist.export"],

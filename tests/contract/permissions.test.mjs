@@ -476,3 +476,56 @@ test("plugin lint 与运行期同口径：漏声明/claims 自相矛盾/policy �
     assert.match(repo.stdout, /plugin lint ok/);
     for (const d of [leaky, commented, claimsOnly, typo, clean]) fs.rmSync(d, { recursive: true, force: true });
 });
+
+// ── 12. manifest 字段：装饰性字段必须删掉，不是留着解释 ──────────────────────
+// 由来：`inject: ["api"]` 在六个插件里躺了三个阶段，没有任何代码读它。见
+// packages/plugin-api/manifest-fields.json 的 _comment。
+test("manifest 字段表：仓库 manifest 零未知字段，废弃字段有迁移提示且会被报出来", () => {
+    const fields = JSON.parse(
+        fs.readFileSync(path.join(repoRoot, "packages", "plugin-api", "manifest-fields.json"), "utf8"),
+    );
+    assert.ok(Array.isArray(fields.entryFields) && fields.entryFields.length > 0, "entryFields 不能为空");
+    assert.equal(new Set(fields.entryFields).size, fields.entryFields.length, "entryFields 不能重复");
+    // 运行期导出的清单 == JSON（反方向：JSON 里多一个字段但 TS 没导出，这里也能发现）
+    assert.deepEqual([...P.PLUGIN_ENTRY_FIELDS].sort(), [...fields.entryFields].sort(), "PLUGIN_ENTRY_FIELDS 与 JSON 不一致");
+
+    // 判定函数：认识的字段一个都不报，废弃字段要报且排序稳定
+    const ok = {
+        id: "x", entry: "index.js", version: "0.1.0", mode: "in-page", enabled: true,
+        rev: "1", permissions: [], claims: {},
+    };
+    assert.deepEqual(P.unknownEntryFields(ok), [], "契约字段不该被当成未知");
+    assert.deepEqual(
+        P.unknownEntryFields({ ...ok, inject: ["api"], zzz: 1 }),
+        ["inject", "zzz"],
+        "未知字段要按名字排序报出",
+    );
+    assert.match(P.RETIRED_ENTRY_FIELDS.inject, /permissions/, "废弃字段要给出迁移方向");
+
+    // 仓库自己的 manifest：零未知字段、零废弃字段（lint 同口径，见 permissions.test 第 9 组）
+    const manifest = JSON.parse(fs.readFileSync(path.join(repoRoot, "plugins", "plugins.manifest.json"), "utf8"));
+    for (const p of manifest.plugins) {
+        assert.deepEqual(P.unknownEntryFields(p), [], `${p.id} 有未知字段`);
+        assert.equal("inject" in p, false, `${p.id} 还在写已废弃的 inject`);
+        if (p.mode != null) assert.ok(fields.allowedMode.includes(p.mode), `${p.id}.mode 取值不支持：${p.mode}`);
+    }
+});
+
+test("宿主：manifest 里写了未知字段 → 插件仍能装，但 warnings 里明确点名", async () => {
+    const host = new PluginHost(fakeApp(), {}, new ExtHooks());
+    try {
+        await activate(host, "dusty", "export async function activate() {}", {
+            permissions: [],
+            inject: ["api"],
+            mystery: true,
+        });
+        const st = host.list().find((p) => p.id === "dusty");
+        assert.equal(st.state, "ready", "装饰性字段只该warning，不该让插件装不上");
+        const hit = st.warnings.filter((w) => /未被契约识别/.test(w));
+        assert.equal(hit.length, 2, `应有两条字段警告：${JSON.stringify(st.warnings)}`);
+        assert.match(hit.join(" "), /"inject"/);
+        assert.match(hit.join(" "), /permissions/, "废弃字段要带迁移提示");
+    } finally {
+        await host.dispose();
+    }
+});

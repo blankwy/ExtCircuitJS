@@ -37,6 +37,16 @@
 - `plugins-smoke` / `reload` 里的监听器增量断言原本写死 1，改为 `EVENT_SUBS`
   （示例插件现在订阅 3 个事件；断言仍要精确，不能放宽成 `>=1`，否则漏监听器查不出来）
 
+### manifest 字段表：清掉 `inject`
+- 新增 `packages/plugin-api/manifest-fields.json`（唯一权威表）：`entryFields` / `allowedMode` /
+  `retired`。运行期（`ExtPluginHost`）、构建期（`ext plugin lint`）、测试（`permissions.test.mjs`）
+  读同一份，不再各抄一遍
+- `inject: ["api"]` 从 6 个插件里删掉：它从没被任何代码读过（"声明依赖"是幻觉），
+  现在写它会被 lint 报错并给出迁移提示（`注入语义已由 permissions 取代`）
+- 运行期遇到未知字段 → 记 warning（`plugins.list()[i].warnings` 可见）+ console.warn，
+  但**不阻断激活**：手里有旧 manifest 的部署不会因为一个装饰键就起不来
+- `mode` 保留但被真正校验（只允许 `in-page`）——"被检查的字段"和"装饰性字段"是两回事
+
 ### 产物契约补一条老接口
 - `dist-site.browser.mjs` 现在会真开一次 `jsinterface.html`（外部站点 iframe 嵌入的老路）：
   iframe 起得来、`window.CircuitJS1` 在位、`oncircuitjsloaded` → `onanalyze`/`onupdate` 回调真的跑
@@ -54,6 +64,8 @@
   `delta` 与画布缩放一致；Delete 删元件 → `source=keyboard`；Ctrl+Z → `source=undo`；
   载入另一份电路 → `source=load` 且 `count` 正确；并验证示例插件经 `ctx.on` 的正式通道确实收到
 - 扩 `hooks.test.mjs`（10 例）：`afterLoad` 只在最外层载入结束后触发、来源正确、旁观者抛错不影响载入
+- 扩 `permissions.test.mjs`（12 例）：manifest 字段表与运行期导出双向一致、仓库 manifest 零未知字段、
+  宿主对未知字段只警告不阻断（`inject` 与随机键各一条，带迁移提示）
 
 ## v0.1.4（未发布）
 
