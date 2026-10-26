@@ -126,6 +126,10 @@ function finalizeForHosting() {
     if (fs.existsSync(appHtml)) fs.copyFileSync(appHtml, path.join(outDir, "index.html"));
     fs.writeFileSync(path.join(outDir, ".nojekyll"), "");
 
+    // 不生成 CNAME：站点域名属于部署侧（Pages 仓库设置 / 反向代理），产物不该知道
+    // 自己挂在哪个域名下。构建脚本里出现业务域名 = 演示站与程序绑定。
+    // 注：CNAME 若放进产物会被下面 writeServiceWorker 的全量扫描带进预缓存列表。
+
     // 站点根 favicon：浏览器会直接请求 <站点根>/favicon.ico，子路径部署下那是 Pages 域名根，
     // 不是我们的产物目录，所以显式给个相对引用（dev 由 servePlugins 的 legacy 路由兜住）。
     for (const name of ["circuitjs.html", "index.html"]) {

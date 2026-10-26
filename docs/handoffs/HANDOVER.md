@@ -67,7 +67,8 @@
 4. **CI 浏览器测试上云（可选）**：CI 现只跑 Node 侧；若要上浏览器测试，需在 CI 装 Chrome + playwright-core 并设 EXT_PW_CORE/EXT_CHROME。
 5. **可选功能债**：B08 Worker 沙箱插件（任务板标注可选）、C05 的 decodeCompact（spike 无对应解码器，未做）、probe op 的 ScopeElm 映射（v0.2）。
 6. **上游同步（当 pfalstad/circuitjs1 有新 commit 时）**：流程见 `ext core sync` 输出的三步（clone → cover scan --core → rebase cover/ + 更新 core.lock/manifest）；演练工具 `ext core sync-drill` 已验证 scan 判定。
-7. ~~**静态部署**~~ ✅ 已完成（2026-10-26）：`dist/` 已是可挂子路径的静态站（构建期相对化 + `index.html` + `.nojekyll` + `service-worker.js`），`.github/workflows/pages.yml` 在 main 上自动部署，线上 https://blog.binarydev.top/ExtCircuitJS/ （账户级 Pages 自定义域，github.io 301 过去）。首次启用需 Settings → Pages → Source = GitHub Actions（已用 API 设好 `build_type=workflow`）。
+7. ~~**静态部署**~~ ✅ 已完成（2026-10-26）：`dist/` 已是可挂任意前缀的静态站（构建期相对化 + `index.html` + `.nojekyll` + `service-worker.js`），`.github/workflows/pages.yml` 在 main 上自动部署。首次启用需 Settings → Pages → Source = GitHub Actions（已用 API 设好 `build_type=workflow`）。
+   **域名不进仓库**：站点域名只在 Pages 设置 / 反向代理侧配置，产物不含 `CNAME`、构建脚本不读任何站点地址（演示站与程序解耦）。`tests/contract/dist-site.browser.mjs` 默认对根路径与 `/<repo>/` 两种形态各断言一次。
 
 ## 7. 纪律（沿用 goal 手册，对任何执行者有效）
 

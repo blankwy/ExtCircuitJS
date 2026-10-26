@@ -5,8 +5,9 @@
 > 上游基线：`e952e78` / `5.0.3ts` / 全 TypeScript + Vite（无 Java/GWT）。
 > 许可证：GPL-2.0-or-later（见 `core/COPYING.txt`；上游 `ts/package.json` 的 ISC 标注不作数）。
 
-**在线体验**：<https://blog.binarydev.top/ExtCircuitJS/>（GitHub Pages，跟随账户的 Pages 自定义域；
-`blankwy.github.io/ExtCircuitJS/` 会 301 到同一地址）
+**在线演示**：由 `.github/workflows/pages.yml` 部署到 GitHub Pages，具体域名在仓库的
+Pages 设置里配置——仓库与产物都不绑定域名（`dist/` 里不含 CNAME，构建脚本不读任何站点地址）。
+挂在子路径（`/<repo>/`）或自定义域根路径下都能跑，见下方「静态部署」。
 
 ## 四层结构
 
