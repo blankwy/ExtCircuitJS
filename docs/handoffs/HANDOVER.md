@@ -43,6 +43,7 @@
 5. **右键弹出菜单 UL 游离于 DOM 外**（右键时才挂载）——菜单断言用元素级 querySelector。
 6. **registry 统计以现存为准**：255 类 / txtType 124 / slots 86；重生成必须 diff 为空（`ext netlist registry` 跑两次对比）。
 7. **worker 额度/并发**：GLM 免费额度已耗尽（Start Plan code 1005）；同一 provider 并发派发会撞 "model concurrency limit"（失败≠未执行，先查 git status 与工作区）。
+8. **`cover/node_modules` 是隐式前置**（CI 首绿时踩过）：仓库根没有 node_modules，依赖只装在 `core/ts`；vite 加载 `cover/vite.cover.config.ts` 时要能从 `cover/` 解析到 `vitest`/`vite`，靠 `tools/ext.mjs` 的 `ensureCoverDeps()` 建 junction（已被 dev/build 自动调用、doctor 有 WARN 行）。该链接被 .gitignore 忽略——**手工建它不会进版本库**，不要靠手工兜底；若再次出现 `ERR_MODULE_NOT_FOUND: vitest`，先看这行有没有被跳过。
 
 ## 5. 测试地图（改哪里跑什么）
 

@@ -46,22 +46,64 @@ function readJson(p) {
 
 /**
  * cover/ 在 core/ts 之外，Vite 配置里的外部依赖（vitest/config 等）按 Node 规则
- * 会从 cover/ 往上找 node_modules —— 找不到。这里给 cover/ 建一个指向 core/ts/node_modules
- * 的 junction/symlink，零拷贝、零版本漂移。
+ * 会从 cover/ 往上找 node_modules —— 找不到（仓库根没有 node_modules，依赖只装在
+ * core/ts）。这里给 cover/ 建一个指向 core/ts/node_modules 的 junction/symlink，
+ * 零拷贝、零版本漂移。
+ *
+ * A07（CI 首绿修复）：这个函数早期只定义、没人调用，靠开发机上手工建的链接才绿；
+ * 干净检出（CI runner）下 vite 加载 cover/vite.cover.config.ts 必报
+ * ERR_MODULE_NOT_FOUND: vitest。凡是要跑 vite 的子命令（dev / build）都必须先调它。
+ *
+ * Windows 优先 junction（走 reparse point，不需要管理员/开发者模式），
+ * 再退 mklink /J，最后才试 symlink（需要开发者模式）。POSIX 直接 symlink。
  */
+function coverDepsReady(link) {
+    return exists(path.join(link, "vite", "package.json"));
+}
+
 function ensureCoverDeps() {
     const link = path.join(coverRoot, "node_modules");
     const target = path.join(coreRoot, "node_modules");
-    if (exists(link)) return true;
-    if (!exists(target)) return false;
-    try {
-        fs.symlinkSync(target, link, process.platform === "win32" ? "junction" : "dir");
-        console.log(c.dim(`[ext] linked cover/node_modules -> core/ts/node_modules`));
-        return true;
-    } catch (e) {
-        console.error(c.err(`[ext] cannot link cover/node_modules: ${e.message}`));
+    if (coverDepsReady(link)) return true;
+
+    // 链接存在但指向失效（换了机器/依赖被清过）：先摘掉再重建
+    if (exists(link)) {
+        try { fs.rmSync(link, { recursive: false, force: true }); } catch { /* junction 无法 unlink 时走 rmdir */ }
+        try { if (exists(link)) fs.rmdirSync(link); } catch { /* ignore */ }
+    }
+
+    if (!exists(target)) {
+        console.error(c.err(`[ext] missing core/ts/node_modules`));
+        console.error(c.dim(`      hint: npm install --prefix core/ts  (或 node tools/ext.mjs core install)`));
         return false;
     }
+
+    const mklink = () => {
+        const r = spawnSync("cmd", ["/c", "mklink", "/J", link, target], { stdio: "ignore" });
+        if (r.status !== 0) throw new Error(`mklink /J exit ${r.status}`);
+    };
+    const attempts = process.platform === "win32"
+        ? [() => fs.symlinkSync(target, link, "junction"), mklink, () => fs.symlinkSync(target, link, "dir")]
+        : [() => fs.symlinkSync(target, link, "dir")];
+
+    const errs = [];
+    for (const attempt of attempts) {
+        try {
+            attempt();
+            if (coverDepsReady(link)) {
+                console.log(c.dim(`[ext] linked cover/node_modules -> core/ts/node_modules`));
+                return true;
+            }
+            errs.push("link created but does not resolve");
+        } catch (e) {
+            errs.push(e.message);
+        }
+    }
+    console.error(c.err(`[ext] cannot link cover/node_modules -> core/ts/node_modules`));
+    for (const e of errs) console.error(c.dim(`      ${e}`));
+    console.error(c.dim("      vite 加载 cover/vite.cover.config.ts 需要从 cover/ 解析到 vitest/vite；"));
+    console.error(c.dim("      手工兜底：ln -s core/ts/node_modules cover/node_modules（POSIX）"));
+    return false;
 }
 
 function runNode(label, script, args, opts = {}) {
@@ -97,6 +139,7 @@ function doctor() {
     check(major >= 22, "node >= 22", process.versions.node);
     check(exists(path.join(coreRoot, "package.json")), "core/ts/package.json");
     warn(exists(path.join(coreRoot, "node_modules")), "core/ts/node_modules", exists(path.join(coreRoot, "node_modules")) ? "" : "run: node tools/ext.mjs core install");
+    warn(coverDepsReady(path.join(coverRoot, "node_modules")), "cover/node_modules -> core/ts", coverDepsReady(path.join(coverRoot, "node_modules")) ? "" : "auto-linked on dev/build");
 
     // core.lock 与源码一致性
     let lock = null;
@@ -146,6 +189,7 @@ function doctor() {
 function dev(argv) {
     const port = argValue(argv, "--port", process.env.EXT_PORT ?? "5174");
     console.log(c.b(`ExtCircuitJS dev`) + c.dim(`  (root=core/ts, cover overlay, port=${port})`));
+    if (!ensureCoverDeps()) return 1;
     return runNode("vite", bin("vite/bin/vite.js"), [
         "--config", path.join(coverRoot, "vite.cover.config.ts"),
         "--port", String(port),
@@ -154,6 +198,7 @@ function dev(argv) {
 
 function build() {
     console.log(c.b("ExtCircuitJS build"));
+    if (!ensureCoverDeps()) return 1;
     const steps = [
         ["tsc(core)", bin("typescript/bin/tsc"), ["-p", path.join(coreRoot, "tsconfig.json")]],
         ["tsc(cover)", bin("typescript/bin/tsc"), ["-p", path.join(coverRoot, "tsconfig.cover.json")]],
