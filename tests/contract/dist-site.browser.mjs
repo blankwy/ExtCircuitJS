@@ -14,6 +14,9 @@
 //   2. 站内请求 0 个 4xx/5xx/网络失败（含 <base>/plugins/ 的动态 import）
 //   3. 插件全部 ready（证明插件根 URL 是按文档推的，不是硬编码 "/plugins/"）
 //   4. 确定性步进 2ms 后 V(n1) > 1V（与 netlist-g2 同序列，dist 里数值必须和 dev 一致）
+//   5. 旧版 JS 嵌入接口（jsinterface.html）还能用：iframe 起得来、window.CircuitJS1 在位、
+//      onanalyze/onupdate 回调真的跑（#info 出现 V(vsense) 与计数器）、仿真时间在走
+//      —— 这是外部站点 iframe 嵌入的老路，坏掉的方式极安静（页面照开，只是回调不来）
 //
 // 一个形态一台 server + 独立端口：Service Worker 的预缓存请求会在 context 关闭后仍有一两个
 // in-flight，共用 server 时会被下一种形态误判成"跑到前缀外"（根路径的 SW 解析出 /circuitjs/...
@@ -83,6 +86,60 @@ const browser = await chromium.launch({
     executablePath: CHROME, headless: true,
     args: ["--no-first-run", "--no-default-browser-check", "--disable-gpu", "--mute-audio"],
 });
+
+/**
+ * 旧版 JS 嵌入接口（jsinterface.html）的活体检查。
+ *
+ * 这个页面不是"另一个入口"，而是 window.CircuitJS1 这套老 API 的活文档：
+ *   父页 → iframe(circuitjs.html?startCircuit=jsinterface.txt) → oncircuitjsloaded
+ *        → sim.onanalyze/onupdate/ontimestep ← getElements()/getNodeVoltage()/setExtVoltage()
+ * 它同时验证三件容易各坏各的事：`startCircuit` 名字能在部署后的 circuits/ 里找到、
+ * iframe 与父页同源（否则 contentWindow 拿不到）、老 API 的名字一个没改。
+ *
+ * 注意 iframe.html 是上游的空壳（0 字节，war 里写着 "Insert title here"），没有内容可测，
+ * 不要为它编造断言。
+ */
+async function checkLegacy(ctx, url, sink) {
+    const page = await ctx.newPage();
+    const out = { url, ok: false };
+    page.on("dialog", (d) => d.dismiss().catch(() => {}));
+    page.on("response", (r) => { if (r.status() >= 400) sink.failed.push({ status: r.status(), url: r.url() }); });
+    page.on("requestfailed", (r) => sink.failed.push({ status: "netfail", url: r.url(), err: r.failure()?.errorText }));
+    page.on("console", (m) => sink.logs.push(`[legacy ${m.type()}] ${m.text()}`));
+    page.on("pageerror", (e) => sink.logs.push(`[legacy pageerror] ${e.message}`));
+    try {
+        await page.goto(url, { waitUntil: "load", timeout: 60000 });
+        // 等回调真的跑起来：didAnalyze 填了 elmList，didUpdate 才会把这两行写进 #info
+        await page.waitForFunction(() => {
+            const t = document.getElementById("info")?.textContent ?? "";
+            return t.includes("counter value") && t.includes("V(vsense)");
+        }, null, { timeout: 60000 });
+        // 再等仿真真的推进（首帧 update 可能就发生在 t=0：无头浏览器里 rAF 起得慢，
+        // 那时读 getTime() 会是 0，断言 time>0 就成了竞态而不是缺陷）
+        await page.waitForFunction(() => {
+            const api = document.getElementById("circuitFrame")?.contentWindow?.CircuitJS1;
+            return (api?.getTime?.() ?? 0) > 0;
+        }, null, { timeout: 30000 });
+        out.state = await page.evaluate(() => {
+            const api = document.getElementById("circuitFrame")?.contentWindow?.CircuitJS1;
+            return {
+                hasApi: !!api,
+                elements: api?.getElements?.()?.length ?? -1,
+                time: api?.getTime?.() ?? -1,
+                running: api?.isRunning?.() ?? null,
+                info: (document.getElementById("info")?.textContent ?? "").replace(/\s+/g, " ").slice(0, 160),
+            };
+        });
+        // getElements 有货 = startCircuit 名字解析 + 电路真的解析了；time>0 = 仿真在跑（不是停着画静态图）
+        out.ok = out.state.hasApi && out.state.elements > 10 && out.state.time > 0 && out.state.running === true;
+    } catch (e) {
+        out.error = String(e?.message ?? e);
+        out.consoleTail = sink.logs.slice(-10);
+    } finally {
+        await page.close().catch(() => {});
+    }
+    return out;
+}
 
 /** 跑一个挂载形态，返回该 case 的断言结果 */
 async function runCase(prefix, port) {
@@ -154,17 +211,22 @@ async function runCase(prefix, port) {
             return out;
         }, circuitText);
 
-        const pageErrors = logs.filter((l) => l.startsWith("[pageerror]"));
+        // 旧版嵌入接口：必须在同一 context（同源）下跑，否则测的不是真实用法
+        const legacy = await checkLegacy(ctx, `${base}${prefix}/jsinterface.html`, { failed, logs });
+
+        const pageErrors = logs.filter((l) => /\[.*pageerror\]/.test(l));
         Object.assign(summary, {
             ok: !!r.canvas
                 && (r.netlist?.components ?? 0) > 0
                 && (r.maxVoltage ?? 0) > 1
                 && r.plugins.length > 0 && r.plugins.every((p) => p.endsWith(":ready"))
+                && legacy.ok
                 && failed.length === 0 && outside.length === 0 && pageErrors.length === 0,
             version: r.version,
             plugins: r.plugins,
             netlist: r.netlist,
             voltages: r.voltages,
+            legacy,
             pageErrors,
             failedRequests: failed,
             requestsOutsidePrefix: outside,

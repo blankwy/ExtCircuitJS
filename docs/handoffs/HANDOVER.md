@@ -22,7 +22,7 @@
 全量门禁（2026-10-26 最后一轮亲跑，v0.1.5）：**全绿**——doctor、build、plugin lint、cover status、cover scan、
 Node 契约 **116 例**（`node --test --test-concurrency=1 tests/contract/*.test.mjs`，含 hooks.test.mjs 10 例、
 element-events.test.mjs 10 例）、浏览器/产物脚本 6 个（boot/menu/netlist-g2/reload/mcp-stdio/dist-site，
-其中 dist-site 双形态：根路径 + `/<repo>/`）。
+其中 dist-site 双形态：根路径 + `/<repo>/`，且两形态都要跑通 `jsinterface.html` 那条老接口）。
 
 ## 2. 环境与常用命令
 
@@ -146,7 +146,8 @@ element-events.test.mjs 10 例）、浏览器/产物脚本 6 个（boot/menu/net
 | cover/ts/ExtElements.ts（插件自定义元件） | `plugin-element.browser.test.mjs` + `menu.browser.mjs` + `ext build` + `fiber.test.mjs`（Node 侧加载约束，见坑位 17） |
 | tools/ext.mjs | doctor + 受影响子命令的手工验证 |
 | tools/coverOverlay.mjs | `ext build` + 上表浏览器契约（dev 走同一解析器）+ `dist-site.browser.mjs`（§4 坑位 9） |
-| cover/vite.cover.config.ts（产物收尾） | `ext build` + `node tests/contract/dist-site.browser.mjs`（把 dist 挂在 `/<prefix>/` 下真开一次：`window.ExtCircuitJS` 就绪、插件全 ready、站内 0 个 404、V(n1) 与 G2 基线一致） |
+| cover/vite.cover.config.ts（产物收尾） | `ext build` + `node tests/contract/dist-site.browser.mjs`（把 dist 挂在 `/<prefix>/` 下真开一次：`window.ExtCircuitJS` 就绪、插件全 ready、站内 0 个 404、V(n1) 与 G2 基线一致；再开 `jsinterface.html` 验证旧版 `window.CircuitJS1` 接口与 `startCircuit` 名字解析） |
+| core/ts 里的静态页（`jsinterface.html`、`circuits/*.txt` 路径） | `dist-site.browser.mjs`（dev 下这两个页面由 Vite 直接服务，看不出部署后的路径问题） |
 | cover/site.config.json（站点配置） | `node --test tests/contract/site-config.test.mjs`（默认值零改动 / 注入幂等 / 许可段落保留 / 转义）+ dev 下改配置刷新一次看标签页标题与「关于」 |
 
 ## 6. 待办（按优先级，接手即做）
@@ -175,8 +176,9 @@ element-events.test.mjs 10 例）、浏览器/产物脚本 6 个（boot/menu/net
    `packages/plugin-api/permissions.json`，源码用了没声明的面直接报错（带行号）。
    剩下没做的：`inject: ["api"]` 这个老字段现在纯属冗余（权限才是权威），下次动 manifest 时删掉；
    配置驱动加载（`"enabled"` 已有，但没有"按站点覆盖某个插件的 permissions"的细粒度开关）。
-5. **两个上游辅助页**：`iframe.html` / `jsinterface.html` 已经进产物，但 `dist-site.browser.mjs` 只开主页面；
-   这两个页面是外部站点嵌入的老接口，坏掉没人知道。**（下一步最便宜的一件：给 dist-site 加两个断言）**
+5. ~~**两个上游辅助页**~~ ✅ 已完成（v0.1.5）：`dist-site.browser.mjs` 现在会开 `jsinterface.html`，
+   验证 iframe + `window.CircuitJS1` + `oncircuitjsloaded/onanalyze/onupdate` + `getElements/getTime`
+   整条老链路（两种挂载形态都跑）。`iframe.html` 经查是**上游空壳（0 字节）**，没有内容可测。
 6. 可选功能债（不变）：B08 Worker 沙箱、`decodeCompact`（C05 只做了编码）、probe op 的 ScopeElm 映射。
 7. CI 跑浏览器测试（装 Chrome + playwright-core）。
 

@@ -37,6 +37,15 @@
 - `plugins-smoke` / `reload` 里的监听器增量断言原本写死 1，改为 `EVENT_SUBS`
   （示例插件现在订阅 3 个事件；断言仍要精确，不能放宽成 `>=1`，否则漏监听器查不出来）
 
+### 产物契约补一条老接口
+- `dist-site.browser.mjs` 现在会真开一次 `jsinterface.html`（外部站点 iframe 嵌入的老路）：
+  iframe 起得来、`window.CircuitJS1` 在位、`oncircuitjsloaded` → `onanalyze`/`onupdate` 回调真的跑
+  （`#info` 出现 `V(vsense)` 与计数器）、`getElements()` 有 78 个元件、`getTime() > 0`。
+  它同时验证三件平时各坏各的事：`startCircuit=jsinterface.txt` 在部署后的 `circuits/` 里能找到、
+  iframe 与父页同源、老 API 的名字一个没改（`getElements/getNodeVoltage/setExtVoltage/exportCircuit/…`）
+- 顺带确认 `iframe.html` 是上游的空壳（0 字节，`war/` 里写着 "Insert title here"），没有内容可测，
+  不为它编造断言
+
 ### 测试
 - 新增 `tests/contract/element-events.test.mjs`（10 例，纯 Node，进 CI）：身份比对 / 纯换序 /
   替换 / 几何快照 / 无 canvas 时 no-op / refresh 双同步 / 拖动三相位 / 拖动中的新建不算拖动 /
