@@ -309,6 +309,61 @@ function core(argv) {
         console.log("    3) rebase cover/, then update core.lock.json + cover/cover.manifest.json");
         return 0;
     }
+    if (sub === "sync-drill") {
+        // A03 假上游演练（自包含沙箱，不动真 cover/）：
+        //   fake-upstream = core/ts 拷贝 + 模拟一次上游演进（main.ts 追加一行）
+        //   fake-cover    = 与 fork 点字节一致的 main.ts + 最小 manifest（forkPointBlob 取自真 manifest）
+        // 预期：scan 判定 upstream-changed（上游变了、本地未偏离 fork 点）。
+        // 另以真 manifest 跑对照：本地已分叉的 seam 判 both-changed（真实同步时的"需人工"信号）。
+        console.log(c.b("core sync-drill") + c.dim("  fake upstream drill (sandbox)"));
+        const build = path.join(root, "build");
+        const fakeUp = path.join(build, "fake-upstream");
+        const fakeCover = path.join(build, "fake-cover");
+        fs.rmSync(fakeUp, { recursive: true, force: true });
+        fs.rmSync(fakeCover, { recursive: true, force: true });
+        fs.mkdirSync(path.join(fakeUp, "ts"), { recursive: true });
+        fs.mkdirSync(path.join(fakeCover, "ts"), { recursive: true });
+        fs.cpSync(coreRoot, path.join(fakeUp, "ts"), {
+            recursive: true,
+            filter: (s) => !s.split(path.sep).includes("node_modules"),
+        });
+        fs.appendFileSync(
+            path.join(fakeUp, "ts", "main.ts"),
+            "\n// [sync-drill] simulated upstream change (A03 drill, not a real sync)\n",
+        );
+        // fork 点内容 = 当前 core/ts/main.ts（core 锁定在 fork 点，doctor 已验证一致性）
+        fs.copyFileSync(path.join(coreRoot, "main.ts"), path.join(fakeCover, "ts", "main.ts"));
+        const realManifest = readJson(path.join(coverRoot, "cover.manifest.json"));
+        const seam = realManifest.entries.find((e) => e.upstreamPath === "ts/main.ts");
+        const drillManifest = {
+            entries: [{
+                upstreamPath: "ts/main.ts",
+                localPath: "fake-cover/ts/main.ts",
+                kind: "overridden",
+                reason: "A03 sync-drill sandbox entry",
+                forkPointBlob: seam.forkPointBlob,
+                anchors: seam.anchors ?? [],
+            }],
+        };
+        fs.writeFileSync(path.join(fakeCover, "cover.manifest.json"), JSON.stringify(drillManifest, null, 1));
+        const scanDrill = (coverDir, outJson) => spawnSync(NODE, [
+            path.join(here, "cover.mjs"), "scan",
+            "--core", fakeUp, "--cover", coverDir, "--json", outJson,
+        ], { cwd: root, encoding: "utf8" });
+        const r1 = scanDrill(fakeCover, path.join(build, "cover-scan-drill.json"));
+        const out1 = (r1.stdout ?? "") + (r1.stderr ?? "");
+        process.stdout.write(out1.slice(0, 2500));
+        const okDrill = out1.includes("upstream-changed");
+        const r2 = scanDrill(coverRoot, path.join(build, "cover-scan-drill-real.json"));
+        const out2 = (r2.stdout ?? "") + (r2.stderr ?? "");
+        const both = out2.includes("both-changed");
+        if (okDrill) {
+            console.log(c.ok(`\n[ext] sync-drill ok: 沙箱判定 upstream-changed；真 manifest 对照 both-changed=${both}（本地分叉 seam 的预期信号）`));
+        } else {
+            console.error(c.err("\n[ext] sync-drill FAILED: 沙箱 scan 未报 upstream-changed"));
+        }
+        return okDrill ? 0 : 1;
+    }
     console.error(c.err(`[ext] unknown core subcommand: ${sub}`));
     return 1;
 }
