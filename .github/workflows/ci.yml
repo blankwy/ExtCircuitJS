@@ -1,0 +1,52 @@
+# ExtCircuitJS CI（A04）
+# 双平台：doctor + build + plugin lint + cover scan + Node 侧契约测试。
+# 浏览器契约测试（tests/contract/*.browser.* 与 *.browser.mjs）需要本机 Chrome +
+# playwright-core（EXT_PW_CORE/EXT_CHROME 指向本机路径），仅在开发机跑，见 docs/development-plan.md。
+
+name: ci
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Install core dependencies
+        run: npm install --no-audit --no-fund --prefix core/ts
+
+      - name: Doctor
+        run: node tools/ext.mjs doctor
+
+      - name: Build (tsc core + tsc cover + vite)
+        run: node tools/ext.mjs build
+
+      - name: Plugin lint
+        run: node tools/ext.mjs plugin lint
+
+      - name: Cover scan
+        run: node tools/ext.mjs cover scan --json build/cover-scan.json
+
+      - name: Contract tests (Node-side, no browser)
+        run: >
+          node --test
+          tests/contract/element-factory.test.mjs
+          tests/contract/ops.test.mjs
+          tests/contract/netlist-ids.test.mjs
+          tests/contract/fiber.test.mjs
+          tests/contract/events.test.mjs
+          tests/contract/mcp-session.test.mjs
