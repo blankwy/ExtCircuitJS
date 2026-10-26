@@ -10,7 +10,7 @@
 
 ```
 0a9be00 2026-10-26 00:33:57 +0800  C04-design: 导线分裂增量放置设计（…）  docs/handoffs/stage4-design.md 323 行
-b97dc4f 2026-10-26 01:12:41 +0800  C04b: add between nets 导线分裂增量放置（…）  实现卡
+b97dc4f 2026-10-26 01:11:51 +0800  C04b: add between nets 导线分裂增量放置（…）  实现卡
 ```
 
 设计 commit（00:33:57）早于实现 commit（01:12:41）约 39 分钟，时间顺序可查。
