@@ -21,7 +21,7 @@
 
 - Node ≥ 22（本机 24.18）；Windows + Git Bash；git 仓库根 = `ExtCircuitJS/`（注意外层 `V:\Vibe\circuitjs1` 还有 _scratch/spike 等，不在仓库内）。
 - dev server：`node tools/ext.mjs dev --port 5174`（浏览器测试的前置；探活 `curl http://127.0.0.1:5174/circuitjs.html`）。
-- 构建：`node tools/ext.mjs build`；自检：`node tools/ext.mjs doctor`；cover：`node tools/ext.mjs cover status|scan`；插件：`node tools/ext.mjs plugin lint`；registry/bench：`node tools/ext.mjs netlist registry|bench`；假上游演练：`node tools/ext.mjs core sync-drill`。
+- 构建：`node tools/ext.mjs build`；自检：`node tools/ext.mjs doctor`；cover：`node tools/ext.mjs cover status|scan`；插件：`node tools/ext.mjs plugin lint`；registry/bench：`node tools/ext.mjs netlist registry|bench`；假上游演练：`node tools/ext.mjs core sync-drill`；MCP 服务器：`node tools/ext.mjs mcp`（宿主拉起用，stdout 是协议通道）。
 - 浏览器契约测试 env：`EXT_PW_CORE`（playwright-core index.mjs 绝对路径）、`EXT_CHROME`（chrome.exe）、`EXC_BASE`（默认 http://127.0.0.1:5174）。新机器需先 `npm install --prefix core/ts`。
 - Node 侧加载 cover/packages 的 TS：`tests/contract/helpers/ts-resolve.mjs`（register 后动态 import `.ts` 路径；JSON 已由 load hook 兜住），参照 `tests/contract/ops.test.mjs`。
 
@@ -48,6 +48,9 @@
 10. **`dist/` 出问题先看是不是上游部署脚本的活**：`index.html`、`service-worker.js` 上游都由 `dist.sh` 生成，不在源码里；我们改由 `cover/vite.cover.config.ts` 的 `finalizeForHosting()` 统一产出（含绝对路径转相对），别再手工往 dist 里塞文件。
 11. **cover 层的东西不要手写进 core 的 HTML**：`core/ts/circuitjs.html` 是上游文件，同步时会被整份覆盖。A05 的 `cover/public/ext-cover.css` 就是这样失效的——Stage 1 验收时页面里确实注入了 `<link>`、能读到 `--ext-accent`，但那个 link 是手写进 core 的，上游一同步就没了，之后文件一直躺在 `dist/` 里却没有任何页面引用它。凡是「要出现在页面里的 cover 资产或配置」，一律走 `extSiteConfig()` 插件注入（dev 中间件 + build 收尾同一份逻辑），不改 core 的 html。
 12. **`coverRoot` ≠ `cover` 目录**：`cover/vite.cover.config.ts` 里的 `coverRoot` 是 `cover/ts`（TS 源码根），而 `cover/site.config.json` 在 `cover/` 下（变量名 `coverDir = here`）。配置读错目录不会报错，只会静默生效成默认值——改完配置先 `curl` 一下入口 HTML 看 `data-ext-site-title` 有没有变。
+13. **MCP stdio 的 stdout 就是协议通道**：一行非 JSON-RPC 就会让宿主断连（症状是「服务器启动失败」而不是报错文本）。日志/调试一律 stderr；`ext mcp` 用 `spawnSync(..., {stdio:"inherit"})` 且自身不打印任何东西——在 `tools/ext.mjs` 的 mcp 分支里加 `console.log` 会立刻把它弄坏。同理，`StdioMcpServer` 的 `log` 默认写 `process.stderr`。
+14. **`path.resolve(fileURLToPath(import.meta.url), "../..")` 少算一级**：那是把**文件**当目录算。正确写法 `path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../..")`。`packages/mcp/src/{backend,dev-server}.ts` 的 repoRoot 两次踩到，报错表现为「找不到 `.../packages/tools/ext.mjs`」——看着像仓库结构坏了，其实是路径基准错了。
+15. **浏览器驱动是可选依赖（刻意如此）**：`playwright-core` 不进 `package.json`（只跑 Node 契约的人不该被装浏览器驱动）。运行时按 `EXT_PW_CORE` → 仓库根 `node_modules/playwright-core` → `core/ts/node_modules/playwright-core` 依次找；都找不到时**不要**改成硬依赖，把提示写清即可。Chrome 同理：`EXT_CHROME` → 各平台默认安装路径（Chrome → Edge → Chromium）。
 
 ## 5. 测试地图（改哪里跑什么）
 
@@ -55,7 +58,9 @@
 |---|---|
 | cover/ts/*（宿主/桥/菜单/boot） | `ext build` + 对应浏览器契约 + `boot.browser.mjs` 回归 |
 | packages/netlist/* | `node --test ops/netlist-ids` + `netlist-export` + `netlist-roundtrip`（浏览器）+ `ext netlist registry`（若动 registry-gen） |
-| packages/mcp/* | `mcp-session` + `mcp-bridge` + `mcp-tools`（浏览器）+ `examples/ai-loop.mjs` |
+| packages/mcp/* | `mcp-session` + `mcp-stdio`（纯 Node）+ `mcp-bridge` + `mcp-tools`（浏览器）+ `mcp-stdio.browser.mjs`（独立进程端到端）+ `examples/ai-loop.mjs` |
+| packages/mcp/src/{stdio,server,backend,dev-server}.ts | 上面全部 + `node tools/ext.mjs mcp --help` + 手工 `initialize`/`tools/list` 各一条（stdout 必须是纯协议帧） |
+| tools/ts-resolve.mjs（TS 加载钩子） | `node --test tests/contract/mcp-session.test.mjs`（shim 路径）+ `node tools/ext.mjs mcp --help` |
 | plugins/* | `ext plugin lint` + `plugins-smoke.browser.test.mjs` |
 | tools/ext.mjs | doctor + 受影响子命令的手工验证 |
 | tools/coverOverlay.mjs | `ext build` + 上表浏览器契约（dev 走同一解析器）+ `dist-site.browser.mjs`（§4 坑位 9） |
@@ -65,7 +70,7 @@
 ## 6. 待办（按优先级，接手即做）
 
 1. ~~**发布动作（人工，10 分钟）**~~ ✅ 已完成（2026-10-26）：`git push origin main` → CI 首绿（run 40274976842，Windows+Ubuntu 双 success；首跑失败的是 `ensureCoverDeps` 未接线，已修，见 §4 坑位 8）→ tag `v0.1.0` 移到修复提交 `bd7996e` 并推送 → Release 已发（https://github.com/blankwy/ExtCircuitJS/releases/tag/v0.1.0 ，正文取 CHANGELOG v0.1.0 段）。
-2. **外部 MCP 客户端验证（G4 补强，可选）**：按 `docs/mcp.md` §4 骨架接任一标准 stdio MCP 客户端跑通 8 组工具。当前等价覆盖 = ai-loop 全链路。
+2. ~~**外部 MCP 客户端验证（G4 补强）**~~ ✅ 已完成（2026-10-26）：查证后发现缺的不是「验证」而是**服务器本身**——`packages/mcp/src/index.ts` 只是骨架，`createAttachTransport` 直接抛 "not implemented yet"，任何标准 MCP 宿主都接不上（此前所有覆盖都是同进程 import `package/mcp`，摸得到 bridge 对象、绕过了协议）。现补：`node tools/ext.mjs mcp` = 零依赖 stdio 服务器（`stdio.ts` 协议层 + `backend.ts` 懒启动后端 + `dev-server.ts` 守护）；工具面补 `sim.step`（否则外部只能墙钟 `sim.run`，读数不可复现）。证据：`mcp-stdio.test.mjs` 11 例（纯 Node，进 CI）、`mcp-stdio.browser.mjs` 独立进程走纯协议跑通读→改→步进→测量→截图（V(n1)=4.80356 基线，改 2.2k 后 9.53785，退出码 0 且端口释放）。宿主配置见 `docs/mcp.md` §6。
 3. **spike/ 销账（人工裁决）**：`V:\Vibe\circuitjs1\spike\` 是 spike 期产物（在 git 仓库外），Mimosa 对它的历史发现（SSRF/代码注入/路径穿越，均为 spike 原型的 dist 产物与 Expr.ts）与本仓库无关——建议整目录归档移走或加入扫描豁免，否则本地每次 commit 都可能被拦。
 4. **CI 浏览器测试上云（可选）**：CI 现只跑 Node 侧；若要上浏览器测试，需在 CI 装 Chrome + playwright-core 并设 EXT_PW_CORE/EXT_CHROME。
 5. **可选功能债**：B08 Worker 沙箱插件（任务板标注可选）、C05 的 decodeCompact（spike 无对应解码器，未做）、probe op 的 ScopeElm 映射（v0.2）。

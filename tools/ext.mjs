@@ -11,6 +11,7 @@
  *   node tools/ext.mjs core <install|sync>
  *   node tools/ext.mjs netlist registry   从 core/ts 重生成 packages/netlist/src/registry.json
  *   node tools/ext.mjs netlist bench     373 语料紧凑编码基准 -> build/netlist-bench.json（需 dev server）
+ *   node tools/ext.mjs mcp                MCP stdio 服务器（给 MCP 宿主当 command 用，协议走 stdout）
  */
 import fs from "node:fs";
 import path from "node:path";
@@ -430,6 +431,18 @@ function netlist(argv) {
 
 // ─────────────────────────────────────────────────────────────── main
 
+// MCP 服务器：必须原样继承 stdin/stdout——协议帧走 stdout，本 CLI 的任何彩色
+// 日志都会把协议写坏，所以这里不打印任何东西（诊断由子进程走 stderr）。
+function mcp(argv) {
+    const cli = path.join(root, "packages", "mcp", "src", "cli.mjs");
+    if (!exists(cli)) {
+        console.error(c.err(`[ext] missing ${cli}`));
+        return 1;
+    }
+    const r = spawnSync(NODE, [cli, ...argv], { cwd: root, stdio: "inherit" });
+    return r.status ?? 1;
+}
+
 const [cmd, ...rest] = process.argv.slice(2);
 const table = {
     doctor: () => doctor(),
@@ -440,11 +453,12 @@ const table = {
     plugin: () => plugin(rest),
     core: () => core(rest),
     netlist: () => netlist(rest),
+    mcp: () => mcp(rest),
     help: () => { console.log(fs.readFileSync(fileURLToPath(import.meta.url), "utf8").split("*/")[0]); return 0; },
 };
 
 if (!cmd || !table[cmd]) {
-    console.error(c.err(`usage: node tools/ext.mjs <doctor|dev|build|test|cover|plugin|core>`));
+    console.error(c.err(`usage: node tools/ext.mjs <doctor|dev|build|test|cover|plugin|core|netlist|mcp>`));
     process.exit(1);
 }
 process.exit(table[cmd]());

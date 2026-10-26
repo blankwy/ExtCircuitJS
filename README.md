@@ -44,6 +44,9 @@ node tools/ext.mjs build
 # 5) 契约测试（真实 Chromium，需要本机 Chrome + playwright-core）
 node tests/contract/boot.browser.mjs
 node tests/contract/dist-site.browser.mjs   # 把 dist/ 当子路径站点真开一次（生产构建的验收）
+
+# 6) 接 AI 助手：MCP stdio 服务器（宿主拉起，自己管 dev server + 浏览器）
+node tools/ext.mjs mcp --help
 ```
 
 `doctor` 会检查：Node 版本、core.lock 与源码版本一致、cover manifest 文件齐全、插件 manifest、373 个语料 fixture。
@@ -81,7 +84,30 @@ GitHub Pages 由 `.github/workflows/pages.yml` 负责：`main` 每次推送都�
 实现上是一个 cover 层插件（`extSiteConfig`）：dev 用中间件拦入口 HTML 与 `circuitjs/about.html`，build 在 `finalizeForHosting` 里落到 `dist/`。同一处还负责补回 `cover/public/ext-cover.css` 的 `<link>`——那个文件是 A05 的影子覆盖样例，原先手写进 core 的 HTML，上游一同步就丢，现在每次由插件补。
 
 
-## 现在能跑什么（v0.1.0）
+## 接 AI 助手（MCP）
+
+`node tools/ext.mjs mcp` 是一个标准 **MCP stdio 服务器**（换行分隔 JSON-RPC），任何 MCP 宿主
+（Claude Desktop / Codebuddy / Cursor…）配一段命令即可：
+
+```json
+{
+  "mcpServers": {
+    "ext-circuitjs": {
+      "command": "node",
+      "args": ["<仓库绝对路径>/tools/ext.mjs", "mcp"]
+    }
+  }
+}
+```
+
+宿主拉起后它**自己管后端**：探活 dev server（不可达就拉起，退出时回收进程树）→ headless Chrome 打开页面
+→ 注入页面桥 → 工具调用落在同一活电路上。握手阶段不起浏览器；找不到浏览器时错误以工具结果返回，不会让
+服务器启动失败。工具面 11 个：读网表 / 载入 / 列元件 / 改参数 / `sim.step`（确定性推进）/ run / stop / reset /
+读测量 / 读 scope / 截图。
+
+细节、宿主配置的可选项与排障见 [docs/mcp.md](docs/mcp.md) §6。
+
+## 现在能跑什么（v0.1.1）
 
 | 能力 | 状态 | 入口 |
 |---|---|---|
@@ -93,8 +119,9 @@ GitHub Pages 由 `.github/workflows/pages.yml` 负责：`main` 每次推送都�
 | 紧凑编码（聚合 0.26× XML）+ registry 再生成 CLI | ✅ | `packages/netlist/src/compact.ts；ext netlist registry/bench` |
 | add between nets（导线分裂增量放置，自校验回滚） | ✅ | `packages/netlist/src/place.ts` |
 | 菜单插槽（自定义元件进 Draw/右键菜单） | ✅ | `cover/ts/ExtMenus.ts` |
-| MCP：会话 RPC + WebSocket 桥 + 10 工具 + ai-loop demo | ✅ | `packages/mcp`、[docs/mcp.md](docs/mcp.md) |
-| CI（Windows+Ubuntu：doctor/build/lint/scan + Node 契约） | ✅ 本地自证 | `.github/workflows/ci.yml` |
+| MCP：stdio 服务器 + 会话 RPC + WebSocket 桥 + 11 工具 | ✅ | `node tools/ext.mjs mcp`、[docs/mcp.md](docs/mcp.md) §6 |
+| 静态部署（任意前缀）+ 站点配置（标题/关于页） | ✅ | `dist/`、`cover/site.config.json` |
+| CI（Windows+Ubuntu：doctor/build/lint/scan + Node 契约） | ✅ | `.github/workflows/ci.yml` |
 | 无头求解器 / Worker 沙箱 / 自动布局 | ⬜ 非 v1 目标 | [docs/development-plan.md](docs/development-plan.md) §5.2 |
 
 浏览器里试：

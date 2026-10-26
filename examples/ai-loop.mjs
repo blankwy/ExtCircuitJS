@@ -12,12 +12,11 @@
 //   页面内桥 ExtMcpBridge（cover/ts/ExtMcpBridge.ts，动态 import 后挂
 //   window.ExtCircuitJS.mcp）→ 真实引擎（不改 core 仿真循环）。
 //
-// 步进确定性 = G2 配方：页面桥的 step RPC 内部冻结 Date.now 并手动驱动
-// analyzeCircuit → preStampAndStampCircuit → runCircuit 帧循环（与
+// 步进确定性 = G2 配方：sim.step 工具背后的页面桥 step RPC 内部冻结 Date.now 并手动
+// 驱动 analyzeCircuit → preStampAndStampCircuit → runCircuit 帧循环（与
 // tests/contract/netlist-g2.browser.mjs 的 stepFor 同款，见 ExtMcpBridge.ts
-// runFor/analyzeNow）。工具面没有确定性 step 工具（sim.run 是墙钟实时步进，
-// 确定性不成立），故 demo 与 mcp-tools.browser.test.mjs 的 setup 一样直接用
-// 桥的 step RPC 推进 2ms。
+// runFor/analyzeNow）。v0.1.1 起工具面自带 sim.step，demo 不再绕过工具面直连桥
+// （sim.run 是墙钟实时步进，确定性不成立，不能用来对拍数值）。
 //
 // 两个场景各自重新载入 lrc.txt（全新实例、干净初始条件、时间轴归零，G2 门禁
 // 同款）：基线 R=10Ω 与改参 R=2.2kΩ 的电压落在同一 t≈2ms 点上，ΔV 只反映参数。
@@ -142,11 +141,11 @@ try {
             applied = sr.applied;
         }
 
-        // 跑 2ms：桥 step = G2 配方（冻结 Date.now + analyzeCircuit →
-        // preStampAndStampCircuit → runCircuit 帧循环），页面侧确定性拉取
-        const step = await bridge.request("step",
-            { sessionId: tools.id, params: { seconds: 0.002 }, timeoutMs: 60_000 });
-        if (step == null || step.ok !== true) fail(`step 失败: ${JSON.stringify(step)}`);
+        // 跑 2ms：sim.step = 桥 step 的同款配方（冻结 Date.now + analyzeCircuit →
+        // preStampAndStampCircuit → runCircuit 帧循环），页面侧确定性拉取。
+        // v0.1.1 起它已在工具面上（此前 demo 得绕过工具面直连桥）。
+        const step = await tools.call("sim.step", { seconds: 0.002 });
+        if (step == null || step.ok !== true) fail(`sim.step 失败: ${JSON.stringify(step)}`);
 
         // 读电压：sim.read_measurements（无过滤 = 全网 voltage）
         const meas = mustOk("sim.read_measurements", await tools.call("sim.read_measurements"));

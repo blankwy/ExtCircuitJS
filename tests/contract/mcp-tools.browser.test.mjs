@@ -60,8 +60,10 @@ function probeServer(url) {
 
 // ── 1) 工具层（不经浏览器）：声明 + 校验 + 结构化失败 ───────────────────────
 
-test("工具层：10 工具声明齐全；unknown_tool / invalid_args / bridge_unavailable 结构化返回不抛异常", { timeout: 30_000 }, async () => {
-    // 任务卡清单逐一对齐（zcode-goal_step.md Stage 5 步骤 3）
+test("工具层：11 工具声明齐全；unknown_tool / invalid_args / bridge_unavailable 结构化返回不抛异常", { timeout: 30_000 }, async () => {
+    // 任务卡清单逐一对齐（zcode-goal_step.md Stage 5 步骤 3）；
+    // v0.1.1 增补 sim.step —— 任务卡原清单只有墙钟 sim.run，外部 MCP 客户端
+    // 拿不到可复现的推进，读数无法对拍（见 HANDOVER §6 待办 2）。
     assert.deepEqual(
         MCP_TOOLS.map((t) => t.name),
         [
@@ -71,12 +73,13 @@ test("工具层：10 工具声明齐全；unknown_tool / invalid_args / bridge_u
             "circuit.set_param",
             "sim.run",
             "sim.stop",
+            "sim.step",
             "sim.reset",
             "sim.read_measurements",
             "sim.read_scope",
             "schematic.screenshot",
         ],
-        "工具清单必须与任务卡一致",
+        "工具清单必须与任务卡一致（含 v0.1.1 增补的 sim.step）",
     );
     for (const t of MCP_TOOLS) {
         assert.equal(t.inputSchema.type, "object", `${t.name} 的 inputSchema 必须是 object schema`);
@@ -264,11 +267,11 @@ test("sim.reset：t=0、步数清零、保持会话接管（paused）", { timeou
 });
 
 test("sim.read_measurements：确定性步进 2ms 后读全网电压 + 元件电流（地网络恒 0）", { timeout: 120_000 }, async () => {
-    // 确定性推进用 D02 已契约测试过的 step RPC（setup，不属被测工具）；
-    // scope 缓冲分配依赖页面 repaint 一次 updateCircuit，稍等再步进
+    // 确定性推进改走被测工具 sim.step（v0.1.1 起工具面自带，外部客户端不再需要
+    // 直连桥的 step RPC）；scope 缓冲分配依赖页面 repaint 一次 updateCircuit，稍等再步进
     await page.waitForTimeout(150);
-    const step = await bridge.request("step", { sessionId: tools.id, params: { seconds: 0.002 }, timeoutMs: 60_000 });
-    assert.equal(step.ok, true, `setup step 失败: ${JSON.stringify(step)}`);
+    const step = record("sim.step", await tools.call("sim.step", { seconds: 0.002 }));
+    assert.equal(step.ok, true, `step 失败: ${JSON.stringify(step)}`);
 
     const r = record("sim.read_measurements", await tools.call("sim.read_measurements"));
     assert.equal(r.quantity, "voltage");
@@ -321,7 +324,7 @@ test("schematic.screenshot：png dataURL 与 svg 文本两种格式", { timeout:
     assert.ok(svg.data.includes("<svg"), "svg 导出必须含 <svg 根元素");
 });
 
-test("收尾：同一会话全程存活；工具覆盖 10/10；无 pageerror", { timeout: 30_000 }, async () => {
+test("收尾：同一会话全程存活；工具全覆盖；无 pageerror", { timeout: 30_000 }, async () => {
     const seen = new Set(toolRecords.map((r) => r.tool));
     const missing = MCP_TOOLS.map((t) => t.name).filter((n) => !seen.has(n));
     assert.deepEqual(missing, [], `每工具至少一次成功调用，缺: ${missing.join(", ")}`);

@@ -1,5 +1,42 @@
 # Changelog
 
+## v0.1.1（未发布，tag 待维护者打）
+
+这一版把 v0.1.0 之后「只有真部署 / 真宿主才会暴露」的缺口补齐：静态站能不能当网站用、
+站点信息能不能配、外部 MCP 客户端能不能直接接。
+
+### 部署（GitHub Pages 可用）
+- `dist/` 是可挂任意前缀的静态站：构建期把 HTML/`manifest.json` 的绝对路径改相对，
+  生成 `index.html`（站点根直接进仿真器）、`.nojekyll`、`service-worker.js`（此前生产页面每次报 SW 404）
+- `cover/ts/ExtPluginHost.ts`：三处硬编码 `/plugins/` 改为按 `document.baseURI` 推导（子路径下才不 404）
+- `tools/coverOverlay.mjs`：交还打包器的 id 统一正斜杠——修掉 Windows 上「同一源码成为两个模块、
+  `dist` 里两个 `CirSim` 类、启动即 TypeError」的生产构建缺陷（**dev 全绿 ≠ dist 能用**）
+- `.github/workflows/pages.yml`（main 自动部署）；`ci.yml` 保留双平台 dist artifact
+- 站点域名不进仓库：产物不含 `CNAME`，构建脚本不读任何站点地址
+
+### 站点配置（`cover/site.config.json`）
+- `title`（运行时标题基名）/ `htmlTitle` / `description` / `homeurl` / `about.{heading,html}`
+- dev 与 build 共用一条注入路径（`extSiteConfig()` 插件）；改完刷新即生效；全留空 = 产物与上游逐字一致
+- 「关于」页的自定义内容插在正文最前，上游 GPL/第三方许可段落原样保留
+
+### MCP（外部宿主可直接接）
+- **新增 stdio 服务器**：`node tools/ext.mjs mcp`（`packages/mcp/src/{stdio,backend,dev-server,server}.ts`），
+  零依赖实现 MCP JSON-RPC（initialize 版本协商 / tools/list / tools/call / ping），
+  任何 MCP 宿主按 `docs/mcp.md §6` 的配置即可接入
+- 后端**懒启动**且自管理：探活 dev server（不可达则拉起，退出时回收进程树）→ headless Chrome 打开页面
+  → 注入页面桥 → 会话式工具集；浏览器缺失时以 `isError` 工具结果暴露，而不是让服务器启动失败
+- **新增工具 `sim.step`**（`steps` | `seconds`）：确定性推进，外部客户端终于能对拍数值
+  （此前工具面只有墙钟 `sim.run`，读数不可复现）；`examples/ai-loop.mjs` 与 mcp-tools 契约同步改用它
+- `packages/mcp/src/index.ts` 从骨架（含 `createAttachTransport` 未实现桩与重复工具清单）改为真入口
+
+### 测试
+- 新增 `tests/contract/mcp-stdio.test.mjs`（11 例，纯 Node，进 CI）：握手/协商/工具清单/未知工具与方法的错误码/
+  坏帧/串行/截图 image content/stop 等在途
+- 新增 `tests/contract/mcp-stdio.browser.mjs`（端到端）：独立进程 + 纯协议跑通「载入 → 读网表 → 改参数 →
+  确定性步进 → 读电压 → 截图」，并断言 dev server 由服务器自己拉起、退出后端口释放
+- 新增 `tests/contract/dist-site.browser.mjs`、`site-config.test.mjs`（见上两节）
+- `tools/ts-resolve.mjs` 上移为公共加载钩子（测试侧保留 re-export shim），运行时与测试共用一份
+
 ## v0.1.0（2026-10-26）
 
 ExtCircuitJS 首个发布：CircuitJS1 二开——core 只读 + cover 覆盖层 + plugins 宿主 + packages API 四层结构，AI 友好网表读写全链路。

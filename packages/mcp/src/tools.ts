@@ -29,6 +29,7 @@ export type McpToolName =
     | "circuit.set_param"
     | "sim.run"
     | "sim.stop"
+    | "sim.step"
     | "sim.reset"
     | "sim.read_measurements"
     | "sim.read_scope"
@@ -92,6 +93,22 @@ export const MCP_TOOLS: McpToolSpec[] = [
         name: "sim.stop",
         description: "暂停宿主实时步进，时间轴回到会话显式 step 独占",
         inputSchema: { type: "object", properties: {} },
+    },
+    {
+        name: "sim.step",
+        // 确定性入口：页面桥内部冻结 Date.now，按 G2 配方手动驱动
+        // analyzeCircuit → preStampAndStampCircuit → runCircuit 帧循环，同一电路同一
+        // 步数必得同一电压。sim.run 走墙钟，外部调用方无法用它对拍。
+        description:
+            "确定性推进仿真：steps（整数步数）与 seconds（按固定假步长折算）二选一；" +
+            "返回 {t, timeStepCount}。与 sim.run 的墙钟步进互斥使用",
+        inputSchema: {
+            type: "object",
+            properties: {
+                steps: { type: "integer", description: "推进的引擎步数（正整数）" },
+                seconds: { type: "number", description: "按仿真时间推进（秒，正数）" },
+            },
+        },
     },
     {
         name: "sim.reset",
@@ -308,6 +325,18 @@ export class AttachToolset {
                 return (await req("sim_run")) as ToolResult;
             case "sim.stop":
                 return (await req("sim_stop")) as ToolResult;
+            case "sim.step": {
+                // 二选一在工具层先挡（页面桥也会判，但这里给出更早、更明确的 invalid_args）
+                const hasSteps = args.steps !== undefined;
+                const hasSeconds = args.seconds !== undefined;
+                if (hasSteps === hasSeconds) {
+                    return fail("invalid_args", "sim.step 需要 steps 或 seconds 之一（且只能一个）");
+                }
+                const params: any = {};
+                if (hasSteps) params.steps = args.steps;
+                if (hasSeconds) params.seconds = args.seconds;
+                return (await req("step", params)) as ToolResult;
+            }
             case "sim.reset":
                 return (await req("sim_reset")) as ToolResult;
             case "sim.read_measurements": {

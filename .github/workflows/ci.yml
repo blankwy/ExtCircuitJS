@@ -50,6 +50,8 @@ jobs:
         run: node tools/ext.mjs cover scan --json build/cover-scan.json
 
       - name: Contract tests (Node-side, no browser)
+        # 只列不依赖浏览器的文件：*.browser.test.mjs 需要本机 Chrome + playwright-core，
+        # 不能在 runner 上跑（见 docs/development-plan.md）。新增纯 Node 契约记得加到这里。
         run: >
           node --test
           tests/contract/element-factory.test.mjs
@@ -58,3 +60,5 @@ jobs:
           tests/contract/fiber.test.mjs
           tests/contract/events.test.mjs
           tests/contract/mcp-session.test.mjs
+          tests/contract/mcp-stdio.test.mjs
+          tests/contract/site-config.test.mjs
