@@ -5,6 +5,9 @@
 > 上游基线：`e952e78` / `5.0.3ts` / 全 TypeScript + Vite（无 Java/GWT）。
 > 许可证：GPL-2.0-or-later（见 `core/COPYING.txt`；上游 `ts/package.json` 的 ISC 标注不作数）。
 
+**在线体验**：<https://blog.binarydev.top/ExtCircuitJS/>（GitHub Pages，跟随账户的 Pages 自定义域；
+`blankwy.github.io/ExtCircuitJS/` 会 301 到同一地址）
+
 ## 四层结构
 
 ```
@@ -39,9 +42,20 @@ node tools/ext.mjs build
 
 # 5) 契约测试（真实 Chromium，需要本机 Chrome + playwright-core）
 node tests/contract/boot.browser.mjs
+node tests/contract/dist-site.browser.mjs   # 把 dist/ 当子路径站点真开一次（生产构建的验收）
 ```
 
 `doctor` 会检查：Node 版本、core.lock 与源码版本一致、cover manifest 文件齐全、插件 manifest、373 个语料 fixture。
+
+## 静态部署（GitHub Pages 等）
+
+`node tools/ext.mjs build` 的 `dist/` 就是一个**可以直接挂在任意子路径**下的静态站，不需要改 `base`：
+
+- 构建收尾（`cover/vite.cover.config.ts` 的 `finalizeForHosting`）会把 HTML 里的绝对 `href/src`、`circuit/manifest.json` 的 `start_url`/图标全改成相对路径，并补上 `index.html`（站点根直接进仿真器）、`favicon` 引用、`.nojekyll`；
+- 插件根不是 bundle 同级目录，`cover/ts/ExtPluginHost.ts` 用 `document.baseURI` 推 `plugins/`，所以在 `/<repo>/plugins/` 下也能加载；
+- `service-worker.js` 由构建从上游 `core/ts/service-worker.template.js` 生成（上游这一步在 `dist.sh` 里），首访会预缓存约 425 个文件 / 3.3 MB，之后可离线打开。
+
+GitHub Pages 由 `.github/workflows/pages.yml` 负责：`main` 每次推送都构建并 deploy（首次使用需在仓库 **Settings → Pages → Source** 选 “GitHub Actions”）。`ci.yml` 也会把两平台的 `dist/` 作为 artifact 保留 7 天，方便直接下载静态包。
 
 ## 现在能跑什么（v0.1.0）
 

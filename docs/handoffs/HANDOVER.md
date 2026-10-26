@@ -44,6 +44,8 @@
 6. **registry 统计以现存为准**：255 类 / txtType 124 / slots 86；重生成必须 diff 为空（`ext netlist registry` 跑两次对比）。
 7. **worker 额度/并发**：GLM 免费额度已耗尽（Start Plan code 1005）；同一 provider 并发派发会撞 "model concurrency limit"（失败≠未执行，先查 git status 与工作区）。
 8. **`cover/node_modules` 是隐式前置**（CI 首绿时踩过）：仓库根没有 node_modules，依赖只装在 `core/ts`；vite 加载 `cover/vite.cover.config.ts` 时要能从 `cover/` 解析到 `vitest`/`vite`，靠 `tools/ext.mjs` 的 `ensureCoverDeps()` 建 junction（已被 dev/build 自动调用、doctor 有 WARN 行）。该链接被 .gitignore 忽略——**手工建它不会进版本库**，不要靠手工兜底；若再次出现 `ERR_MODULE_NOT_FOUND: vitest`，先看这行有没有被跳过。
+9. **模块 id 必须是正斜杠**（Pages 部署时踩过，v0.1.0 的 dist 因此是坏的）：`tools/coverOverlay.mjs` 是 `enforce: 'pre'` 的解析器，交还的 id 直接决定模块身份。Windows 上 `path.join` 的反斜杠与 Vite 的正斜杠会被当成两个模块 → `dist` 里同一份源码出现两份实例（实测两个 `CirSim` 类，`registerElements` 的 `CirSim.theApp` 属于另一份，启动即 `TypeError ... reading 'register'`）。新增解析分支一律 `toId()`。**dev 全绿≠dist 能用**：产物必须真当站点打开一次（把 `dist/` 挂到带前缀的静态服务，用 Chrome 断言 `window.ExtCircuitJS` + 站内 0 个 404）。
+10. **`dist/` 出问题先看是不是上游部署脚本的活**：`index.html`、`service-worker.js` 上游都由 `dist.sh` 生成，不在源码里；我们改由 `cover/vite.cover.config.ts` 的 `finalizeForHosting()` 统一产出（含绝对路径转相对），别再手工往 dist 里塞文件。
 
 ## 5. 测试地图（改哪里跑什么）
 
@@ -54,6 +56,8 @@
 | packages/mcp/* | `mcp-session` + `mcp-bridge` + `mcp-tools`（浏览器）+ `examples/ai-loop.mjs` |
 | plugins/* | `ext plugin lint` + `plugins-smoke.browser.test.mjs` |
 | tools/ext.mjs | doctor + 受影响子命令的手工验证 |
+| tools/coverOverlay.mjs | `ext build` + 上表浏览器契约（dev 走同一解析器）+ `dist-site.browser.mjs`（§4 坑位 9） |
+| cover/vite.cover.config.ts（产物收尾） | `ext build` + `node tests/contract/dist-site.browser.mjs`（把 dist 挂在 `/<prefix>/` 下真开一次：`window.ExtCircuitJS` 就绪、插件全 ready、站内 0 个 404、V(n1) 与 G2 基线一致） |
 
 ## 6. 待办（按优先级，接手即做）
 
@@ -63,6 +67,7 @@
 4. **CI 浏览器测试上云（可选）**：CI 现只跑 Node 侧；若要上浏览器测试，需在 CI 装 Chrome + playwright-core 并设 EXT_PW_CORE/EXT_CHROME。
 5. **可选功能债**：B08 Worker 沙箱插件（任务板标注可选）、C05 的 decodeCompact（spike 无对应解码器，未做）、probe op 的 ScopeElm 映射（v0.2）。
 6. **上游同步（当 pfalstad/circuitjs1 有新 commit 时）**：流程见 `ext core sync` 输出的三步（clone → cover scan --core → rebase cover/ + 更新 core.lock/manifest）；演练工具 `ext core sync-drill` 已验证 scan 判定。
+7. ~~**静态部署**~~ ✅ 已完成（2026-10-26）：`dist/` 已是可挂子路径的静态站（构建期相对化 + `index.html` + `.nojekyll` + `service-worker.js`），`.github/workflows/pages.yml` 在 main 上自动部署，线上 https://blog.binarydev.top/ExtCircuitJS/ （账户级 Pages 自定义域，github.io 301 过去）。首次启用需 Settings → Pages → Source = GitHub Actions（已用 API 设好 `build_type=workflow`）。
 
 ## 7. 纪律（沿用 goal 手册，对任何执行者有效）
 
