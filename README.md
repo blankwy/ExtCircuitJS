@@ -58,6 +58,29 @@ node tests/contract/dist-site.browser.mjs   # 把 dist/ 当子路径站点真开
 
 GitHub Pages 由 `.github/workflows/pages.yml` 负责：`main` 每次推送都构建并 deploy（首次使用需在仓库 **Settings → Pages → Source** 选 “GitHub Actions”）。`ci.yml` 也会把两平台的 `dist/` 作为 artifact 保留 7 天，方便直接下载静态包。
 
+## 站点配置（标题 / 关于页 / 描述）
+
+改 `cover/site.config.json` 一个文件即可，`dev` 和 `build` 走同一套逻辑，**dev 下改完刷新页面就生效**（不用重启）：
+
+| 字段 | 作用 | 缺省值（= 上游原样） |
+|---|---|---|
+| `title` | 运行时标题基名，标签页显示 `<电路名> - <title>` | `Circuit Simulator` |
+| `htmlTitle` | 静态 `<title>`（首屏、SEO、分享卡片） | `CircuitJS` |
+| `description` | `<meta name="description">`，留空则不注入 | `""` |
+| `homeurl` | 关于页底部的「返回主页」链接，留空则不显示 | `""` |
+| `about.heading` | 关于页自定义内容的小标题 | `""` |
+| `about.html` | 关于页自定义内容（原样插入的 HTML） | `""` |
+
+几条规则：
+
+- **关于页的自定义内容插在正文最前面**，上游的 GPL 与第三方许可声明原样保留在下面——那是许可证要求，不能被自定义内容顶掉。
+- 全部留空时，产物与上游**逐字一致**（入口 HTML 只多一个 `data-ext-site-title` 属性），所以这个文件同时是「什么都不配就照旧」的开关。
+- `title`/`htmlTitle`/`description`/`homeurl`/`about.heading` 都做 HTML 转义；`about.html` 不转义（它就是给你写 HTML 的）。
+- **这里不写域名。** 站点挂在哪个域名、用不用 CDN，属于部署侧的事，程序与产物都不应该知道。
+
+实现上是一个 cover 层插件（`extSiteConfig`）：dev 用中间件拦入口 HTML 与 `circuitjs/about.html`，build 在 `finalizeForHosting` 里落到 `dist/`。同一处还负责补回 `cover/public/ext-cover.css` 的 `<link>`——那个文件是 A05 的影子覆盖样例，原先手写进 core 的 HTML，上游一同步就丢，现在每次由插件补。
+
+
 ## 现在能跑什么（v0.1.0）
 
 | 能力 | 状态 | 入口 |

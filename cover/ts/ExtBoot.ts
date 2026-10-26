@@ -4,6 +4,7 @@
 import { ExtApi } from "./ExtApi";
 import { ExtEvents, wireAppEvents } from "./ExtEvents";
 import { PluginHost } from "./ExtPluginHost";
+import { applySiteConfig } from "./SiteConfig";
 
 export interface ExtRuntime {
     api: ExtApi;
@@ -20,6 +21,10 @@ export function getExtRuntime(): ExtRuntime | null {
 
 export async function ExtBoot(app: any): Promise<ExtRuntime> {
     if (runtime) return runtime;
+
+    // 站点配置：把 cover/site.config.json 的 title 落成运行时标题基名（在插件装载之前，
+    // 让任何插件看到的就是最终标题）
+    applySiteConfig(app);
 
     const events = new ExtEvents();
     const unwire = wireAppEvents(app, events);

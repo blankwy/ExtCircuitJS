@@ -46,6 +46,8 @@
 8. **`cover/node_modules` 是隐式前置**（CI 首绿时踩过）：仓库根没有 node_modules，依赖只装在 `core/ts`；vite 加载 `cover/vite.cover.config.ts` 时要能从 `cover/` 解析到 `vitest`/`vite`，靠 `tools/ext.mjs` 的 `ensureCoverDeps()` 建 junction（已被 dev/build 自动调用、doctor 有 WARN 行）。该链接被 .gitignore 忽略——**手工建它不会进版本库**，不要靠手工兜底；若再次出现 `ERR_MODULE_NOT_FOUND: vitest`，先看这行有没有被跳过。
 9. **模块 id 必须是正斜杠**（Pages 部署时踩过，v0.1.0 的 dist 因此是坏的）：`tools/coverOverlay.mjs` 是 `enforce: 'pre'` 的解析器，交还的 id 直接决定模块身份。Windows 上 `path.join` 的反斜杠与 Vite 的正斜杠会被当成两个模块 → `dist` 里同一份源码出现两份实例（实测两个 `CirSim` 类，`registerElements` 的 `CirSim.theApp` 属于另一份，启动即 `TypeError ... reading 'register'`）。新增解析分支一律 `toId()`。**dev 全绿≠dist 能用**：产物必须真当站点打开一次（把 `dist/` 挂到带前缀的静态服务，用 Chrome 断言 `window.ExtCircuitJS` + 站内 0 个 404）。
 10. **`dist/` 出问题先看是不是上游部署脚本的活**：`index.html`、`service-worker.js` 上游都由 `dist.sh` 生成，不在源码里；我们改由 `cover/vite.cover.config.ts` 的 `finalizeForHosting()` 统一产出（含绝对路径转相对），别再手工往 dist 里塞文件。
+11. **cover 层的东西不要手写进 core 的 HTML**：`core/ts/circuitjs.html` 是上游文件，同步时会被整份覆盖。A05 的 `cover/public/ext-cover.css` 就是这样失效的——Stage 1 验收时页面里确实注入了 `<link>`、能读到 `--ext-accent`，但那个 link 是手写进 core 的，上游一同步就没了，之后文件一直躺在 `dist/` 里却没有任何页面引用它。凡是「要出现在页面里的 cover 资产或配置」，一律走 `extSiteConfig()` 插件注入（dev 中间件 + build 收尾同一份逻辑），不改 core 的 html。
+12. **`coverRoot` ≠ `cover` 目录**：`cover/vite.cover.config.ts` 里的 `coverRoot` 是 `cover/ts`（TS 源码根），而 `cover/site.config.json` 在 `cover/` 下（变量名 `coverDir = here`）。配置读错目录不会报错，只会静默生效成默认值——改完配置先 `curl` 一下入口 HTML 看 `data-ext-site-title` 有没有变。
 
 ## 5. 测试地图（改哪里跑什么）
 
@@ -58,6 +60,7 @@
 | tools/ext.mjs | doctor + 受影响子命令的手工验证 |
 | tools/coverOverlay.mjs | `ext build` + 上表浏览器契约（dev 走同一解析器）+ `dist-site.browser.mjs`（§4 坑位 9） |
 | cover/vite.cover.config.ts（产物收尾） | `ext build` + `node tests/contract/dist-site.browser.mjs`（把 dist 挂在 `/<prefix>/` 下真开一次：`window.ExtCircuitJS` 就绪、插件全 ready、站内 0 个 404、V(n1) 与 G2 基线一致） |
+| cover/site.config.json（站点配置） | `node --test tests/contract/site-config.test.mjs`（默认值零改动 / 注入幂等 / 许可段落保留 / 转义）+ dev 下改配置刷新一次看标签页标题与「关于」 |
 
 ## 6. 待办（按优先级，接手即做）
 

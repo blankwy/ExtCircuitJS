@@ -16,11 +16,14 @@ import { fileURLToPath } from "node:url";
 import type { IncomingMessage, ServerResponse } from "node:http";
 import base from "../core/ts/vite.config";
 import { coverOverlay } from "../tools/coverOverlay.mjs";
+import { loadSiteConfig, applyToEntryHtml, applyToAboutHtml } from "../tools/siteConfig.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(here, "..");
 const coreRoot = path.join(repoRoot, "core", "ts");
 const coverRoot = path.join(here, "ts");
+// 站点配置（cover/site.config.json）在 cover 根，和 TS 源码目录不是同一层
+const coverDir = here;
 const pluginsDir = path.join(repoRoot, "plugins");
 const outDir = path.join(repoRoot, "dist");
 const assetsDir = "circuitjs";
@@ -68,6 +71,42 @@ function servePlugins() {
         },
     };
 }
+
+/**
+ * 站点配置注入（dev + build 同一条路径）。
+ *
+ * 用户只改 `cover/site.config.json`（title / htmlTitle / description / homeurl / about），
+ * 这里负责把它落到入口 HTML 与关于页上；dev 与 build 行为必须一致，否则用户改完配置
+ * 在 dev 看是对的、部署出去又不是。
+ *
+ * 顺带补回 cover 层自己的公共样式引用：`cover/public/ext-cover.css` 是 A05 的影子覆盖样例，
+ * 原先靠手写进 core 的 circuitjs.html，上游一同步就没了——引用改由本插件每次补。
+ */
+function extSiteConfig() {
+    return {
+        name: "ext-site-config",
+        transformIndexHtml(html: string, ctx: any) {
+            // 只处理主入口：iframe.html / jsinterface.html 是上游的辅助页，不该被站点标题污染
+            const cfg = loadSiteConfig(coverDir);
+            const coverCssHref = ctx?.server ? "/ext-cover.css" : `/${assetsDir}/ext-cover.css`;
+            return applyToEntryHtml(html, cfg, { coverCssHref });
+        },
+        configureServer(server: any) {
+            // dev 下 AboutBox 的 iframe 直接请求 core/ts/circuitjs/about.html（Vite 静态服务），
+            // 拦一层做注入，保证和构建产物一致。
+            server.middlewares.use((req: IncomingMessage, res: ServerResponse, next: () => void) => {
+                if (req.method !== "GET" || !req.url) return next();
+                if (decodeURIComponent(req.url.split("?")[0]!) !== "/circuitjs/about.html") return next();
+                const src = path.join(coreRoot, "circuitjs", "about.html");
+                if (!fs.existsSync(src)) return next();
+                res.setHeader("Content-Type", "text/html; charset=utf-8");
+                res.setHeader("Cache-Control", "no-store");
+                res.end(applyToAboutHtml(fs.readFileSync(src, "utf8"), loadSiteConfig(coverDir)));
+            });
+        },
+    };
+}
+
 
 /**
  * 静态托管收尾（GitHub Pages 等**子路径**部署：站点挂在 /<repo>/ 下）。
@@ -138,6 +177,13 @@ function finalizeForHosting() {
         const html = fs.readFileSync(p, "utf8");
         if (html.includes('rel="icon"')) continue;
         fs.writeFileSync(p, html.replace("</head>", '  <link rel="icon" href="./favicon.ico">\n</head>'));
+    }
+
+    // 关于页：自定义内容插在正文最前面，上游的 GPL/第三方许可声明原样留在下面。
+    // （dev 由 extSiteConfig 的中间件做同样的事，两边共用 tools/siteConfig.mjs 的同一个函数）
+    const aboutPath = path.join(outDir, "circuitjs", "about.html");
+    if (fs.existsSync(aboutPath)) {
+        fs.writeFileSync(aboutPath, applyToAboutHtml(fs.readFileSync(aboutPath, "utf8"), loadSiteConfig(coverDir)));
     }
 
     writeServiceWorker();
@@ -238,6 +284,7 @@ export default defineConfig({
         ...(baseCfg.plugins ?? []).filter((p: any) => p?.name !== "copy-public-assets"),
         coverOverlay({ coreRoot, coverRoot, coverPublicDir: path.join(here, "public"), assetsDir, outDir }),
         servePlugins(),
+        extSiteConfig(),
         copyAssetsToDist(),
     ],
     resolve: {
