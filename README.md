@@ -43,17 +43,20 @@ node tests/contract/boot.browser.mjs
 
 `doctor` 会检查：Node 版本、core.lock 与源码版本一致、cover manifest 文件齐全、插件 manifest、373 个语料 fixture。
 
-## 现在能跑什么（v0.1 骨架）
+## 现在能跑什么（v0.1.0）
 
 | 能力 | 状态 | 入口 |
 |---|---|---|
-| 覆盖层构建/热更新/类型检查 | ✅ | `cover/vite.cover.config.ts`、`cover/tsconfig.cover.json` |
-| Boot 暴露 `window.ExtCircuitJS` | ✅ | `cover/ts/ExtBoot.ts` |
+| 覆盖层构建/热更新/类型检查 | ✅ | `cover/vite.cover.config.ts` |
+| Boot 暴露 window.ExtCircuitJS | ✅ | `cover/ts/ExtBoot.ts` |
 | API：读网表 / 列元件 / 测量 / 改参数 / 载入电路 | ✅ | `cover/ts/ExtApi.ts` |
-| 插件：activate / deactivate / 热重载 / 失败回滚 / 命令 / 面板 | ✅ | `cover/ts/ExtPluginHost.ts`、`packages/plugin-api` |
-| 网表导出（引擎 `nodeList` 权威）+ `set/delete` ops | ✅ | `packages/netlist` |
-| `add between nets`（增量放置） | ⬜ 设计已定，待实现 | 见 [docs/format-strategy.md](docs/format-strategy.md) §5 |
-| MCP server（会话 RPC） | ⬜ 接口骨架 | `packages/mcp` |
+| 插件：activate / deactivate / 热重载 / 失败回滚 / 命令 / 面板 | ✅ | `cover/ts/ExtPluginHost.ts、packages/plugin-api` |
+| 网表导出（引擎 nodeList 权威）+ 稳定 id + set/delete ops | ✅ | `packages/netlist` |
+| 紧凑编码（聚合 0.26× XML）+ registry 再生成 CLI | ✅ | `packages/netlist/src/compact.ts；ext netlist registry/bench` |
+| add between nets（导线分裂增量放置，自校验回滚） | ✅ | `packages/netlist/src/place.ts` |
+| 菜单插槽（自定义元件进 Draw/右键菜单） | ✅ | `cover/ts/ExtMenus.ts` |
+| MCP：会话 RPC + WebSocket 桥 + 10 工具 + ai-loop demo | ✅ | `packages/mcp`、[docs/mcp.md](docs/mcp.md) |
+| CI（Windows+Ubuntu：doctor/build/lint/scan + Node 契约） | ✅ 本地自证 | `.github/workflows/ci.yml` |
 | 无头求解器 / Worker 沙箱 / 自动布局 | ⬜ 非 v1 目标 | [docs/development-plan.md](docs/development-plan.md) §5.2 |
 
 浏览器里试：
