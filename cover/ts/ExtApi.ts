@@ -85,7 +85,10 @@ export class ExtApi {
     }
 
     // ── 事件 ──────────────────────────────────────────────────────────────
-    on(name: "analyze" | "update" | "timestep" | "svgren", h: (payload?: any) => void): () => void {
+    on(
+        name: "analyze" | "update" | "timestep" | "svgren" | "select" | "elemclick",
+        h: (payload?: any) => void,
+    ): () => void {
         return this.events.on(name, h);
     }
 }

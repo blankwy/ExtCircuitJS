@@ -1,5 +1,44 @@
 # Changelog
 
+## v0.1.3（未发布）
+
+插件补齐了"用户动作"这一层：**打开/保存**可以介入并改写文本，**选中/点击元件**有事件了。
+此前插件只能订阅仿真事件，用户开档、存档、选元件对它完全不可见。
+
+### 打开 / 保存钩子（`ctx.hook`）
+- 新增 `cover/ts/ExtHooks.ts`：包住 `loader.readCircuit` 与 `app.dumpCircuit`
+  —— 上游所有读写入口（文件、URL、剪贴板、导入、保存、导出、撤销、崩溃恢复）都汇到这两个方法
+- 每次回调带 `meta.source`：`document`（用户真的在开/存）/ `undo` / `recovery` / `paste` / `internal`
+  （`isModified` 的文本比较、`popContext` 的上下文恢复）。插件按 `source === "document"` 过滤即可，
+  否则每按一个键都会收到一次"保存"
+- 处理链：多个处理器顺序执行、后者看到前者结果；返回字符串即替换文本，返回其它值不改；
+  单个处理器抛错只记日志（绝不阻断开档）；同名钩子重入直通（防止 `save` 里再 `dumpCircuit` 套娃）
+- `packages/plugin-api`：`ExtPluginContext.hook(name, handler)` + `ExtHookName/ExtHookSource/ExtHookMeta`
+- `ExtBoot` 在插件装载**之前**完成接线，插件 `activate` 里注册即刻生效
+
+### 元件交互事件（`select` / `elemclick`）
+- 新增 `cover/ts/ExtElementEvents.ts`：旁观画布与键盘（mouseup / click / keyup），
+  比对"选中集合指纹"（选中元件在 `elmList` 的下标序列）后才发事件 —— 只包 `setSelected` 之类会漏，
+  挨个包 MouseManager 私有方法又会绑死上游实现，所以改成观察-比对
+- `select`：`{ count, elms, indices, ids }`；`elemclick`：`{ elm, index, type, grid, screen, button }`
+- `window.ExtCircuitJS.refreshSelection()`：插件自己改完选择、或脚本直接 `setSelected` 后手动同步
+- rAF 合并（同一帧多次指针事件只比对一次），另有 100ms 兜底，隐藏标签页也不丢事件
+
+### 示例与测试
+- 新增示例插件 `plugins/ext-hook`：载入时规范化（去 UTF-8 BOM、CRLF→LF、去掉尾部版本标记），
+  保存时（仅 `document`）追加版本标记；两处改写都幂等
+- 新增 `tests/contract/hooks.test.mjs`（9 例，纯 Node，进 CI）：加工链 / 非字符串返回值 / 错误隔离 /
+  重入保护 / `withSource` 嵌套与抛错恢复 / disposer / `wireAppHooks` 的来源标注与还原
+- 新增 `tests/contract/plugin-hooks.browser.test.mjs`：保存带标记 → 幂等 → 存档往返 →
+  撤销快照不带标记（来源过滤生效）→ BOM+CRLF 文件可打开 → 卸载后钩子归零、对照组建档打不开
+- 新增 `tests/contract/element-events.browser.test.mjs`：真实鼠标点元件 → `elemclick`；
+  Ctrl+A → `select` count=1；点空白 → count=0；`refreshSelection()` 手动同步
+
+### 修
+- `tests/contract/reload.browser.mjs` 把插件数量与"卸载后只剩 hello"写死了（4 个），
+  加示例插件后一直红。改为以 `plugins/plugins.manifest.json` 为准（数量、集合、卸载后剩余都派生），
+  以后加插件不再需要改这个测试
+
 ## v0.1.2（未发布）
 
 插件第一次能"改动仿真器本身"：自定义元件从类、存档类型到菜单入口连同卸载一次性打通。

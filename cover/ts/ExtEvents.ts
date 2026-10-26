@@ -2,7 +2,14 @@
 // 上游的 window.CircuitJS1.onanalyze 等是**单槽覆盖式**（谁后写谁生效），
 // 多插件共存必须由宿主维护订阅表（见 docs/spikes/plugin-runtime.md 六条不变式）。
 
-export type ExtEventName = "analyze" | "update" | "timestep" | "svgren";
+export type ExtEventName =
+    | "analyze"
+    | "update"
+    | "timestep"
+    | "svgren"
+    // 元件交互（由 ExtElementEvents 旁观画布产生，见该文件头注释）
+    | "select"
+    | "elemclick";
 
 type Handler = (payload?: any) => void;
 

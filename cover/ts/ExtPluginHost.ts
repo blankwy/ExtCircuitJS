@@ -3,8 +3,16 @@
 // 这里的职责就是把"能加不能减"补齐成人能用的生命周期。
 
 import { Fiber } from "@ext/plugin-api";
-import type { ExtPluginContext, ExtPluginModule, ExtCommand, ExtElementDef } from "@ext/plugin-api";
+import type {
+    ExtPluginContext,
+    ExtPluginModule,
+    ExtCommand,
+    ExtElementDef,
+    ExtHookName,
+    ExtHookHandler,
+} from "@ext/plugin-api";
 import { CommandPaletteRegistry, PaletteCommand } from "./CommandPaletteRegistry";
+import { ExtHooks } from "./ExtHooks";
 import {
     registerExtElement,
     unregisterExtElement,
@@ -56,10 +64,14 @@ export class PluginHost {
     // strip-only 模式加载本文件，参数属性属不可擦除语法会直接报错；语义与原写法完全一致。
     private readonly app: any;
     private readonly api: any;
+    private readonly hooks: ExtHooks;
 
-    constructor(app: any, api: any) {
+    constructor(app: any, api: any, hooks?: ExtHooks) {
         this.app = app;
         this.api = api;
+        // 缺省自建一条空总线：Node 契约测试直接 new PluginHost(app, api) 也不会炸，
+        // ctx.hook 只是没人跑（真正的接线在 ExtBoot 里用 wireAppHooks 完成）
+        this.hooks = hooks ?? new ExtHooks();
     }
 
     async load(manifestUrl = pluginsRoot() + "plugins.manifest.json"): Promise<void> {
@@ -193,6 +205,12 @@ export class PluginHost {
             effect: (fn) => fiber.effect(fn),
             on: (name, h) => {
                 const off = self.api.on(name, h);
+                fiber.add(off);
+                return off;
+            },
+            hook: (name: ExtHookName, h: ExtHookHandler) => {
+                if (typeof h !== "function") throw new Error(`hook "${name}" needs a function`);
+                const off = self.hooks.on(name, h);
                 fiber.add(off);
                 return off;
             },

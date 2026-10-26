@@ -8,11 +8,18 @@ import { applySiteConfig } from "./SiteConfig";
 import { installMenuSlot, registerMenuElement, unregisterMenuElement } from "./ExtMenus";
 import { configureMenuSlot } from "./ExtElements";
 import { ElementFactory } from "./ElementFactory";
+import { ExtHooks, wireAppHooks } from "./ExtHooks";
+import { wireElementEvents } from "./ExtElementEvents";
+import type { ElementEventWiring } from "./ExtElementEvents";
 
 export interface ExtRuntime {
     api: ExtApi;
     plugins: PluginHost;
     events: ExtEvents;
+    /** 文档钩子总线（load/save） */
+    hooks: ExtHooks;
+    /** 元件交互事件的接线句柄（refresh / dispose） */
+    elementEvents: ElementEventWiring;
     dispose(): void;
 }
 
@@ -31,17 +38,27 @@ export async function ExtBoot(app: any): Promise<ExtRuntime> {
 
     const events = new ExtEvents();
     const unwire = wireAppEvents(app, events);
+    // 文档钩子：必须早于插件装载（插件在 activate 里注册 hook，装载完立刻就能用）
+    const hooks = new ExtHooks();
+    const unwireHooks = wireAppHooks(app, hooks);
+    // 元件交互事件：旁观画布，不包 core 任何私有方法
+    const elementEvents = wireElementEvents(app, events);
     const api = new ExtApi(app, events);
-    const plugins = new PluginHost(app, api);
+    const plugins = new PluginHost(app, api, hooks);
 
     const rt: ExtRuntime = {
         api,
         plugins,
         events,
+        hooks,
+        elementEvents,
         dispose() {
             unwire();
+            unwireHooks();
+            elementEvents.dispose();
             void plugins.dispose();
             events.clear();
+            hooks.clear();
             runtime = null;
         },
     };
@@ -55,6 +72,9 @@ export async function ExtBoot(app: any): Promise<ExtRuntime> {
         api,
         events,
         plugins,
+        hooks,
+        // 选中集合的手动同步（插件自己改完选择、或外部脚本直接 setSelected 后调用）
+        refreshSelection: () => elementEvents.refresh(),
         // 元件工厂的**同一实例**（不是同名模块再 import 一份）。
         // dev 下 `/ElementFactory.ts` 与 `@fs/...` 是两个模块 URL、两份 classMap，
         // 外部代码（控制台/契约测试/未来的 MCP 工具）一律从这里拿，否则注册了却放置不了。

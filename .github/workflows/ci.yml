@@ -62,3 +62,4 @@ jobs:
           tests/contract/mcp-session.test.mjs
           tests/contract/mcp-stdio.test.mjs
           tests/contract/site-config.test.mjs
+          tests/contract/hooks.test.mjs

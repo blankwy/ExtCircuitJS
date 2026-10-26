@@ -116,6 +116,8 @@ GitHub Pages 由 `.github/workflows/pages.yml` 负责：`main` 每次推送都�
 | API：读网表 / 列元件 / 测量 / 改参数 / 载入电路 | ✅ | `cover/ts/ExtApi.ts` |
 | 插件：activate / deactivate / 热重载 / 失败回滚 / 命令 / 面板 | ✅ | `cover/ts/ExtPluginHost.ts、packages/plugin-api` |
 | 插件自定义元件（类 + 存档类型 + 菜单 + 卸载，`ctx.element`） | ✅ | `cover/ts/ExtElements.ts`、`plugins/ext-element` |
+| 插件打开/保存钩子（可改写存档文本，带来源标记，`ctx.hook`） | ✅ | `cover/ts/ExtHooks.ts`、`plugins/ext-hook` |
+| 元件交互事件（`select` / `elemclick`，`ctx.on`） | ✅ | `cover/ts/ExtElementEvents.ts` |
 | 网表导出（引擎 nodeList 权威）+ 稳定 id + set/delete ops | ✅ | `packages/netlist` |
 | 紧凑编码（聚合 0.26× XML）+ registry 再生成 CLI | ✅ | `packages/netlist/src/compact.ts；ext netlist registry/bench` |
 | add between nets（导线分裂增量放置，自校验回滚） | ✅ | `packages/netlist/src/place.ts` |
@@ -153,6 +155,23 @@ export async function activate(ctx) {
     ctx.element.register({ className: "ShuntElm", ctor: ShuntElm, dumpType, label: "Add Shunt (0.5Ω)" });
 }
 ```
+
+「打开 / 保存」也有出口了：`ctx.hook` 包住 `loader.readCircuit` 与 `app.dumpCircuit`，
+能看见并改写存档文本（格式扩展、旧档迁移、注释持久化都靠它）。两个纪律写进了类型注释，
+示例插件 `plugins/ext-hook` 完整演示：
+
+```js
+const MARK = "<!-- ext:1 -->";
+ctx.hook("load", (text) => text.includes(MARK) ? text.replace(MARK, "").trimEnd() : text);  // 自己写的格式，无条件认得
+ctx.hook("save", (text, meta) => {
+    if (meta.source !== "document") return text;   // 撤销/恢复/比较的内部序列化：别插手
+    return text.replace(MARK, "").trimEnd() + "\n" + MARK + "\n";   // 幂等：先删再加
+});
+```
+
+元件交互同样有事件：`ctx.on("select", ({ count, elms, ids }) => …)`、
+`ctx.on("elemclick", ({ elm, index, type, grid }) => …)`——"选中元件显示扩展信息"这类需求
+不必再轮询 `listComponents()`。
 
 ## 目录
 

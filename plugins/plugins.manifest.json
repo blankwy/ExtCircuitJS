@@ -51,6 +51,16 @@
       "permissions": ["ui.menu", "element.register"],
       "claims": { "elements": ["ExtShuntElm"] },
       "enabled": true
+    },
+    {
+      "id": "ext-hook",
+      "entry": "index.js",
+      "version": "0.1.0",
+      "mode": "in-page",
+      "inject": ["api"],
+      "permissions": ["document.hook", "ui.command"],
+      "claims": { "commands": ["ext-hook.about"], "hooks": ["load", "save"] },
+      "enabled": true
     }
   ]
 }

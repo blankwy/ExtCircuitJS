@@ -42,6 +42,30 @@ export interface ExtElementFacet {
     freeDumpType(from?: number): number | null;
 }
 
+// ── 文档钩子 ────────────────────────────────────────────────────────────────
+// 语义：包住 `loader.readCircuit(text)` 与 `app.dumpCircuit()`，让插件能看见并改写存档文本。
+// 这两处也是撤销/恢复/粘贴的内部通道，所以每次回调都带 meta.source：
+
+export type ExtHookName = "load" | "save";
+
+export type ExtHookSource = "document" | "undo" | "recovery" | "paste" | "internal";
+
+export interface ExtHookMeta {
+    hook: ExtHookName;
+    /** `document` = 用户真的在开/存文件，插件应只在这个来源上改写 */
+    source: ExtHookSource;
+    /** load：readCircuit 的 flags（RC_RETAIN / RC_NO_CENTER / …） */
+    flags?: number;
+    /** save：dumpCircuit(saveState)，false 表示不含仿真状态的快照 */
+    saveState?: boolean;
+}
+
+/** 返回字符串 = 用返回值替换文本；返回其它任何值 = 不改动。
+ *  ⚠ 改写必须**幂等**（同一段文本过两遍结果相同），否则 保存→打开→保存 会越改越多。 */
+export type ExtHookHandler = (text: string, meta: ExtHookMeta) => string | void | null;
+
+export type ExtEventName = "analyze" | "update" | "timestep" | "svgren" | "select" | "elemclick";
+
 export interface ExtPluginContext {
     readonly id: string;
     readonly version: string;
@@ -49,7 +73,9 @@ export interface ExtPluginContext {
     readonly state: PluginState;
     /** 注册清理函数；dispose 时逆序执行 */
     effect(fn: ExtDisposer): ExtDisposer;
-    on(event: "analyze" | "update" | "timestep" | "svgren", h: (payload?: any) => void): ExtDisposer;
+    on(event: ExtEventName, h: (payload?: any) => void): ExtDisposer;
+    /** 打开/保存钩子（可改写文本）；见 ExtHookHandler 的幂等要求 */
+    hook(name: ExtHookName, h: ExtHookHandler): ExtDisposer;
     command(cmd: ExtCommand): ExtDisposer;
     panel(el: HTMLElement, slot?: string): ExtDisposer;
     /** 自定义元件（类/存档类型/菜单一次到位） */

@@ -88,6 +88,29 @@
    "contracts": [
     "tests/contract/plugin-element.browser.mjs"
    ]
+  },
+  {
+   "upstreamPath": "ts/ExtHooks.ts",
+   "localPath": "cover/ts/ExtHooks.ts",
+   "kind": "added",
+   "tier": "L0",
+   "owner": "plugin",
+   "reason": "文档钩子：包 loader.readCircuit / app.dumpCircuit，插件可改写存档文本；撤销/恢复/粘贴等内部来源打标（ctx.hook）",
+   "contracts": [
+    "tests/contract/hooks.test.mjs",
+    "tests/contract/plugin-hooks.browser.test.mjs"
+   ]
+  },
+  {
+   "upstreamPath": "ts/ExtElementEvents.ts",
+   "localPath": "cover/ts/ExtElementEvents.ts",
+   "kind": "added",
+   "tier": "L0",
+   "owner": "plugin",
+   "reason": "元件交互事件 select / elemclick：旁观画布与键盘，比对选中集合指纹，不包 core 私有方法",
+   "contracts": [
+    "tests/contract/element-events.browser.test.mjs"
+   ]
   }
  ]
 }

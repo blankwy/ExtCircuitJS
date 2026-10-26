@@ -15,8 +15,11 @@
 | 5 | MCP 全链路（会话 RPC/WS 桥/10 工具/ai-loop demo/文档）+ G4 门禁 | ✅ | handoffs/stage5.md |
 | 6 | CI / sync-drill / 菜单插槽 / REL v0.1.0 | ✅ | handoffs/stage6.md |
 | 7 | 插件自定义元件（`ctx.element`：类/存档类型/菜单/卸载一条链）+ 静态部署/站点配置/MCP stdio | ✅ | CHANGELOG v0.1.2 |
+| 8 | 打开/保存钩子（`ctx.hook`）+ 元件交互事件（`select`/`elemclick`） | ✅ | CHANGELOG v0.1.3 |
 
-全量门禁（2026-10-26 Lead 亲跑）：**16/16 退出 0**——doctor、build、plugin lint、cover status、cover scan、core sync-drill、Node 契约 40 测试（element-factory/ops/netlist-ids/fiber/events/mcp-session）、浏览器契约 10 套（boot/menu/g2/place/plugins-smoke/reload/netlist-export/netlist-roundtrip/mcp-bridge/mcp-tools）。
+全量门禁（2026-10-26 Lead 亲跑）：**全绿**——doctor、build、plugin lint、cover status、cover scan、Node 契约 94 例
+（`node --test tests/contract/*.test.mjs`，含 hooks.test.mjs 9 例）、浏览器/产物脚本 6 个
+（boot/menu/netlist-g2/reload/mcp-stdio/dist-site，其中 dist-site 双形态：根路径 + `/<repo>/`）。
 
 ## 2. 环境与常用命令
 
@@ -51,6 +54,7 @@
 12. **`coverRoot` ≠ `cover` 目录**：`cover/vite.cover.config.ts` 里的 `coverRoot` 是 `cover/ts`（TS 源码根），而 `cover/site.config.json` 在 `cover/` 下（变量名 `coverDir = here`）。配置读错目录不会报错，只会静默生效成默认值——改完配置先 `curl` 一下入口 HTML 看 `data-ext-site-title` 有没有变。
 13. **MCP stdio 的 stdout 就是协议通道**：一行非 JSON-RPC 就会让宿主断连（症状是「服务器启动失败」而不是报错文本）。日志/调试一律 stderr；`ext mcp` 用 `spawnSync(..., {stdio:"inherit"})` 且自身不打印任何东西——在 `tools/ext.mjs` 的 mcp 分支里加 `console.log` 会立刻把它弄坏。同理，`StdioMcpServer` 的 `log` 默认写 `process.stderr`。
 14. **`path.resolve(fileURLToPath(import.meta.url), "../..")` 少算一级**：那是把**文件**当目录算。正确写法 `path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../..")`。`packages/mcp/src/{backend,dev-server}.ts` 的 repoRoot 两次踩到，报错表现为「找不到 `.../packages/tools/ext.mjs`」——看着像仓库结构坏了，其实是路径基准错了。
+15. **浏览器驱动是可选依赖（刻意如此）**：`playwright-core` 不进 `package.json`（只跑 Node 契约的人不该被装浏览器驱动）。运行时按 `EXT_PW_CORE` → 仓库根 `node_modules/playwright-core` → `core/ts/node_modules/playwright-core` 依次找；都找不到时**不要**改成硬依赖，把提示写清即可。Chrome 同理：`EXT_CHROME` → 各平台默认安装路径（Chrome → Edge → Chromium）。
 16. **同一个 cover 模块在浏览器里可能有"两份实例"**（v0.1.2 踩到）：Vite 下应用内部导入拿到的是
     `@fs/V:/…/cover/ts/ElementFactory.ts`，而页面里 `import("/ElementFactory.ts")` 走的是另一个模块 URL，
     于是**两份 classMap**——在后者注册的元件，`app.constructElement` 依然找不到；dev server 跨多次改动
@@ -66,9 +70,33 @@
     会把 `'r'` 判给插件类并打 "dump type conflict"。`registerExtElement` 因此把 `def.dumpType`/`def.xmlType`
     钉在插件类自己的原型上（只影响该类），插件作者不必记得覆盖。
 
-15. **浏览器驱动是可选依赖（刻意如此）**：`playwright-core` 不进 `package.json`（只跑 Node 契约的人不该被装浏览器驱动）。运行时按 `EXT_PW_CORE` → 仓库根 `node_modules/playwright-core` → `core/ts/node_modules/playwright-core` 依次找；都找不到时**不要**改成硬依赖，把提示写清即可。Chrome 同理：`EXT_CHROME` → 各平台默认安装路径（Chrome → Edge → Chromium）。
+19. **`dumpCircuit` / `readCircuit` 不只是"保存/打开"**（v0.1.3 踩到）：撤销快照、崩溃恢复、
+    粘贴、`isModified()` 的文本比较、子电路进出全走这两个方法。所以 `ctx.hook` 的每次回调都带
+    `meta.source`（document/undo/recovery/paste/internal），由宿主包 `undoManager.*`、`isModified`、
+    `popContext`、`commands.doPaste` 打标；**插件必须在 `save` 侧按 source 过滤**，否则每按一个键
+    都要给撤销快照改写一遍。
+20. **`load` 侧不能按 source 过滤**（与 19 是配套的，别抄反了）：恢复用的文本恰恰是**本插件 save 侧写过的东西**，
+    过滤掉就把它读成一堆看不懂的字符。正确写法：只要文本里有自己的标记就无条件还原
+    （`plugins/ext-hook/index.js` 就是这么写的）。另：改写必须**幂等**（先删标记再追加），
+    否则"保存→打开→保存"会越改越多。
+21. **`MouseManager.MODE_ADD_ELM = 0`，`MODE_SELECT = 6`**：`app.setMouseMode(0)` 是把界面切到"放置元件"，
+    不是"选择"。测试里想点选元件不要调它（默认就是 SELECT），否则下一次点击会去 create 元件。
+22. **浏览器契约的两个环境坑（都会表现为"我明明点了/加载了"）**：
+    ① 启动电路（演示电路）是**异步**装载的，`window.ExtCircuitJS` 早于它出现 —— 先等 `plugins` 全 ready、
+    再 `app.clearCircuit()`，否则基准电路里混进 7 个演示元件；
+    ② 电路载入后会重绘并重新居中，**格点→像素的坐标要等两帧再算**，且空白点按画布比例取
+    （按格点算容易跑到画布外，点到侧栏上等于什么都没发生）。
+23. **别把插件数量/集合写死在测试里**：`reload.browser.mjs` 曾硬编码"4 个插件""卸载后只剩 hello"，
+    加一个示例插件就红而它并不是断言目标。改为一律从 `plugins/plugins.manifest.json` 派生
+    （数量、集合、卸载后剩余），以后加插件不用再动测试。
+
 
 ## 5. 测试地图（改哪里跑什么）
+
+**全量本地跑法（唯一推荐命令）**：`node --test --test-concurrency=1 tests/contract/*.test.mjs`
+—— 13 个浏览器契约共用同一个 dev server，并行跑会互相挤（`plugins-smoke` 偶发 `commands`/`listeners`
+增量断言为 0）。串行约 40s，并行约 15s 但会假失败。
+另有一批老式脚本不进 glob，需单独跑：`boot/menu/netlist-g2/reload/mcp-stdio/dist-site` 的 `.browser.mjs`。
 
 | 改动 | 必跑 |
 |---|---|
@@ -77,7 +105,9 @@
 | packages/mcp/* | `mcp-session` + `mcp-stdio`（纯 Node）+ `mcp-bridge` + `mcp-tools`（浏览器）+ `mcp-stdio.browser.mjs`（独立进程端到端）+ `examples/ai-loop.mjs` |
 | packages/mcp/src/{stdio,server,backend,dev-server}.ts | 上面全部 + `node tools/ext.mjs mcp --help` + 手工 `initialize`/`tools/list` 各一条（stdout 必须是纯协议帧） |
 | tools/ts-resolve.mjs（TS 加载钩子） | `node --test tests/contract/mcp-session.test.mjs`（shim 路径）+ `node tools/ext.mjs mcp --help` |
-| plugins/* | `ext plugin lint` + `plugins-smoke.browser.test.mjs` + `plugin-element.browser.test.mjs`（改 `ctx.element` 时） |
+| plugins/* | `ext plugin lint` + `plugins-smoke.browser.test.mjs` + `plugin-element.browser.test.mjs`（改 `ctx.element` 时）+ `plugin-hooks.browser.test.mjs`（改 `ctx.hook` 时） |
+| cover/ts/ExtHooks.ts（打开/保存钩子） | `node --test tests/contract/hooks.test.mjs` + `plugin-hooks.browser.test.mjs` + `dist-site.browser.mjs`（产物形态下钩子同样要跑通） |
+| cover/ts/ExtElementEvents.ts（元件交互事件） | `element-events.browser.test.mjs` + `boot.browser.mjs`（启动期不得多发空选择） |
 | cover/ts/ExtElements.ts（插件自定义元件） | `plugin-element.browser.test.mjs` + `menu.browser.mjs` + `ext build` + `fiber.test.mjs`（Node 侧加载约束，见坑位 17） |
 | tools/ext.mjs | doctor + 受影响子命令的手工验证 |
 | tools/coverOverlay.mjs | `ext build` + 上表浏览器契约（dev 走同一解析器）+ `dist-site.browser.mjs`（§4 坑位 9） |
@@ -97,19 +127,20 @@
 
 ### 下一步（v0.2 候选，按「插件还差什么」排序）
 
-1. **加载/保存钩子**（缺得最明显）：现在插件只能在仿真事件（analyze/update/timestep/svgren）上挂钩子，
-   用户"打开电路 / 保存电路"时插件无法介入。做法就是 S2 的老套路——包 `app.loader.readCircuit` 与
-   `dumpCircuit`，暴露 `ctx.hook("load"|"save")`；`ext/hook` 的拦截要带"可改写文本"的返回值，
-   否则插件只能看不能改。
-2. **元件交互事件**：选中/点击/拖动元件目前对插件不可见（只能轮询 `listComponents()`），
-   "选中元件显示扩展信息"这类最常见的插件需求做不了。候选事件 `select` / `elemclick`。
-3. **`permissions` 落地**：manifest 里的 `permissions` 目前只声明、不校验（`plugin lint` 只查三条文本规则）。
+1. ~~**加载/保存钩子**~~ ✅ 已完成（v0.1.3）：`ctx.hook("load"|"save")`，包 `loader.readCircuit` 与
+   `app.dumpCircuit`，带 `meta.source`（见坑位 19/20），示例 `plugins/ext-hook`。
+2. ~~**元件交互事件**~~ ✅ 已完成（v0.1.3）：`select` / `elemclick`（`cover/ts/ExtElementEvents.ts`）。
+   还没做的：拖动中的高频事件（`elemdrag`）与"元件被删除/新增"通知——目前由 `select` 指纹间接覆盖，
+   真要监听增删仍需轮询或包 `undoManager`。
+3. **钩子权限化**（与 permissions 合并）：`claims.hooks` 已在 manifest 里声明但没人校验；
+   真正落地时要按 `permissions` 裁剪 `ctx`（没有 `document.hook` 就不给 `ctx.hook`）。
+4. **`permissions` 落地**：manifest 里的 `permissions` 目前只声明、不校验（`plugin lint` 只查三条文本规则）。
    真正的收口是按 permission 裁剪 `ctx`（没有 `ui.menu` 就不给 `ctx.element` 的菜单入口），
    并让 lint 把"用了未声明的能力"报出来。
-4. **两个上游辅助页**：`iframe.html` / `jsinterface.html` 已经进产物，但 `dist-site.browser.mjs` 只开主页面；
+5. **两个上游辅助页**：`iframe.html` / `jsinterface.html` 已经进产物，但 `dist-site.browser.mjs` 只开主页面；
    这两个页面是外部站点嵌入的老接口，坏掉没人知道。
-5. 可选功能债（不变）：B08 Worker 沙箱、`decodeCompact`（C05 只做了编码）、probe op 的 ScopeElm 映射。
-6. CI 跑浏览器测试（装 Chrome + playwright-core）。
+6. 可选功能债（不变）：B08 Worker 沙箱、`decodeCompact`（C05 只做了编码）、probe op 的 ScopeElm 映射。
+7. CI 跑浏览器测试（装 Chrome + playwright-core）。
 
 ## 7. 纪律（沿用 goal 手册，对任何执行者有效）
 

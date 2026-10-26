@@ -75,6 +75,12 @@ const circuitText = fs.readFileSync(
     "utf8",
 );
 
+// 插件清单以仓库里的 manifest 为准，**不写死数量**：
+// 以前这里硬编码 4 个，加一个示例插件就红（而它又不是本测试的断言目标）。
+const MANIFEST_IDS = JSON.parse(
+    fs.readFileSync(path.resolve(import.meta.dirname, "../../plugins/plugins.manifest.json"), "utf8"),
+).plugins.filter((p) => p.enabled !== false).map((p) => p.id);
+
 const { chromium } = await import("file:///" + PW_CORE.replace(/\\/g, "/"));
 const browser = await chromium.launch({
     executablePath: CHROME,
@@ -102,14 +108,13 @@ try {
     });
 
     await page.goto(`${BASE}/circuitjs.html`, { waitUntil: "load", timeout: 60000 });
-    // 事件驱动等待 boot：manifest 4 个插件全部 ready（fetch + dynamic import 完成的信号）
-    await page.waitForFunction(() => {
+    // 事件驱动等待 boot：manifest 里全部插件 ready（fetch + dynamic import 完成的信号）
+    await page.waitForFunction((want) => {
         const ext = window.ExtCircuitJS;
         if (!ext?.plugins) return false;
-        const want = ["hello", "ext-panel", "ext-command", "ext-event"];
         const list = ext.plugins.list();
         return want.every((id) => list.some((p) => p.id === id && p.state === "ready"));
-    }, null, { timeout: 60000 });
+    }, MANIFEST_IDS, { timeout: 60000 });
 
     // 页内证据登记处：对象引用必须留在页面里（evaluate 只能传回可序列化数据）
     // window.__b05.oldCmd = reload 前的 PaletteCommand 实例，用于 reload 后的身份比对。
@@ -146,8 +151,12 @@ try {
         };
     }, circuitText);
 
-    // boot 快照健全性：4 插件 ready、命令确实执行过两次、事件确实收到过一次
-    assert.equal(A.plugins.length, 4, `boot 应有 4 个插件: ${JSON.stringify(A.plugins)}`);
+    // boot 快照健全性：manifest 里的插件全部 ready、命令确实执行过两次、事件确实收到过一次
+    assert.deepEqual(
+        A.plugins.map((p) => p.id).sort(),
+        MANIFEST_IDS.slice().sort(),
+        `boot 的插件集合应与 manifest 一致: ${JSON.stringify(A.plugins)}`,
+    );
     assert.ok(A.plugins.every((p) => p.state === "ready"), "boot 后全部 ready");
     assert.equal(A.bootPings, 2, `boot 期命令应执行 2 次（pings=2）: ${A.bootPings}`);
     assert.equal(A.bootAnalyzes, 1, `boot 期 analyze 应计数 1: ${A.bootAnalyzes}`);
@@ -202,7 +211,7 @@ try {
     assert.equal(R1.panelChildren, A.panelChildren, "reload 后面板子节点数不得增长（旧节点已摘、新节点已挂）");
     assert.equal(R1.markers, A.markers, "reload 后 [data-ext-plugin] 节点数不得增长");
     // 5b) fibers 表无旧条目堆积
-    assert.equal(R1.plugins.length, 4, `reload 后 list() 仍应恰 4 条: ${JSON.stringify(R1.plugins)}`);
+    assert.equal(R1.plugins.length, MANIFEST_IDS.length, `reload 后 list() 仍应与 manifest 同数: ${JSON.stringify(R1.plugins)}`);
 
     // ── reload 第 2/3 轮（rev=b05-2/b05-3）：重复热重载零累积 ──────────────────
     const later = await page.evaluate(async ({ ids, revs }) => {
@@ -229,7 +238,7 @@ try {
     for (const round of later) {
         assert.ok(round.snap.plugins.every((p) => p.state === "ready"),
             `rev=${round.rev} reload 后应全部 ready: ${JSON.stringify(round.snap.plugins)}`);
-        assert.equal(round.snap.plugins.length, 4, `rev=${round.rev} 后 list() 应恰 4 条`);
+        assert.equal(round.snap.plugins.length, MANIFEST_IDS.length, `rev=${round.rev} 后 list() 应与 manifest 同数`);
         assert.equal(round.snap.listenersTotal, A.listenersTotal, `rev=${round.rev} 监听器总数应与 boot 相等`);
         assert.equal(round.snap.listenersAnalyze, A.listenersAnalyze, `rev=${round.rev} analyze 订阅应与 boot 相等`);
         assert.equal(round.snap.commands, A.commands, `rev=${round.rev} 命令数应与 boot 相等`);
@@ -261,8 +270,10 @@ try {
     assert.equal(F.byIdSize, A.byIdSize - 1, "byId 应精确回落 boot-1");
     assert.equal(F.panelChildren, A.panelChildren - 1, "面板子节点应精确回落 boot-1");
     assert.equal(F.markers, 0, "[data-ext-plugin] 节点应清零");
-    assert.deepEqual(F.plugins.map((p) => p.id), ["hello"], "卸载后只余 hello");
-    assert.equal(F.plugins[0].state, "ready", "hello 全程不受热重载影响");
+    // 卸载的只有 DEMO_IDS 三个：其余插件（manifest 减去这三个）应当原样还在、且仍 ready
+    const leftover = MANIFEST_IDS.filter((id) => !DEMO_IDS.includes(id)).sort();
+    assert.deepEqual(F.plugins.map((p) => p.id).sort(), leftover, "卸载后只应余下未被卸载的插件");
+    assert.ok(F.plugins.every((p) => p.state === "ready"), "未卸载插件全程不受热重载影响");
 
     // ── 1) 网络证据：import 路径带 rev + manifest 真实重取 ─────────────────────
     // boot 1 次 + 三轮 × 3 插件各一次 findEntry fetch = 10 次 manifest 请求
