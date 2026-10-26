@@ -1,5 +1,31 @@
 # Changelog
 
+## v0.1.2（未发布）
+
+插件第一次能"改动仿真器本身"：自定义元件从类、存档类型到菜单入口连同卸载一次性打通。
+此前 ElementFactory 的 owner/注销、ExtMenus 的菜单插槽都只被测试直接调用过，运行期从没接过线。
+
+### 插件自定义元件（`ctx.element`）
+- 新增 `cover/ts/ExtElements.ts`：一次注册把**四件事**同时做掉——类进 `ElementFactory`（可放置/可 create）、
+  `dumpType`/`xmlType` 进 `CirSim` 的两张映射（文本与 XML 存档能读回）、Draw/右键菜单加条目、
+  卸载时四样一起撤回（含"正停在放置模式"的复位）
+- `packages/plugin-api`：`ExtPluginContext.element`（`register / unregister / list / base / freeDumpType`）；
+  `register` 失败即抛错并随 fiber 回滚，与 `ctx.command` 同口径
+- `cover/ts/ElementFactory.ts`：新增 `getClass()`——插件不能 import core 内部模块，
+  基类只能经 `ctx.element.base("ResistorElm")` 这样拿
+- `cover/ts/ExtMenus.ts`：新增 `unregisterMenuElement(className)`（原先只有按 owner 批量撤销）
+- `cover/ts/ExtBoot.ts`：启动时装菜单插槽，并把菜单实现注入 `ExtElements`
+  （`ExtElements` 必须能被 Node 契约测试直接加载，故不静态 import `CirSim`/`ExtMenus`）
+- `window.ExtCircuitJS.elements`：暴露**同一份**元件工厂实例（`factory/list/has/ownerOf`）——
+  dev 下 `import("/ElementFactory.ts")` 拿到的是另一个模块 URL、第二份 classMap
+
+### 示例与测试
+- 新增示例插件 `plugins/ext-element`（继承核心 `ResistorElm` 的 0.5Ω 分流电阻，自动进 Draw/右键菜单）
+- 新增 `tests/contract/plugin-element.browser.test.mjs`：注册 → 放置 → 文本往返 → XML 往返 → 卸载
+  （类/映射/菜单/放置模式全清）→ 重新装载，全程 0 pageerror
+- `tests/contract/menu.browser.mjs`（A06）改用 `window.ExtCircuitJS.elements.factory` 与独立类名，
+  修掉它对"模块实例恰好相同"的隐式依赖
+
 ## v0.1.1（未发布，tag 待维护者打）
 
 这一版把 v0.1.0 之后「只有真部署 / 真宿主才会暴露」的缺口补齐：静态站能不能当网站用、

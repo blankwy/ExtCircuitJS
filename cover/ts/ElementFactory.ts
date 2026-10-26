@@ -47,6 +47,12 @@ export class ElementFactory {
         return true;
     }
 
+    // ExtCircuitJS: 取已注册的构造函数——插件自定义元件靠继承核心元件实现，
+    // 但它不能 import core 内部模块（lint 禁令），只能经宿主拿到基类。
+    static getClass(name: string): ElmCtor | null {
+        return ElementFactory.classMap.get(name) ?? null;
+    }
+
     static listClasses(): string[] {
         return Array.from(ElementFactory.classMap.keys()).sort();
     }

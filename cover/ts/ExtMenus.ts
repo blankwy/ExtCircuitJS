@@ -139,6 +139,15 @@ export function registerMenuElement(
     return { ok: true };
 }
 
+/** 按 className 撤销单条登记（插件逐个注销元件时用），返回是否确实撤销了一条 */
+export function unregisterMenuElement(className: string): boolean {
+    const i = entries.findIndex((e) => e.className === className);
+    if (i < 0) return false;
+    entries.splice(i, 1);
+    detachClassNames([className]);
+    return true;
+}
+
 /** 按 owner 撤销登记（插件卸载用），返回撤销的条数 */
 export function unregisterMenuElements(owner: string): number {
     const classNames = entries.filter((e) => e.owner === owner).map((e) => e.className);

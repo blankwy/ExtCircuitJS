@@ -115,10 +115,11 @@ GitHub Pages 由 `.github/workflows/pages.yml` 负责：`main` 每次推送都�
 | Boot 暴露 window.ExtCircuitJS | ✅ | `cover/ts/ExtBoot.ts` |
 | API：读网表 / 列元件 / 测量 / 改参数 / 载入电路 | ✅ | `cover/ts/ExtApi.ts` |
 | 插件：activate / deactivate / 热重载 / 失败回滚 / 命令 / 面板 | ✅ | `cover/ts/ExtPluginHost.ts、packages/plugin-api` |
+| 插件自定义元件（类 + 存档类型 + 菜单 + 卸载，`ctx.element`） | ✅ | `cover/ts/ExtElements.ts`、`plugins/ext-element` |
 | 网表导出（引擎 nodeList 权威）+ 稳定 id + set/delete ops | ✅ | `packages/netlist` |
 | 紧凑编码（聚合 0.26× XML）+ registry 再生成 CLI | ✅ | `packages/netlist/src/compact.ts；ext netlist registry/bench` |
 | add between nets（导线分裂增量放置，自校验回滚） | ✅ | `packages/netlist/src/place.ts` |
-| 菜单插槽（自定义元件进 Draw/右键菜单） | ✅ | `cover/ts/ExtMenus.ts` |
+| 菜单插槽（把自定义元件挂进 Draw/右键菜单） | ✅ | `cover/ts/ExtMenus.ts` |
 | MCP：stdio 服务器 + 会话 RPC + WebSocket 桥 + 11 工具 | ✅ | `node tools/ext.mjs mcp`、[docs/mcp.md](docs/mcp.md) §6 |
 | 静态部署（任意前缀）+ 站点配置（标题/关于页） | ✅ | `dist/`、`cover/site.config.json` |
 | CI（Windows+Ubuntu：doctor/build/lint/scan + Node 契约） | ✅ | `.github/workflows/ci.yml` |
@@ -133,6 +134,24 @@ ext.api.listComponents();                       // 元件 + 稳定 id
 ext.api.applyOps([{ op: "set", target: "c0", prop: "resistance", value: 2200 }]);
 ext.api.getMeasurements();                      // 节点电压 + 元件电流
 await ext.plugins.reload("hello");              // 插件热重载
+```
+
+写一个「能用的」自定义元件不需要碰 core，一个 `ctx.element.register` 就把
+类、存档类型（文本 + XML）、Draw/右键菜单一起登记好，卸载时四样一起撤：
+
+```js
+// plugins/my-plugin/index.js
+export async function activate(ctx) {
+    const Base = ctx.element.base("ResistorElm");        // 插件不能 import core，基类从这里拿
+    const dumpType = ctx.element.freeDumpType();          // 190 起的空号
+    class ShuntElm extends Base {
+        constructor(xa, ya, xb, yb, f, st) {
+            super(xa, ya, xb, yb, f, st);
+            if (xb === undefined) this.resistance = 0.5;   // 放置时用 0.5Ω，存档读入时保留文件值
+        }
+    }
+    ctx.element.register({ className: "ShuntElm", ctor: ShuntElm, dumpType, label: "Add Shunt (0.5Ω)" });
+}
 ```
 
 ## 目录

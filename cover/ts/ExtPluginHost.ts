@@ -3,8 +3,16 @@
 // 这里的职责就是把"能加不能减"补齐成人能用的生命周期。
 
 import { Fiber } from "@ext/plugin-api";
-import type { ExtPluginContext, ExtPluginModule, ExtCommand } from "@ext/plugin-api";
+import type { ExtPluginContext, ExtPluginModule, ExtCommand, ExtElementDef } from "@ext/plugin-api";
 import { CommandPaletteRegistry, PaletteCommand } from "./CommandPaletteRegistry";
+import {
+    registerExtElement,
+    unregisterExtElement,
+    unregisterExtElements,
+    listExtElements,
+    baseElement,
+    findFreeDumpType,
+} from "./ExtElements";
 
 export interface PluginEntry {
     id: string;
@@ -222,6 +230,21 @@ export class PluginHost {
                 const off = () => self.app.removeWidgetFromVerticalPanel(el);
                 fiber.add(off);
                 return off;
+            },
+            element: {
+                register: (def: ExtElementDef) => {
+                    const r = registerExtElement(self.app, id, def);
+                    // 与 ctx.command 同口径：注册不成立就让 activate 失败并整体回滚，
+                    // 绝不"看起来装上了其实没装上"。
+                    if (!r.ok) throw new Error(`element "${def?.className}" rejected: ${r.reason}`);
+                    const off = () => { unregisterExtElement(self.app, r.className!, id); };
+                    fiber.add(off);
+                    return off;
+                },
+                unregister: (className: string) => unregisterExtElement(self.app, className, id),
+                list: () => listExtElements(id),
+                base: (className: string) => baseElement(className),
+                freeDumpType: (from?: number) => findFreeDumpType(self.app, from),
             },
             api: self.api,
             storage: {

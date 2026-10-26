@@ -14,6 +14,7 @@
 | 4 | C04 增量放置（设计先行 + place.ts 自校验回滚）+ G3 门禁 | ✅ | handoffs/stage4.md、stage4-design.md |
 | 5 | MCP 全链路（会话 RPC/WS 桥/10 工具/ai-loop demo/文档）+ G4 门禁 | ✅ | handoffs/stage5.md |
 | 6 | CI / sync-drill / 菜单插槽 / REL v0.1.0 | ✅ | handoffs/stage6.md |
+| 7 | 插件自定义元件（`ctx.element`：类/存档类型/菜单/卸载一条链）+ 静态部署/站点配置/MCP stdio | ✅ | CHANGELOG v0.1.2 |
 
 全量门禁（2026-10-26 Lead 亲跑）：**16/16 退出 0**——doctor、build、plugin lint、cover status、cover scan、core sync-drill、Node 契约 40 测试（element-factory/ops/netlist-ids/fiber/events/mcp-session）、浏览器契约 10 套（boot/menu/g2/place/plugins-smoke/reload/netlist-export/netlist-roundtrip/mcp-bridge/mcp-tools）。
 
@@ -50,6 +51,21 @@
 12. **`coverRoot` ≠ `cover` 目录**：`cover/vite.cover.config.ts` 里的 `coverRoot` 是 `cover/ts`（TS 源码根），而 `cover/site.config.json` 在 `cover/` 下（变量名 `coverDir = here`）。配置读错目录不会报错，只会静默生效成默认值——改完配置先 `curl` 一下入口 HTML 看 `data-ext-site-title` 有没有变。
 13. **MCP stdio 的 stdout 就是协议通道**：一行非 JSON-RPC 就会让宿主断连（症状是「服务器启动失败」而不是报错文本）。日志/调试一律 stderr；`ext mcp` 用 `spawnSync(..., {stdio:"inherit"})` 且自身不打印任何东西——在 `tools/ext.mjs` 的 mcp 分支里加 `console.log` 会立刻把它弄坏。同理，`StdioMcpServer` 的 `log` 默认写 `process.stderr`。
 14. **`path.resolve(fileURLToPath(import.meta.url), "../..")` 少算一级**：那是把**文件**当目录算。正确写法 `path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../..")`。`packages/mcp/src/{backend,dev-server}.ts` 的 repoRoot 两次踩到，报错表现为「找不到 `.../packages/tools/ext.mjs`」——看着像仓库结构坏了，其实是路径基准错了。
+16. **同一个 cover 模块在浏览器里可能有"两份实例"**（v0.1.2 踩到）：Vite 下应用内部导入拿到的是
+    `@fs/V:/…/cover/ts/ElementFactory.ts`，而页面里 `import("/ElementFactory.ts")` 走的是另一个模块 URL，
+    于是**两份 classMap**——在后者注册的元件，`app.constructElement` 依然找不到；dev server 跨多次改动
+    不重启时，HMR 的 `?t=` 还会让同一路径再分叉（症状：`commands.length` 两边都是 0）。
+    对策：① 运行期一律用 `window.ExtCircuitJS.elements.factory`（与 app 同一实例）；
+    ② 跑浏览器契约前**重启 dev server**；③ 断言优先走 app 上的入口（`constructElement`），
+    别用 `import()` 做模块身份断言。
+17. **`cover/ts/ExtElements.ts` 不许静态 import `CirSim`/`ExtMenus`/`MouseManager`**：`ExtPluginHost` 会被
+    `tests/contract/fiber.test.mjs` 以 Node strip-only 模式直接加载，而 core 的 `CirSim` 图里有不可擦除语法
+    （`CommandPaletteRegistry` 的参数属性）会当场炸。所以：dumpType/xmlType 两张表从 `app.constructor` 上取，
+    `MODE_SELECT` 从 `ui.mouse.constructor` 上取，菜单实现由 `ExtBoot` 用 `configureMenuSlot()` 注入。
+18. **插件的 `getDumpType()` 不覆盖会与核心撞类型**：继承 `ResistorElm` 就返回 `'r'`，`CirSim.register`
+    会把 `'r'` 判给插件类并打 "dump type conflict"。`registerExtElement` 因此把 `def.dumpType`/`def.xmlType`
+    钉在插件类自己的原型上（只影响该类），插件作者不必记得覆盖。
+
 15. **浏览器驱动是可选依赖（刻意如此）**：`playwright-core` 不进 `package.json`（只跑 Node 契约的人不该被装浏览器驱动）。运行时按 `EXT_PW_CORE` → 仓库根 `node_modules/playwright-core` → `core/ts/node_modules/playwright-core` 依次找；都找不到时**不要**改成硬依赖，把提示写清即可。Chrome 同理：`EXT_CHROME` → 各平台默认安装路径（Chrome → Edge → Chromium）。
 
 ## 5. 测试地图（改哪里跑什么）
@@ -61,7 +77,8 @@
 | packages/mcp/* | `mcp-session` + `mcp-stdio`（纯 Node）+ `mcp-bridge` + `mcp-tools`（浏览器）+ `mcp-stdio.browser.mjs`（独立进程端到端）+ `examples/ai-loop.mjs` |
 | packages/mcp/src/{stdio,server,backend,dev-server}.ts | 上面全部 + `node tools/ext.mjs mcp --help` + 手工 `initialize`/`tools/list` 各一条（stdout 必须是纯协议帧） |
 | tools/ts-resolve.mjs（TS 加载钩子） | `node --test tests/contract/mcp-session.test.mjs`（shim 路径）+ `node tools/ext.mjs mcp --help` |
-| plugins/* | `ext plugin lint` + `plugins-smoke.browser.test.mjs` |
+| plugins/* | `ext plugin lint` + `plugins-smoke.browser.test.mjs` + `plugin-element.browser.test.mjs`（改 `ctx.element` 时） |
+| cover/ts/ExtElements.ts（插件自定义元件） | `plugin-element.browser.test.mjs` + `menu.browser.mjs` + `ext build` + `fiber.test.mjs`（Node 侧加载约束，见坑位 17） |
 | tools/ext.mjs | doctor + 受影响子命令的手工验证 |
 | tools/coverOverlay.mjs | `ext build` + 上表浏览器契约（dev 走同一解析器）+ `dist-site.browser.mjs`（§4 坑位 9） |
 | cover/vite.cover.config.ts（产物收尾） | `ext build` + `node tests/contract/dist-site.browser.mjs`（把 dist 挂在 `/<prefix>/` 下真开一次：`window.ExtCircuitJS` 就绪、插件全 ready、站内 0 个 404、V(n1) 与 G2 基线一致） |
@@ -77,6 +94,22 @@
 6. **上游同步（当 pfalstad/circuitjs1 有新 commit 时）**：流程见 `ext core sync` 输出的三步（clone → cover scan --core → rebase cover/ + 更新 core.lock/manifest）；演练工具 `ext core sync-drill` 已验证 scan 判定。
 7. ~~**静态部署**~~ ✅ 已完成（2026-10-26）：`dist/` 已是可挂任意前缀的静态站（构建期相对化 + `index.html` + `.nojekyll` + `service-worker.js`），`.github/workflows/pages.yml` 在 main 上自动部署。首次启用需 Settings → Pages → Source = GitHub Actions（已用 API 设好 `build_type=workflow`）。
    **域名不进仓库**：站点域名只在 Pages 设置 / 反向代理侧配置，产物不含 `CNAME`、构建脚本不读任何站点地址（演示站与程序解耦）。`tests/contract/dist-site.browser.mjs` 默认对根路径与 `/<repo>/` 两种形态各断言一次。
+
+### 下一步（v0.2 候选，按「插件还差什么」排序）
+
+1. **加载/保存钩子**（缺得最明显）：现在插件只能在仿真事件（analyze/update/timestep/svgren）上挂钩子，
+   用户"打开电路 / 保存电路"时插件无法介入。做法就是 S2 的老套路——包 `app.loader.readCircuit` 与
+   `dumpCircuit`，暴露 `ctx.hook("load"|"save")`；`ext/hook` 的拦截要带"可改写文本"的返回值，
+   否则插件只能看不能改。
+2. **元件交互事件**：选中/点击/拖动元件目前对插件不可见（只能轮询 `listComponents()`），
+   "选中元件显示扩展信息"这类最常见的插件需求做不了。候选事件 `select` / `elemclick`。
+3. **`permissions` 落地**：manifest 里的 `permissions` 目前只声明、不校验（`plugin lint` 只查三条文本规则）。
+   真正的收口是按 permission 裁剪 `ctx`（没有 `ui.menu` 就不给 `ctx.element` 的菜单入口），
+   并让 lint 把"用了未声明的能力"报出来。
+4. **两个上游辅助页**：`iframe.html` / `jsinterface.html` 已经进产物，但 `dist-site.browser.mjs` 只开主页面；
+   这两个页面是外部站点嵌入的老接口，坏掉没人知道。
+5. 可选功能债（不变）：B08 Worker 沙箱、`decodeCompact`（C05 只做了编码）、probe op 的 ScopeElm 映射。
+6. CI 跑浏览器测试（装 Chrome + playwright-core）。
 
 ## 7. 纪律（沿用 goal 手册，对任何执行者有效）
 

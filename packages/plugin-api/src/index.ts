@@ -14,6 +14,34 @@ export interface ExtCommand {
     run(): void;
 }
 
+/** 自定义元件声明。ctor 必须是继承自 ctx.element.base(...) 的类。 */
+export interface ExtElementDef {
+    /** 元件类名，也是 ElementFactory 的键 */
+    className: string;
+    ctor: any;
+    /** 文本存档类型号；用 ctx.element.freeDumpType() 取空号 */
+    dumpType: number;
+    /** 菜单文案，缺省 "Add " + 去 Elm 的类名 */
+    label?: string;
+    /** XML 存档标签，缺省类名去 Elm */
+    xmlType?: string;
+    /** 是否进 Draw / 右键菜单，缺省 true */
+    menu?: boolean;
+}
+
+export interface ExtElementFacet {
+    /** 注册元件（类 + 存档类型 + 菜单）；失败抛错并随 fiber 回滚，卸载时自动撤销 */
+    register(def: ExtElementDef): ExtDisposer;
+    /** 立即注销本插件注册的某个元件；返回是否撤销成功 */
+    unregister(className: string): boolean;
+    /** 本插件当前在册的元件类名 */
+    list(): string[];
+    /** 取核心元件构造函数作为基类（插件不可 import core，只能这样拿） */
+    base(className: string): any;
+    /** 找一个未被占用的文本存档类型号 */
+    freeDumpType(from?: number): number | null;
+}
+
 export interface ExtPluginContext {
     readonly id: string;
     readonly version: string;
@@ -24,6 +52,8 @@ export interface ExtPluginContext {
     on(event: "analyze" | "update" | "timestep" | "svgren", h: (payload?: any) => void): ExtDisposer;
     command(cmd: ExtCommand): ExtDisposer;
     panel(el: HTMLElement, slot?: string): ExtDisposer;
+    /** 自定义元件（类/存档类型/菜单一次到位） */
+    element: ExtElementFacet;
     api: any;
     storage: {
         get<T = any>(key: string): T | null;

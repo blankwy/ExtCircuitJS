@@ -45,29 +45,32 @@ try {
     const result = await page.evaluate(async (extMenusUrl) => {
         const out = { steps: [], errors: [] };
         try {
-            // 1) 自定义元件类：继承 ResistorElm，空闲 dump 类型 + 专属 xml 类型 + 无快捷键
-            const { ElementFactory } = await import("/ElementFactory.ts");
-            const { ResistorElm } = await import("/ResistorElm.ts");
+            // 1) 自定义元件类：继承 ResistorElm，空闲 dump 类型 + 专属 xml 类型 + 无快捷键。
+            //    ⚠ 工厂必须用 window.ExtCircuitJS.elements.factory（页面/应用那份实例）：
+            //    dev 下动态 import "/ElementFactory.ts" 是另一个模块 URL（应用内部走 @fs/…），
+            //    会拿到第二份 classMap —— 类注册在那儿，app.constructElement 仍然找不到。
+            const ElementFactory = window.ExtCircuitJS.elements.factory;
+            const ResistorElm = ElementFactory.getClass("ResistorElm");
             // ExtMenus.ts 是 cover 新增文件（无 core 对应物），走 /@fs/ 绝对路径装载
             const extMenus = await import(extMenusUrl);
-            class ExtShuntElm extends ResistorElm {
+            class ExtMenuProbeElm extends ResistorElm {
                 getDumpType() { return 199; } // 空闲 txt 类型，不与 core 撞注册表
                 getXmlDumpType() { return "ExtShunt"; }
                 getShortcut() { return 0; }
             }
-            ElementFactory.registerClass("ExtShuntElm", ExtShuntElm, "ext-test");
-            out.steps.push({ step: "registerClass", ok: ElementFactory.hasClass("ExtShuntElm") });
+            ElementFactory.registerClass("ExtMenuProbeElm", ExtMenuProbeElm, "ext-test");
+            out.steps.push({ step: "registerClass", ok: ElementFactory.hasClass("ExtMenuProbeElm") });
 
             // 2) 登记 + 安装插槽
-            const r1 = extMenus.registerMenuElement("Add Ext Shunt", "ExtShuntElm", "ext-test");
+            const r1 = extMenus.registerMenuElement("Add Ext Shunt", "ExtMenuProbeElm", "ext-test");
             const r2 = extMenus.installMenuSlot();
             out.steps.push({ step: "registerMenuElement", ...r1 }, { step: "installMenuSlot", ...r2 });
 
             // 3) DOM 断言：右键弹出菜单（mainMenuBar，游离于文档外）与文档内 Draw 菜单各 1 条
             const app2 = window.ExtCircuitJS.app;
             const findItems = () =>
-                Array.from(document.querySelectorAll("li[data-ext-menu='ExtShuntElm']"));
-            out.popupHas = app2.menus.mainMenuBar?.querySelector("li[data-ext-menu='ExtShuntElm']") != null;
+                Array.from(document.querySelectorAll("li[data-ext-menu='ExtMenuProbeElm']"));
+            out.popupHas = app2.menus.mainMenuBar?.querySelector("li[data-ext-menu='ExtMenuProbeElm']") != null;
             out.domCount = findItems().length; // 文档内 = Draw 菜单那条
 
             // 4) 可点：dispatch click → 进入放置模式
@@ -78,9 +81,10 @@ try {
             // 5) 卸载语义
             const removed = extMenus.unregisterMenuElements("ext-test");
             out.removed = removed;
-            out.popupHasAfter = app2.menus.mainMenuBar?.querySelector("li[data-ext-menu='ExtShuntElm']") != null;
+            out.popupHasAfter = app2.menus.mainMenuBar?.querySelector("li[data-ext-menu='ExtMenuProbeElm']") != null;
             out.domCountAfter = findItems().length;
-            out.entriesLeft = extMenus.extMenuEntries().length;
+            // 只看本次登记项是否清干净：示例插件也可能登记了自己的元件（全局计数不再为 0）
+            out.entriesLeft = extMenus.extMenuEntries().filter((e) => e.className === "ExtMenuProbeElm").length;
         } catch (e) {
             out.errors.push(String((e && e.stack) || e));
         }
@@ -93,7 +97,7 @@ try {
         (result.steps ?? []).every((s) => s.ok === true) &&
         result.popupHas === true &&
         result.domCount === 1 &&
-        result.mouseModeStr === "ExtShuntElm" &&
+        result.mouseModeStr === "ExtMenuProbeElm" &&
         result.removed === 1 &&
         result.popupHasAfter === false &&
         result.domCountAfter === 0 &&

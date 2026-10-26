@@ -77,6 +77,17 @@
    "kind": "added",
    "owner": "core",
    "reason": "A06 菜单插槽：向 Draw/右键菜单追加自定义元件项（不改 core Menus.ts、不改生成物 registerElements.ts）"
+  },
+  {
+   "upstreamPath": "ts/ExtElements.ts",
+   "localPath": "cover/ts/ExtElements.ts",
+   "kind": "added",
+   "tier": "L0",
+   "owner": "plugin",
+   "reason": "插件自定义元件：类进工厂 + dumpType/xmlType 进映射 + 菜单条目，四样一次性注册与撤销（ctx.element）",
+   "contracts": [
+    "tests/contract/plugin-element.browser.mjs"
+   ]
   }
  ]
 }

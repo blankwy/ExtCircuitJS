@@ -41,6 +41,16 @@
       "permissions": [],
       "claims": {},
       "enabled": true
+    },
+    {
+      "id": "ext-element",
+      "entry": "index.js",
+      "version": "0.1.0",
+      "mode": "in-page",
+      "inject": ["api"],
+      "permissions": ["ui.menu", "element.register"],
+      "claims": { "elements": ["ExtShuntElm"] },
+      "enabled": true
     }
   ]
 }

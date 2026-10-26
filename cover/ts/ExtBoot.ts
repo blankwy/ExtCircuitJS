@@ -5,6 +5,9 @@ import { ExtApi } from "./ExtApi";
 import { ExtEvents, wireAppEvents } from "./ExtEvents";
 import { PluginHost } from "./ExtPluginHost";
 import { applySiteConfig } from "./SiteConfig";
+import { installMenuSlot, registerMenuElement, unregisterMenuElement } from "./ExtMenus";
+import { configureMenuSlot } from "./ExtElements";
+import { ElementFactory } from "./ElementFactory";
 
 export interface ExtRuntime {
     api: ExtApi;
@@ -52,8 +55,28 @@ export async function ExtBoot(app: any): Promise<ExtRuntime> {
         api,
         events,
         plugins,
+        // 元件工厂的**同一实例**（不是同名模块再 import 一份）。
+        // dev 下 `/ElementFactory.ts` 与 `@fs/...` 是两个模块 URL、两份 classMap，
+        // 外部代码（控制台/契约测试/未来的 MCP 工具）一律从这里拿，否则注册了却放置不了。
+        elements: {
+            factory: ElementFactory,
+            list: () => ElementFactory.listClasses(),
+            has: (name: string) => ElementFactory.hasClass(name),
+            ownerOf: (name: string) => ElementFactory.ownerOf(name),
+        },
         dispose: rt.dispose,
     };
+
+    // 菜单插槽：一次装好 —— 既覆盖"之后重建菜单"的场景（composeMainMenu 包装），
+    // 也把此刻已登记的项挂到已构建的 Draw/右键菜单上。插件自定义元件依赖它才有入口。
+    // 菜单实现以注入方式交给 ExtElements：后者要能被 Node 契约测试直接加载（不能拖进 core 图）。
+    configureMenuSlot({ register: registerMenuElement, unregister: unregisterMenuElement });
+    try {
+        const slot = installMenuSlot();
+        if (!slot.ok) console.warn("[ExtCircuitJS] menu slot unavailable:", slot.reason);
+    } catch (e) {
+        console.error("[ExtCircuitJS] menu slot install failed:", e);
+    }
 
     // 插件装载失败不阻断主程序
     try {
