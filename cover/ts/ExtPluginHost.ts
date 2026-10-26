@@ -26,6 +26,17 @@ export interface PluginStatus {
 
 const STORAGE_PREFIX = "ext.plugin.";
 
+/** 插件根 URL。plugins/ 是**页面同级目录**（dist/plugins），不是 bundle 的同级目录：
+ *  JS 产物在 dist/circuitjs/，插件在 dist/plugins/，所以不能用 import.meta.url 推导。
+ *  以 document.baseURI 为基准，"plugins/" 在站点根（dev）就是 /plugins/，
+ *  在子路径部署（GitHub Pages 的 /<repo>/）就是 /<repo>/plugins/，两种都成立。
+ *  Node 侧（fiber.test.mjs 直接 import 本文件、没有 document）退回原来的 "/plugins/"，
+ *  契约测试按该前缀拦截动态导入。 */
+function pluginsRoot(): string {
+    if (typeof document !== "undefined") return new URL("plugins/", document.baseURI).href;
+    return "/plugins/";
+}
+
 export class PluginHost {
     private fibers = new Map<string, Fiber>();
     private mods = new Map<string, ExtPluginModule>();
@@ -43,7 +54,7 @@ export class PluginHost {
         this.api = api;
     }
 
-    async load(manifestUrl = "/plugins/plugins.manifest.json"): Promise<void> {
+    async load(manifestUrl = pluginsRoot() + "plugins.manifest.json"): Promise<void> {
         let manifest: any;
         try {
             const res = await fetch(manifestUrl, { cache: "no-store" });
@@ -74,7 +85,7 @@ export class PluginHost {
 
         // ?rev= 是热重载的换版本键：不同 rev → 不同 URL → 浏览器必然拉新模块实例，
         // 不会命中 ESM 模块图里的旧条目（core 只读，宿主侧解决"能加不能减"）。
-        const url = `/plugins/${entry.id}/${entry.entry}?rev=${entry.rev ?? Date.now()}`;
+        const url = `${pluginsRoot()}${entry.id}/${entry.entry}?rev=${entry.rev ?? Date.now()}`;
         let mod: ExtPluginModule;
         try {
             mod = (await import(/* @vite-ignore */ url)) as ExtPluginModule;
@@ -143,7 +154,7 @@ export class PluginHost {
 
     private async findEntry(id: string): Promise<PluginEntry | null> {
         try {
-            const res = await fetch("/plugins/plugins.manifest.json", { cache: "no-store" });
+            const res = await fetch(pluginsRoot() + "plugins.manifest.json", { cache: "no-store" });
             const m = await res.json();
             return (m?.plugins ?? []).find((p: PluginEntry) => p.id === id) ?? null;
         } catch {

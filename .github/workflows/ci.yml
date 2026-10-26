@@ -1,5 +1,6 @@
 # ExtCircuitJS CI（A04）
 # 双平台：doctor + build + plugin lint + cover scan + Node 侧契约测试。
+# 构建产物 dist/ 作为 artifact 上传（每个平台一份），部署走独立的 pages.yml（GitHub Pages，仅 main）。
 # 浏览器契约测试（tests/contract/*.browser.* 与 *.browser.mjs）需要本机 Chrome +
 # playwright-core（EXT_PW_CORE/EXT_CHROME 指向本机路径），仅在开发机跑，见 docs/development-plan.md。
 
@@ -34,6 +35,13 @@ jobs:
 
       - name: Build (tsc core + tsc cover + vite)
         run: node tools/ext.mjs build
+
+      - name: Upload dist (static bundle)
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist-${{ matrix.os }}
+          path: dist
+          retention-days: 7
 
       - name: Plugin lint
         run: node tools/ext.mjs plugin lint

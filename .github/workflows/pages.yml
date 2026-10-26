@@ -1,0 +1,54 @@
+# ExtCircuitJS · GitHub Pages 部署
+#
+# 产物就是 `node tools/ext.mjs build` 的 dist/：构建期已经把绝对路径改成相对
+# （见 cover/vite.cover.config.ts 的 finalizeForHosting），所以整站可以直接挂在
+# https://<owner>.github.io/ExtCircuitJS/ 这种**子路径**下，不需要 base 配置。
+#
+# 首次使用需在仓库 Settings → Pages → Source 选 "GitHub Actions"。
+
+name: pages
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Install core dependencies
+        run: npm install --no-audit --no-fund --prefix core/ts
+
+      - name: Build (tsc core + tsc cover + vite)
+        run: node tools/ext.mjs build
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

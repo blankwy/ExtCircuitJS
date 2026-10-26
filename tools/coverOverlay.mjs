@@ -75,6 +75,20 @@ export function resolveFile(p) {
 }
 
 /**
+ * 模块 id 归一化：一律用正斜杠。
+ *
+ * Windows 上 `path.join` 产出的是反斜杠（`V:\…\core\ts\CirSim.ts`），而 Vite/rolldown 自己
+ * 解析出来的是正斜杠（`V:/…/core/ts/CirSim.ts`）。**同一个文件两种写法 = 构建图里两份模块实例**：
+ * 实测 `dist` 里出现两个 `CirSim` 类，main.ts 实例化的是其中一个，`registerElements()` 里的
+ * `CirSim.theApp` 属于另一个 → 生产构建启动即 `TypeError: Cannot read properties of undefined
+ * (reading 'register')`，`window.ExtCircuitJS` 永远不出现（dev 不受影响，因为 dev 全走 Vite 自己解析）。
+ * 本插件是 `enforce: 'pre'`，交还的 id 直接决定模块身份，必须与 Vite 同形态。
+ */
+function toId(p) {
+  return p.replace(/\\/g, '/')
+}
+
+/**
  * 影子解析核心（纯函数式，方便 node 单测）；返回 { resolve(source, importer) -> id|null, hits }
  */
 export function createShadowResolver(options = {}) {
@@ -96,7 +110,7 @@ export function createShadowResolver(options = {}) {
 
   function note(rel, coverAbs) {
     hits.set(rel, coverAbs)
-    return coverAbs
+    return toId(coverAbs)
   }
 
   function resolve(source, importer) {
@@ -108,7 +122,7 @@ export function createShadowResolver(options = {}) {
     // 0) 显式指向上游：@upstream/ResistorElm —— 供"薄影子"读取被覆盖的原文件
     if (coreAlias && spec.startsWith(coreAlias)) {
       const target = resolveFile(path.join(coreRoot, spec.slice(coreAlias.length)))
-      return target ? target + query : null
+      return target ? toId(target) + query : null
     }
 
     // 1) 以 / 开头的 root-relative 请求（HTML 里的 /main.ts、/style.css；dev 直接 curl 模块）
@@ -151,7 +165,7 @@ export function createShadowResolver(options = {}) {
       // 返 null 会把解析权交回 Vite，而 Vite 是按覆盖文件的物理位置（cover/）解析的，
       // 于是 ./CircuitElm 会去 cover/CircuitElm.ts 找 -> "Failed to resolve import"。
       // （Spike B 实测踩到过，见 docs/spikes/cover-build.md 的"已知坑"。）
-      return importerInCover ? coreTarget + query : null
+      return importerInCover ? toId(coreTarget) + query : null
     }
 
     // 4) 上游没有、覆盖层有：覆盖层新增文件（被 core 代码 import 的场景）
