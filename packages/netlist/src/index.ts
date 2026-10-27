@@ -3,10 +3,8 @@
 // 设计要点（见 docs/format-strategy.md）：
 //  - 真源是引擎对象（app.elmList + app.sim.nodeList），**不解析 XML 文本**；
 //  - 坐标默认不输出；layout:true 时才带 x1 y1 x2 y2；
-//  - 写入走 ops（set/delete/add）；add 的增量布局在 place.ts（C04，导线分裂放置）；
-//    probe 映射到 ScopeElm 留待 v0.2。
-//
-// TODO(v0.2)：probe 映射到 ScopeElm。
+//  - 写入走 ops（set/delete/add/probe）；add 的增量布局在 place.ts（C04，导线分裂放置）；
+//    probe 映射到引擎停靠 scope（PRB1，见下方 probeScope 注释）。
 
 import registryJson from "./registry.json";
 import { assignStableIds, elmOf, idOf } from "./ids";
@@ -205,6 +203,64 @@ function fieldOf(elm: any, prop: string): string {
     return hit.field;
 }
 
+// ── probe → 引擎 scope 机制（PRB1）──────────────────────────────────────────
+//
+// 映射到「停靠 scope」（app.scopeManager.scopes），即 UI 右键 "View in New Scope"
+// 的同一条创建路径（core/ts/CommandManager.ts:214 viewInScope），而不是浮动
+// ScopeElm。权衡说明（为什么不需要"画布外固定槽位"）：
+//  - ScopeElm 那条路必须给画布坐标，且它进 elmList —— 会被 exportNetlist 当元件
+//    导出、挤占稳定 id 序列（e1..eN 出现影子元件）、混进 getMeasurements；
+//  - 停靠 scope 与 elmList 完全解耦（只在 CircuitLoader.clearCircuit 载入时清空，
+//    analyzeCircuit 不清），创建完全不需要坐标。
+// 全程鸭子类型，不 import core（本包纪律，Node 侧 strip-only 加载不能碰 CirSim 图）。
+function findScopeFor(app: any, elm: any): any | null {
+    const sm = app?.scopeManager;
+    for (let i = 0; sm && i < (sm.scopeCount ?? 0); i++)
+        if (sm.scopes[i]?.showingElm?.(elm)) return sm.scopes[i];
+    // 浮动 ScopeElm（elmList 内的 isScopeElm）上已有的 scope 也算"已存在"
+    for (const e of app?.elmList ?? [])
+        if (e?.isScopeElm?.() && e?.elmScope?.showingElm?.(elm)) return e.elmScope;
+    return null;
+}
+
+function setQuantity(scope: any, quantity: "voltage" | "current"): void {
+    // Scope.showVoltage/showCurrent（core/ts/Scope.ts:149/160）：设 show 开关 +
+    // 缺图时自动补建对应 ScopePlot
+    scope.showVoltage(quantity === "voltage");
+    scope.showCurrent(quantity === "current");
+}
+
+/** 建/更新目标元件的 scope；返回是否新建（false = 幂等命中已有 scope） */
+function probeScope(app: any, elm: any, quantity: "voltage" | "current"): boolean {
+    const sm = app?.scopeManager;
+    const mouse = app?.mouse;
+    const commands = app?.commands;
+    if (!sm || !mouse || typeof commands?.menuPerformed !== "function")
+        throw new Error("probe needs engine scope UI (app.scopeManager/mouse/commands)");
+
+    // 幂等：目标已有 scope（停靠或浮动）→ 只把 quantity 开关对齐，不新建
+    const existing = findScopeFor(app, elm);
+    if (existing) {
+        setQuantity(existing, quantity);
+        return false;
+    }
+
+    // 与 UI 完全同一条创建路径：CommandManager.menuPerformed("elm","viewInScope")
+    // 读 mouse.menuElm 建（或复用空槽）停靠 scope；临时借用、用完还原。
+    const prev = mouse.menuElm ?? null;
+    mouse.menuElm = elm;
+    try {
+        commands.menuPerformed("elm", "viewInScope");
+    } finally {
+        mouse.menuElm = prev;
+    }
+    const scope = findScopeFor(app, elm);
+    if (!scope)
+        throw new Error("viewInScope produced no scope for target (scope slots full?)");
+    setQuantity(scope, quantity);
+    return true;
+}
+
 export function applyOps(app: any, ops: NetlistOp[]): ApplyResult {
     const result: ApplyResult = { ok: true, applied: 0, created: {}, atoms: [], unsupported: [] };
     for (const op of ops ?? []) {
@@ -230,9 +286,21 @@ export function applyOps(app: any, ops: NetlistOp[]): ApplyResult {
                     result.atoms.push({ deleted: idOf(elm) ?? `c${i}` });
                     break;
                 }
-                case "probe":
-                    result.unsupported.push({ op, reason: "probe mapping not implemented (v0.2)" });
+                case "probe": {
+                    // PRB1：probe → 引擎 scope。quantity 先验（运行期数据可能越界，
+                    // 与 C03 一致走结构化失败，不外抛）
+                    if (op.quantity !== "voltage" && op.quantity !== "current")
+                        throw new Error(`unknown quantity "${op.quantity}" (expected "voltage" | "current")`);
+                    const i = indexOfTarget(app, op.target);
+                    const elm = app.elmList[i];
+                    const tid = idOf(elm) ?? `c${i}`;
+                    const createdNew = probeScope(app, elm, op.quantity);
+                    result.applied++;
+                    // 只有真正新建才进 created；幂等重复 probe 不重复建、created 保持空
+                    if (createdNew) result.created.probe = tid;
+                    result.atoms.push({ probe: { target: tid, quantity: op.quantity, created: createdNew } });
                     break;
+                }
                 case "add": {
                     // 增量放置（C04）：委托 placeElement；成功记 created/atoms，
                     // 失败进 unsupported（结构化返回，不抛——与 C03 错误语义一致）
