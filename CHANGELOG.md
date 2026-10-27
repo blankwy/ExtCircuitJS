@@ -1,5 +1,20 @@
 # Changelog
 
+## v0.3.0（未发布）
+
+**用户反馈批量落地：产物可用性 + 插件治理 + UI 外观。**
+
+### 本地产物一条命令跑起来
+- 新增 `node tools/ext.mjs serve`：零依赖静态服务 dist/（file:// 下 ES module 被浏览器 CORS 禁——原版产物同样，必须走 http）。
+
+### 插件启停配置（部署侧）
+- site.config.json 新增 `plugins.disabled` 名单：构建期烘焙进 `<html data-ext-site-disabled>`，宿主 load() 过滤自动加载；显式 activate 不受限。
+- 默认禁用全部示例插件（ext-panel/command/event/hook/element）只留 hello——示例留作开发参考，打开即用不再有“意义不明的灰卡片”。
+### about 页自定义（机制已有，填上内容）
+- site.config.json 的 about.heading/html 构建期注入 about.html（GPL 声明按许可证保留），已填实际内容。
+### UI 外观（用户新功能）
+- **ext-theme** 插件：选项菜单【UI 外观】一键切换深色/浅色——UI 外壳 + 画布联动（复用 core White Background 开关），localStorage 记忆。
+- **ext-neumorph** 插件：新拟态主题（软阴影/圆角浮雕/同色系 #e0e5ec），只改样式不动布局，选项菜单可开关，默认开启。
 ## v0.2.0（2026-10-27）
 
 **v0.2 收尾：任务板最后一张卡（B08）落地，编译器上语料回归网，CI 接上浏览器契约。**
