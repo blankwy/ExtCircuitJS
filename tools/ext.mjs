@@ -15,6 +15,7 @@
  */
 import fs from "node:fs";
 import path from "node:path";
+import { createServer } from "node:http";
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 
@@ -606,6 +607,51 @@ function netlist(argv) {
 
 // ─────────────────────────────────────────────────────────────── main
 
+// 本地静态服务：一条命令把 dist/ 当站点跑起来（file:// 打不开 ES module 产物，
+// 这是浏览器对 module 的硬限制，原版产物也一样；必须走 http）。零依赖，Node ≥22。
+function serve(argv) {
+    const port = Number(argValue(argv, "--port", process.env.EXT_PORT ?? "8080"));
+    const MIME = {
+        ".html": "text/html; charset=utf-8",
+        ".js": "text/javascript; charset=utf-8",
+        ".mjs": "text/javascript; charset=utf-8",
+        ".css": "text/css; charset=utf-8",
+        ".json": "application/json; charset=utf-8",
+        ".svg": "image/svg+xml",
+        ".png": "image/png",
+        ".gif": "image/gif",
+        ".jpg": "image/jpeg",
+        ".txt": "text/plain; charset=utf-8",
+        ".woff2": "font/woff2",
+        ".woff": "font/woff",
+        ".ttf": "font/ttf",
+        ".ico": "image/x-icon",
+        ".wasm": "application/wasm",
+    };
+    const server = createServer((req, res) => {
+        const urlPath = decodeURIComponent((req.url ?? "/").split("?")[0]);
+        // 目录/省略 → 指到入口页（支持 /、/index.html、/circuitjs 前缀下的根）
+        let rel = urlPath.replace(/^\/+/, "");
+        if (rel === "" || rel === "index.html") rel = "circuitjs.html";
+        else if (rel === "circuitjs" || rel === "circuitjs/") rel = "circuitjs/circuitjs.html";
+        const file = path.join(distDir, rel);
+        if (!file.startsWith(distDir)) { res.writeHead(403); res.end("forbidden"); return; }
+        fs.stat(file, (err, st) => {
+            if (err || !st.isFile()) { res.writeHead(404); res.end("not found: /" + rel); return; }
+            res.writeHead(200, {
+                "Content-Type": MIME[path.extname(file).toLowerCase()] ?? "application/octet-stream",
+                "Cache-Control": "no-store",
+            });
+            fs.createReadStream(file).pipe(res);
+        });
+    });
+    server.listen(port, () => {
+        console.log(c.ok(`[ext] serve dist/ at http://127.0.0.1:${port}/`));
+        console.log(c.dim(`      build 一次后即可访问：node tools/ext.mjs build && node tools/ext.mjs serve`));
+    });
+    return new Promise(() => {}); // 常驻
+}
+
 // MCP 服务器：必须原样继承 stdin/stdout——协议帧走 stdout，本 CLI 的任何彩色
 // 日志都会把协议写坏，所以这里不打印任何东西（诊断由子进程走 stderr）。
 function mcp(argv) {
@@ -629,11 +675,18 @@ const table = {
     core: () => core(rest),
     netlist: () => netlist(rest),
     mcp: () => mcp(rest),
+    serve: () => serve(rest),
     help: () => { console.log(fs.readFileSync(fileURLToPath(import.meta.url), "utf8").split("*/")[0]); return 0; },
 };
 
 if (!cmd || !table[cmd]) {
-    console.error(c.err(`usage: node tools/ext.mjs <doctor|dev|build|test|cover|plugin|core|netlist|mcp>`));
+    console.error(c.err(`usage: node tools/ext.mjs <doctor|dev|build|test|cover|plugin|core|netlist|mcp|serve>`));
     process.exit(1);
 }
-process.exit(table[cmd]());
+const ret = table[cmd]();
+// serve 是常驻服务（返回 Promise 永不 resolve），不能 process.exit
+if (cmd === "serve") {
+    Promise.resolve(ret).catch((e) => { console.error(c.err("[ext] serve error: " + e)); process.exit(1); });
+} else {
+    process.exit(ret);
+}
