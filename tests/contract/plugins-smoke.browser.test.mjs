@@ -92,18 +92,41 @@ test("B07 plugins-smoke：三示例插件同时启停无泄漏", { timeout: 180_
 
         await page.goto(`${BASE}/circuitjs.html`, { waitUntil: "load", timeout: 60000 });
         await page.waitForFunction(() => !!window.ExtCircuitJS, null, { timeout: 60000 });
-        // 事件驱动等待：manifest 里 4 个插件全部 ready（fetch + dynamic import 完成的唯一可靠信号）
+        // 事件驱动等待：hello 自动加载 ready（唯一自动加载的插件；示例插件已按站点配置
+        // 默认禁用，改为显式 activate 后断言——测试意图「三插件同时启停无泄漏」不变）
         await page.waitForFunction(
             () => {
                 const ext = window.ExtCircuitJS;
                 if (!ext?.plugins) return false;
-                const want = ["hello", "ext-panel", "ext-command", "ext-event"];
-                const list = ext.plugins.list();
-                return want.every((id) => list.some((p) => p.id === id && p.state === "ready"));
+                const hello = ext.plugins.list().find((p) => p.id === "hello");
+                return hello?.state === "ready";
             },
             null,
             { timeout: 30000 },
         );
+        // 显式激活三个示例插件（与部署默认禁用的配置解耦）。
+        // 必须带 manifest 里的 permissions/claims——activate 只吃显式传入的 entry，
+        // 缺 permissions 会让 ctx.panel 等面报「未声明权限」。
+        await page.evaluate(async ({ ids, base }) => {
+            const ext = window.ExtCircuitJS;
+            const manifest = await fetch(`${base}/plugins/plugins.manifest.json`).then((r) => r.json());
+            const byId = Object.fromEntries((manifest.plugins ?? []).map((p) => [p.id, p]));
+            const entryOf = (id) => {
+                const m = byId[id];
+                return { id, entry: m.entry, version: m.version, permissions: m.permissions, claims: m.claims, rev: Date.now() };
+            };
+            await Promise.all(ids.map((id) => ext.plugins.activate(entryOf(id))));
+            // 等全部 ready
+            for (let i = 0; i < 50; i++) {
+                const all = ids.every((id) => {
+                    const p = ext.plugins.list().find((x) => x.id === id);
+                    return p?.state === "ready";
+                });
+                if (all) return;
+                await new Promise((r) => setTimeout(r, 100));
+            }
+            throw new Error("示例插件未能 ready");
+        }, { ids: DEMO_IDS, base: BASE });
 
         // ── 3) 归一化电路（lrc.txt，boot.browser 同款确定性序列），快照 A（启动态）──
         const A = await page.evaluate(async (text) => {

@@ -141,7 +141,18 @@ export class PluginHost {
         // 每次都从 basePolicy 重新合并（而不是累加到上一轮），否则反复 load 会一直做减法、
         // 把 manifest 里已经去掉的 deny 永久留在内存里。
         this.policy = mergePolicy(this.basePolicy, manifest?.policy);
-        const entries: PluginEntry[] = (manifest?.plugins ?? []).filter((p: PluginEntry) => p.enabled !== false);
+        // 启停控制（部署侧）：site.config.json 的 plugins.disabled 构建期烘焙进
+        // <html data-ext-site-disabled="[...]">，这里读它过滤 load() 的自动加载——
+        // 与 manifest 的 enabled 取交集（两者都放行才加载）；显式 activate 不受限制。
+        const rawDisabled = typeof document !== "undefined"
+            ? document.documentElement.dataset.extSiteDisabled
+            : undefined;
+        let siteDisabled: string[] = [];
+        if (rawDisabled) {
+            try { siteDisabled = JSON.parse(rawDisabled); } catch { /* 坏数据当空 */ }
+        }
+        const entries: PluginEntry[] = (manifest?.plugins ?? [])
+            .filter((p: PluginEntry) => p.enabled !== false && !siteDisabled.includes(p.id));
         for (const entry of entries) {
             try {
                 await this.activate(entry);

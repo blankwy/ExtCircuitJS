@@ -26,6 +26,11 @@ export const SITE_DEFAULTS = {
         /** 自定义关于内容（原样插入的 HTML）；空则不渲染 */
         html: "",
     },
+    /** 插件启停（部署侧）：默认不自动加载的插件 id 列表。空 = 全部按 manifest 的 enabled 走。
+     *  只影响 load() 的自动加载；显式 activate(id) 不受限制。 */
+    plugins: {
+        disabled: [],
+    },
 };
 
 const readJson = (file) => {
@@ -41,13 +46,16 @@ export function loadSiteConfig(coverRoot) {
     const file = path.join(coverRoot, "site.config.json");
     const raw = fs.existsSync(file) ? readJson(file) : {};
     const about = { ...SITE_DEFAULTS.about, ...(raw.about ?? {}) };
-    const cfg = { ...SITE_DEFAULTS, ...raw, about };
+    const plugins = { ...SITE_DEFAULTS.plugins, ...(raw.plugins ?? {}) };
+    const cfg = { ...SITE_DEFAULTS, ...raw, about, plugins };
     for (const key of ["title", "htmlTitle", "description", "homeurl"]) {
         if (typeof cfg[key] !== "string") throw new Error(`[site.config] ${key} 必须是字符串`);
     }
     for (const key of ["heading", "html"]) {
         if (typeof about[key] !== "string") throw new Error(`[site.config] about.${key} 必须是字符串`);
     }
+    if (!Array.isArray(plugins.disabled) || plugins.disabled.some((x) => typeof x !== "string"))
+        throw new Error(`[site.config] plugins.disabled 必须是字符串数组`);
     return cfg;
 }
 
@@ -68,6 +76,13 @@ export function applyToEntryHtml(html, cfg, { coverCssHref } = {}) {
     // 先摘掉已有的属性保证幂等：dev 的 transformIndexHtml 会对同一次请求反复跑。
     out = out.replace(/\sdata-ext-site-title="[^"]*"/gi, "");
     out = out.replace(/<html([^>]*)>/i, `<html$1 data-ext-site-title="${escapeHtml(cfg.title)}">`);
+
+    // 插件启停名单也走 data-*（浏览器侧 ExtPluginHost.load 读它过滤）。
+    // 只在非空时注入——默认配置必须与上游原样一致（site-config 测试逐字节断言）。
+    out = out.replace(/\sdata-ext-site-disabled="[^"]*"/gi, "");
+    if (cfg.plugins?.disabled?.length > 0) {
+        out = out.replace(/<html([^>]*)>/i, `<html$1 data-ext-site-disabled="${escapeHtml(JSON.stringify(cfg.plugins.disabled))}">`);
+    }
 
     const titleTag = `<title>${escapeHtml(cfg.htmlTitle)}</title>`;
     out = out.includes("<title>")
