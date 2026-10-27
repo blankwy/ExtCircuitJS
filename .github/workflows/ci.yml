@@ -96,6 +96,10 @@ jobs:
         working-directory: core/ts
         run: npm install --no-audit --no-fund --no-save playwright-core
 
+      # dist-site.browser.mjs 把 dist/ 当站点打开——必须先 build，否则产物测试拿到的是空目录
+      - name: Build dist (needed by dist-site contract)
+        run: node tools/ext.mjs build
+
       - name: Set Chrome path for non-Windows
         if: runner.os != 'Windows'
         run: >
