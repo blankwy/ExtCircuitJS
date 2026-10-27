@@ -47,6 +47,8 @@ const CHROME = process.env.EXT_CHROME ?? "C:\\Program Files\\Google\\Chrome\\App
 const BASE = process.env.EXC_BASE ?? "http://127.0.0.1:5174";
 
 const FIX_DIR = path.resolve(import.meta.dirname, "../fixtures/corpus-xml");
+/** 仓库根（Vite /@fs/ 前缀用，正斜杠）：本机绝对路径会硬编码 V:/...，CI 上必 404 */
+const REPO_FS_PATH = path.resolve(import.meta.dirname, "../..").split(path.sep).join("/");
 const BATCH = 20; // 每批电路数：372 例分 19 次 page.evaluate，循环在页面内
 
 /** GET 探活 dev server（只判 2xx/3xx） */
@@ -109,7 +111,8 @@ test("CC1 compiler-corpus：layout 路由非跳过例 100% / 重建路由通过�
         const results = [];
         for (let i = 0; i < cases.length; i += BATCH) {
             const batch = cases.slice(i, i + BATCH).map(({ name, text }) => ({ name, text }));
-            const rs = await page.evaluate(async (items) => {
+            const rs = await page.evaluate(async (payload) => {
+                const { items, repoFsPath } = payload;
                 const ext = window.ExtCircuitJS;
                 const app = ext.app;
                 const api = ext.api;
@@ -118,8 +121,9 @@ test("CC1 compiler-corpus：layout 路由非跳过例 100% / 重建路由通过�
                 // geom 层纯函数 + registry（失败归因的重放/探针用；与 ExtApi 打包实例是
                 // 同一份源码，纯数据/纯函数不涉模块身份，HANDOVER 坑位 16 的双实例问题
                 // 在这里不适用）
-                const geom = await import("/@fs/V:/Vibe/circuitjs1/ExtCircuitJS/packages/netlist/src/geom.ts");
-                const regElements = (await import("/@fs/V:/Vibe/circuitjs1/ExtCircuitJS/packages/netlist/src/index.ts"))
+                // /@fs/ 用运行时推导的仓库根（本机绝对路径硬编码 V:/Vibe/... 在 CI 上必 404）
+                const geom = await import(`/@fs/${repoFsPath}/packages/netlist/src/geom.ts`);
+                const regElements = (await import(`/@fs/${repoFsPath}/packages/netlist/src/index.ts`))
                     .elementRegistry().elements;
                 const gridSize = Number(app.gridSize) > 0 ? Number(app.gridSize) : 16;
 
@@ -367,7 +371,7 @@ test("CC1 compiler-corpus：layout 路由非跳过例 100% / 重建路由通过�
                     out.push(row);
                 }
                 return out;
-            }, batch);
+            }, { items: batch, repoFsPath: REPO_FS_PATH });
             results.push(...rs);
         }
 
