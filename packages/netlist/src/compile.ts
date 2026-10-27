@@ -264,6 +264,20 @@ export function compileNetlist(app: any, nl: Netlist, opts: CompileOptions = {})
     const snapshot: string | null = typeof app.dumpCircuit === "function" ? app.dumpCircuit(false) : null;
     const canRestore = snapshot != null && typeof app.importCircuitFromText === "function";
 
+    // 网格状态也是"被重建电路"的一部分：载入电路时 $ 头的 small-grid 位会把 app 网格
+    // 设成 8（UIManager.setGrid 读 smallGridCheckItem），8 格语料的引脚位置全部经
+    // calcLeads/adjustLeadsToGrid 的 snapGrid 对齐；而 clearCircuit() 会把检查项强制
+    // 置假并 app.setGrid() 重置回默认 16（CircuitLoader.ts:76,82）——此后构造的元件
+    // 引脚整体偏 8px（dram 的模拟开关控制脚、555int 曾有的电阻端点都是它）。
+    // 快照网格并在清空后复原；回滚路径由 readCircuit 按快照头自行重推导，无需干预。
+    const gridSnap = {
+        gridSize: app.gridSize as number | undefined,
+        gridMask: app.gridMask as number | undefined,
+        gridRound: app.gridRound as number | undefined,
+        smallGrid: typeof app.menus?.smallGridCheckItem?.getState === "function"
+            ? (app.menus.smallGridCheckItem.getState() as boolean) : null,
+    };
+
     const elms: any[] = [];        // 与 comps 同序
     const wires: any[] = [];
     const losses: CompileLosses = {
@@ -290,6 +304,12 @@ export function compileNetlist(app: any, nl: Netlist, opts: CompileOptions = {})
         // ── 4) 清空 + 构造元件 ───────────────────────────────────────────────
         if (typeof app.clearCircuit === "function") app.clearCircuit();
         else if (Array.isArray(app.elmList)) app.elmList.length = 0;
+        // 复原网格（clearCircuit 把它重置成默认 16 —— 见 gridSnap 注释）
+        if (gridSnap.gridSize !== undefined) app.gridSize = gridSnap.gridSize;
+        if (gridSnap.gridMask !== undefined) app.gridMask = gridSnap.gridMask;
+        if (gridSnap.gridRound !== undefined) app.gridRound = gridSnap.gridRound;
+        if (gridSnap.smallGrid != null && typeof app.menus?.smallGridCheckItem?.setState === "function")
+            app.menus.smallGridCheckItem.setState(gridSnap.smallGrid);
 
         for (const c of comps) {
             const box = geo.boxes[c.id];
@@ -312,6 +332,25 @@ export function compileNetlist(app: any, nl: Netlist, opts: CompileOptions = {})
             }
             if (Number.isFinite(Number(c.f))) elm.flags = Number(c.f);
 
+            // 模型驱动的引脚数：MOSFET/晶体管/继电器/二极管等家族的 setup() 从 modelName
+            // 解析静态模型表（MosfetModel/RelayModel 的 modelMap 是 static，clearCircuit 后
+            // 仍有效），bodyTerminal / poleCount 由此决定 postCount。applyProps 只改了字段，
+            // 不重跑 setup() 就还是出厂默认模型 —— switchfilter 的 4 脚 MOSFET 被建成 3 脚
+            // 就是这里漏的。上游 undumpXml 也是解析完属性立刻调 setup()（MosfetElm.ts:259）。
+            if (typeof elm.setup === "function") elm.setup();
+
+            // 纯 flags 派生状态：构造函数按默认档算过一次，flags 是之后才应用的，必须按
+            // 上游 undumpXml 的同款配方重推导，否则 setPoints 的引脚位置与原图错位：
+            //   · 画幅（FLAG_SMALL 家族：门/运放/芯片/诺顿运放）—— 555int 的小门
+            //     gheight 8 被建成默认 16，输入脚整体外扩 ±8px；
+            //   · 变压器绕组极性（FLAG_REVERSE → polarity）—— joule-thief 的副边两脚对调。
+            const flagSmall = (elm as any).FLAG_SMALL ?? (elm.constructor as any)?.FLAG_SMALL;
+            if (typeof elm.setSize === "function" && typeof flagSmall === "number")
+                elm.setSize(((elm.flags ?? 0) & flagSmall) !== 0 ? 1 : 2);      // GateElm.ts:125 / ChipElm.ts:539
+            if ("polarity" in elm && typeof (elm.constructor as any)?.FLAG_REVERSE === "number")
+                (elm as any).polarity =
+                    (((elm.flags ?? 0) & (elm.constructor as any).FLAG_REVERSE) !== 0) ? -1 : 1; // TransformerElm.ts:124
+
             // ChipElm 系列（复用器/计数器/ALU…）的 pins[] 是 setupPins() 建的，而引脚数
             // 取决于 inputMode / dataBusWidth / bits 这些**属性**。刚 applyProps 改过它们，
             // 数组还停在旧尺寸 → 后面 setPoints 遍历 this.pins[i] 直接读到 undefined。
@@ -323,7 +362,8 @@ export function compileNetlist(app: any, nl: Netlist, opts: CompileOptions = {})
 
             // 网表不存 busWidth / bits（registry 没这两个字段），但引脚数是它们的整数倍 ——
             // 用引脚数反推，反推不出来就按下面的校验结构化拒绝，不静默降级。
-            if (!restoreWidthByPinCount(elm, want, c.id, ignored)) {
+            // 声明的引脚序号一并传入：浮空引脚（网表只记**有连接**的脚）不算脚数错。
+            if (!restoreWidthByPinCount(elm, want, Object.keys(pins).map(Number), c.id, ignored)) {
                 const gotNow = elm.getPostCount?.() ?? -1;
                 return bail(`元件 ${c.id}（${c.type}）有 ${gotNow} 个引脚，网表给了 ${want} 个`, [{
                     code: "pin_count_mismatch", component: c.id,
@@ -342,19 +382,25 @@ export function compileNetlist(app: any, nl: Netlist, opts: CompileOptions = {})
                 elm.y2 = box.y2;
                 elm.setPoints?.(false);
                 ignored.push({ component: c.id, reason: "自动走线元件的路径不存在于网表，重建为直线" });
-            } else if (typeof elm.drag === "function") {
-                if (postCount === 2) {
-                    elm.drag(box.x2, box.y2);
-                } else {
-                    // 1 端/多端元件：x2/y2 是 core 自己算出来的（晶体管 bbox、地的引线方向），
-                    // 照搬回去再 setPoints，post 位置才和原图一致；只 drag 到自身会丢掉这段几何。
-                    // 而且 setPoints 必须被调一次 —— point1/point2 只在它里面赋值，漏了
-                    // GroundElm/VarRailElm 的 getPost() 会返回 (0,0)（HANDOVER 坑位）。
-                    elm.x2 = box.x2;
-                    elm.y2 = box.y2;
-                    if (typeof elm.setPoints === "function") elm.setPoints();
-                    else elm.drag(elm.x, elm.y);
-                }
+            } else if (postCount === 2) {
+                // 2 端元件坐标必须**逐字保留**：drag() 会 snapGrid 到 app 网格（CirSim.gridMask=~15、
+                // gridRound=7，104 → 96），而真实电路常画在 8 格上 —— 555int 的电阻 (240,56)-(240,104)
+                // 被拖成 (240,96)，与自带导线错位 8px，拓扑全变（硬闸第一枪，373 语料里 20 例）。
+                // 直接赋 x2/y2 再 setPoints，与上游 undump 路径同款；drag 相比只多了 snap 和
+                // noDiagonal 调整 —— 自动布局的坐标已网格对齐且水平，两者等价；照搬时只有直赋正确。
+                elm.x2 = box.x2;
+                elm.y2 = box.y2;
+                if (typeof elm.setPoints === "function") elm.setPoints();
+                else if (typeof elm.drag === "function") elm.drag(box.x2, box.y2);
+            } else if (typeof elm.drag === "function" || typeof elm.setPoints === "function") {
+                // 1 端/多端元件：x2/y2 是 core 自己算出来的（晶体管 bbox、地的引线方向），
+                // 照搬回去再 setPoints，post 位置才和原图一致；只 drag 到自身会丢掉这段几何。
+                // 而且 setPoints 必须被调一次 —— point1/point2 只在它里面赋值，漏了
+                // GroundElm/VarRailElm 的 getPost() 会返回 (0,0)（HANDOVER 坑位）。
+                elm.x2 = box.x2;
+                elm.y2 = box.y2;
+                if (typeof elm.setPoints === "function") elm.setPoints();
+                else elm.drag(elm.x, elm.y);
             } else if (postCount !== 2) {
                 return bail(`元件 ${c.id}（${c.type}）既不能 drag 也没有 setPoints，无法定位`, [{
                     code: "no_geometry_api", component: c.id, reason: "既无 drag 也无 setPoints",
@@ -365,6 +411,17 @@ export function compileNetlist(app: any, nl: Netlist, opts: CompileOptions = {})
                 const drift = [elm.x, elm.y, elm.x2, elm.y2];
                 if (drift[0] !== box.x1 || drift[1] !== box.y1)
                     positionDrift.push({ component: c.id, type: c.type, want: [box.x1, box.y1], got: drift });
+            }
+
+            // 示波器的监视对象（"第几个元件"）是显示状态，不在网表里；新建的 Scope 连
+            // plots 都还是空的 → dumpCircuit 在 ScopeSerializer.dumpXml 读 plots[0].elm 时
+            // 炸掉（multivib-a：Cannot read properties of undefined (reading 'elm')）。
+            // 指向自身让电路可序列化；显示语义的损失如实记。
+            if (typeof (elm as any).setScopeElm === "function") {
+                try {
+                    (elm as any).setScopeElm(elm);
+                    ignored.push({ component: c.id, reason: "示波器的监视对象不在网表里，重建后指向自身" });
+                } catch { /* 监视状态建不起来不影响拓扑，dump 阶段再论 */ }
             }
 
             app.elmList.push(elm);
@@ -403,7 +460,12 @@ export function compileNetlist(app: any, nl: Netlist, opts: CompileOptions = {})
             if (w == null) return bail("无法构造导线（WireElm）", [{
                 code: "construct_failed", reason: "ElementFactory.create(\"WireElm\") 返回 null",
             }]);
-            if (typeof w.drag === "function") w.drag(s.x2, s.y2);
+            // 同 2 端元件：坐标逐字保留，不走 drag()（snapGrid 会把 8 格语料的导线端点
+            // 拖离元件引脚，导线悬空 = 拓扑断裂）
+            w.x2 = s.x2;
+            w.y2 = s.y2;
+            if (typeof w.setPoints === "function") w.setPoints();
+            else if (typeof w.drag === "function") w.drag(s.x2, s.y2);
             app.elmList.push(w);
             wires.push(w);
         }
@@ -491,17 +553,26 @@ export function compileNetlist(app: any, nl: Netlist, opts: CompileOptions = {})
  * 用网表给的引脚数反推"宽度"字段。
  * 网表的 props 里没有 busWidth（WireElm）也没有 bits（ChipElm 系列）—— registry 两个都没收，
  * 但两者的 postCount 都是「基准脚数 × 宽度」，所以引脚数本身就带着这个信息。
+ * declared 是网表声明的引脚序号：网表只记**有连接**的引脚，元件上悬空的脚不出现，
+ * 所以「声明的脚都在元件上、只是比元件的脚少」是合法输入（cs-integrator 的 VCVS
+ * 感测脚），照建、多出的脚悬空；拓扑硬闸只比对声明的脚，不受影响。
  * 返回 true 表示引脚数已经对上（或本来就不用管）。
  */
 function restoreWidthByPinCount(
     elm: any,
     want: number,
+    declared: number[],
     id: string,
     ignored: CompileLosses["ignored"],
 ): boolean {
     if (want === 0) return true;                       // 未接入的元件，不校验脚数
     const got0 = typeof elm.getPostCount === "function" ? elm.getPostCount() : -1;
     if (got0 === want) return true;
+    if (got0 > 0 && want < got0) {
+        if (!declared.every((n) => Number.isInteger(n) && n >= 0 && n < got0)) return false;
+        ignored.push({ component: id, reason: `元件有 ${got0 - want} 个未连接引脚，网表未声明（悬空）` });
+        return true;
+    }
     if (got0 <= 0 || want % got0 !== 0) return false;
 
     const factor = want / got0;
