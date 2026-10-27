@@ -20,6 +20,7 @@ import fs from "node:fs";
 import http from "node:http";
 import test from "node:test";
 import assert from "node:assert/strict";
+import { activatePlugins } from "./helpers/activate-plugins.mjs";
 
 const PW_CORE = process.env.EXT_PW_CORE
     ?? "D:\\DevEnv\\node_global\\npm_modules\\node_modules\\openclaw\\node_modules\\playwright-core\\index.mjs";
@@ -59,6 +60,8 @@ test("plugin-hooks：load/save 钩子接线、幂等、来源过滤、卸载回�
 
     try {
         await page.goto(`${BASE}/circuitjs.html`, { waitUntil: "load", timeout: 60000 });
+        // 站点配置默认禁用示例插件：显式激活 ext-hook（load/save 钩子示例）
+        await activatePlugins(page, ["ext-hook"], BASE);
         await page.waitForFunction(
             () => window.ExtCircuitJS?.plugins?.list().some((p) => p.id === "ext-hook" && p.state === "ready"),
             null,

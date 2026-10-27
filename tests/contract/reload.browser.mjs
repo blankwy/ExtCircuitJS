@@ -34,6 +34,7 @@ import fs from "node:fs";
 import http from "node:http";
 import path from "node:path";
 import assert from "node:assert/strict";
+import { activatePlugins } from "./helpers/activate-plugins.mjs";
 
 const PW_CORE = process.env.EXT_PW_CORE
     ?? "D:\\DevEnv\\node_global\\npm_modules\\node_modules\\openclaw\\node_modules\\playwright-core\\index.mjs";
@@ -111,6 +112,8 @@ try {
     });
 
     await page.goto(`${BASE}/circuitjs.html`, { waitUntil: "load", timeout: 60000 });
+    // 站点配置默认禁用示例插件：显式激活 MANIFEST_IDS（已 ready 的幂等跳过），再等全部 ready
+    await activatePlugins(page, MANIFEST_IDS, BASE);
     // 事件驱动等待 boot：manifest 里全部插件 ready（fetch + dynamic import 完成的信号）
     await page.waitForFunction((want) => {
         const ext = window.ExtCircuitJS;

@@ -28,6 +28,7 @@ import fs from "node:fs";
 import http from "node:http";
 import test from "node:test";
 import assert from "node:assert/strict";
+import { activatePlugins } from "./helpers/activate-plugins.mjs";
 
 const PW_CORE = process.env.EXT_PW_CORE
     ?? "D:\\DevEnv\\node_global\\npm_modules\\node_modules\\openclaw\\node_modules\\playwright-core\\index.mjs";
@@ -64,6 +65,8 @@ test("element-events：select / elemclick 由真实交互产生", { timeout: 180
 
     try {
         await page.goto(`${BASE}/circuitjs.html`, { waitUntil: "load", timeout: 60000 });
+        // 站点配置默认禁用示例插件：显式激活 ext-event（elemdrag/elementschange 的订阅方）
+        await activatePlugins(page, ["ext-event"], BASE);
         // 等启动真正结束：window.ExtCircuitJS 在 plugins.load() **之前**就挂上了，
         // 而启动电路（演示电路）可能还在异步装载 —— 不等就会看见"我明明 load 了却有 7 个元件"
         await page.waitForFunction(
@@ -195,6 +198,8 @@ test("element-events：拖动/删除/撤销/载入产生 elemdrag 与 elementsch
 
     try {
         await page.goto(`${BASE}/circuitjs.html`, { waitUntil: "load", timeout: 60000 });
+        // 站点配置默认禁用示例插件：显式激活 ext-event（elemdrag/elementschange 的订阅方）
+        await activatePlugins(page, ["ext-event"], BASE);
         await page.waitForFunction(
             () => {
                 const list = window.ExtCircuitJS?.plugins?.list?.() ?? [];

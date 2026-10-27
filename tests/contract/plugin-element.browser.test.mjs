@@ -19,6 +19,7 @@ import fs from "node:fs";
 import http from "node:http";
 import test from "node:test";
 import assert from "node:assert/strict";
+import { activatePlugins } from "./helpers/activate-plugins.mjs";
 
 const PW_CORE = process.env.EXT_PW_CORE
     ?? "D:\\DevEnv\\node_global\\npm_modules\\node_modules\\openclaw\\node_modules\\playwright-core\\index.mjs";
@@ -56,6 +57,8 @@ test("plugin-element：自定义元件注册/存档往返/卸载", { timeout: 18
 
     try {
         await page.goto(`${BASE}/circuitjs.html`, { waitUntil: "load", timeout: 60000 });
+        // 站点配置默认禁用示例插件：显式激活 ext-element（自定义元件示例）
+        await activatePlugins(page, ["ext-element"], BASE);
         // window.ExtCircuitJS 在 plugins.load() **之前**就挂上（ExtBoot 的顺序），
         // 所以不能只等它出现——等插件真正进入 ready（确定性等待，不用 sleep 兜底）
         await page.waitForFunction(
