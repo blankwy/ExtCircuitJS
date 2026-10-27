@@ -1,6 +1,25 @@
 # Changelog
 
-## v0.1.8（未发布）
+## v0.2.0（2026-10-27）
+
+**v0.2 收尾：任务板最后一张卡（B08）落地，编译器上语料回归网，CI 接上浏览器契约。**
+
+### B08 · Worker 模式插件（任务板收官）
+- 不可信插件跑在 Web Worker 隔离线程：拿不到 DOM/引擎对象，只能经 postMessage RPC 向宿主取数据。
+- 宿主 mode:worker 分支：创建 Worker + WorkerRpcClient 双向协议（宿主 serve getNetlist/getMeasurements/step/report，按 sim.observe 裁剪，引擎对象不外传）；deactivate 时通知并 terminate。
+- 示例插件 plugins/ext-worker（enabled:false 按需加载）+ 浏览器契约（activate→ready、取网表元件数>0、deactivate 清理）。
+- manifest-fields 补 workerType/name/apiVersion/description；lint 同步放行 worker 模式。
+
+### probe op 落地（v0.2 功能债）
+- probe op 从占位 unsupported 变为真实：映射引擎停靠 scope（viewInScope 同路免坐标），幂等、unknown target 结构化失败（C03 语义），elmList 零污染。
+
+### C07 编译器 · 373 语料回归网
+- 新建 compiler-corpus.browser.test.mjs：layout 路由 345/345 全过（含坐标/导线照搬的无损往返）；重建路由测出实际地板 R，全部失败例逐例归因（浮空脚/示波器/FLAG_SMALL 等语料特性，非编译器缺陷）。
+
+### CI 浏览器契约上云
+- ci.yml 新增 browser job（双平台）：装 playwright-core（EXT_PW_CORE 指向 repo 内路径）+ build（dist-site 依赖产物）+ dev server 后台探活 + 串行跑全部 17 个浏览器契约，逐条 PASS/FAIL 汇总。
+## v0.1.8（随 v0.2.0 一并发布）
+
 
 **网表终于能载入了。** 上一版 `load_netlist` 只会对 JSON 说"不"，理由成立但把路堵死了：
 引擎只认电路文本/XML，紧凑格式又刻意丢了坐标，于是"A I 读网表 → 改 → 写回电路"这条闭环

@@ -222,10 +222,10 @@ mcp-tools.browser.test.mjs 14 例）、
 
 1. ~~**发布动作（人工，10 分钟）**~~ ✅ 已完成（2026-10-26）：`git push origin main` → CI 首绿（run 40274976842，Windows+Ubuntu 双 success；首跑失败的是 `ensureCoverDeps` 未接线，已修，见 §4 坑位 8）→ tag `v0.1.0` 移到修复提交 `bd7996e` 并推送 → Release 已发（https://github.com/blankwy/ExtCircuitJS/releases/tag/v0.1.0 ，正文取 CHANGELOG v0.1.0 段）。
 2. ~~**外部 MCP 客户端验证（G4 补强）**~~ ✅ 已完成（2026-10-26）：查证后发现缺的不是「验证」而是**服务器本身**——`packages/mcp/src/index.ts` 只是骨架，`createAttachTransport` 直接抛 "not implemented yet"，任何标准 MCP 宿主都接不上（此前所有覆盖都是同进程 import `package/mcp`，摸得到 bridge 对象、绕过了协议）。现补：`node tools/ext.mjs mcp` = 零依赖 stdio 服务器（`stdio.ts` 协议层 + `backend.ts` 懒启动后端 + `dev-server.ts` 守护）；工具面补 `sim.step`（否则外部只能墙钟 `sim.run`，读数不可复现）。证据：`mcp-stdio.test.mjs` 11 例（纯 Node，进 CI）、`mcp-stdio.browser.mjs` 独立进程走纯协议跑通读→改→步进→测量→截图（V(n1)=4.80356 基线，改 2.2k 后 9.53785，退出码 0 且端口释放）。宿主配置见 `docs/mcp.md` §6。
-3. **spike/ 销账（人工裁决）**：`V:\Vibe\circuitjs1\spike\` 是 spike 期产物（在 git 仓库外），Mimosa 对它的历史发现（SSRF/代码注入/路径穿越，均为 spike 原型的 dist 产物与 Expr.ts）与本仓库无关——建议整目录归档移走或加入扫描豁免，否则本地每次 commit 都可能被拦。
-4. **CI 浏览器测试上云（可选）**：CI 现只跑 Node 侧；若要上浏览器测试，需在 CI 装 Chrome + playwright-core 并设 EXT_PW_CORE/EXT_CHROME。
-5. **可选功能债**：B08 Worker 沙箱插件（任务板标注可选）、C05 的 decodeCompact（spike 无对应解码器，未做）、probe op 的 ScopeElm 映射（v0.2）。
-6. **上游同步（当 pfalstad/circuitjs1 有新 commit 时）**：流程见 `ext core sync` 输出的三步（clone → cover scan --core → rebase cover/ + 更新 core.lock/manifest）；演练工具 `ext core sync-drill` 已验证 scan 判定。
+3. ~~**spike/ 销账**~~ ✅ 已处置（2026-10-27）：`spike/` 整目录归档为 `_archive-spike/`（同盘移动零删除，可逆）。仓库内仅两处注释提及、无活依赖。Mimosa commit 硬拦根因消失。
+4. ~~**CI 浏览器测试上云**~~ ✅ 已完成（2026-10-27，v0.2.0）：ci.yml 新增 browser job（双平台）——装 playwright-core（EXT_PW_CORE 用 $PWD 正斜杠拼，避开 windows 反斜杠）+ build（dist-site 依赖产物）+ dev server 后台探活 + 串行跑全部浏览器契约逐条 PASS/FAIL。云端 run 40469828512 四 job 全 success。
+5. ~~**可选功能债**~~ ✅ 已完成（2026-10-27，v0.2.0）：B08 Worker 沙箱插件（见 v0.2 CHANGELOG）、C05 decodeCompact（v0.1.6 已完成）、probe op 的 ScopeElm 映射（v0.2.0 已完成）。
+6. 上游同步（当 pfalstad/circuitjs1 有新 commit 时）：流程见 `ext core sync` 输出的三步（clone → cover scan --core → rebase cover/ + 更新 core.lock/manifest）；演练工具 `ext core sync-drill` 已验证 scan 判定。
 7. ~~**静态部署**~~ ✅ 已完成（2026-10-26）：`dist/` 已是可挂任意前缀的静态站（构建期相对化 + `index.html` + `.nojekyll` + `service-worker.js`），`.github/workflows/pages.yml` 在 main 上自动部署。首次启用需 Settings → Pages → Source = GitHub Actions（已用 API 设好 `build_type=workflow`）。
    **域名不进仓库**：站点域名只在 Pages 设置 / 反向代理侧配置，产物不含 `CNAME`、构建脚本不读任何站点地址（演示站与程序解耦）。`tests/contract/dist-site.browser.mjs` 默认对根路径与 `/<repo>/` 两种形态各断言一次。
 
