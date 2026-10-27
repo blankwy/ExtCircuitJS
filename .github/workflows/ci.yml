@@ -118,9 +118,11 @@ jobs:
 
       - name: Run browser contracts (serial, port 5174)
         run: |
-          set -e
+          fails=0
           for t in tests/contract/*.browser.mjs tests/contract/*.browser.test.mjs; do
             echo "=== $t ==="
-            node "$t"
+            if node "$t"; then echo "PASS $t"; else echo "FAIL $t (exit $?)"; fails=$((fails+1)); fi
           done
-        timeout-minutes: 30
+          echo "TOTAL_FAILS=$fails"
+          test "$fails" -eq 0
+        timeout-minutes: 45
