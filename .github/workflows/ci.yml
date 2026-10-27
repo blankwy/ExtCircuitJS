@@ -80,8 +80,6 @@ jobs:
     defaults:
       run:
         shell: bash
-    env:
-      EXT_PW_CORE: ${{ github.workspace }}/core/ts/node_modules/playwright-core/index.mjs
     steps:
       - uses: actions/checkout@v4
 
@@ -102,9 +100,16 @@ jobs:
 
       - name: Set Chrome path for non-Windows
         if: runner.os != 'Windows'
-        run: >
-          echo "EXT_CHROME=$(command -v google-chrome || command -v google-chrome-stable || echo /usr/bin/google-chrome)"
-          >> "$GITHUB_ENV"
+        run: |
+          CH="$(command -v google-chrome-stable || command -v google-chrome || echo /usr/bin/google-chrome)"
+          echo "EXT_CHROME=$CH" >> "$GITHUB_ENV"
+          echo "chrome=$CH"
+
+      - name: Set EXT_PW_CORE (repo-relative, forward slashes)
+        run: |
+          echo "EXT_PW_CORE=$PWD/core/ts/node_modules/playwright-core/index.mjs" >> "$GITHUB_ENV"
+          echo "pwcore=$PWD/core/ts/node_modules/playwright-core/index.mjs"
+        shell: bash
 
       - name: Start dev server (background)
         run: |
