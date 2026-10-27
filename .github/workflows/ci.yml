@@ -67,3 +67,55 @@ jobs:
           tests/contract/element-events.test.mjs
           tests/contract/netlist-compact.test.mjs
           tests/contract/compile.test.mjs
+
+  browser:
+    # 浏览器契约（真实 Chromium + dev server）：双平台各跑一遍。
+    # 依赖 playwright-core（CI 里现装）与 runner 预装 Chrome（windows-latest 标准路径、
+    # ubuntu-latest 的 /usr/bin/google-chrome）。测试内 EXT_PW_CORE/EXT_CHROME 取默认路径即可
+    # （boot.browser.mjs 等按 env 默认值解析），这里只需保证缺省路径成立。
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Install core dependencies
+        run: npm install --no-audit --no-fund --prefix core/ts
+
+      - name: Install playwright-core (for browser contracts)
+        working-directory: core/ts
+        run: npm install --no-audit --no-fund --no-save playwright-core
+
+      - name: Set Chrome path for non-Windows
+        if: runner.os != 'Windows'
+        run: >
+          echo "EXT_CHROME=$(command -v google-chrome || command -v google-chrome-stable || echo /usr/bin/google-chrome)"
+          >> "$GITHUB_ENV"
+
+      - name: Start dev server (background)
+        run: |
+          node tools/ext.mjs dev --port 5174 > /tmp/dev.log 2>&1 &
+          echo $! > /tmp/dev.pid
+          for i in $(seq 1 60); do
+            if curl -sf -o /dev/null http://127.0.0.1:5174/circuitjs.html; then echo "dev server up"; exit 0; fi
+            sleep 2
+          done
+          echo "dev server failed to start"; cat /tmp/dev.log; exit 1
+
+      - name: Run browser contracts (serial, port 5174)
+        run: |
+          set -e
+          for t in tests/contract/*.browser.mjs tests/contract/*.browser.test.mjs; do
+            echo "=== $t ==="
+            node "$t"
+          done
+        timeout-minutes: 30
