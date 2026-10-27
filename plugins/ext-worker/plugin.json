@@ -1,0 +1,15 @@
+{
+  "id": "ext-worker",
+  "name": "Ext Worker Demo",
+  "version": "0.1.0",
+  "apiVersion": "1.0.0",
+  "entry": "worker.js",
+  "mode": "worker",
+  "workerType": "classic",
+  "permissions": [
+    "sim.observe",
+    "sim.control"
+  ],
+  "claims": {},
+  "description": "示例插件 · Worker 模式（B08）：跑在 Web Worker 里，经 postMessage RPC 向宿主取网表/测量/步进——演示隔离不可信插件的最小契约"
+}

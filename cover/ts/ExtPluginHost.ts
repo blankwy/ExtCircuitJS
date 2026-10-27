@@ -21,6 +21,7 @@ import {
 } from "@ext/plugin-api";
 import { CommandPaletteRegistry, PaletteCommand } from "./CommandPaletteRegistry";
 import { ExtHooks } from "./ExtHooks";
+import { WorkerRpcClient, createPluginWorker } from "./ExtPluginWorker";
 import {
     registerExtElement,
     unregisterExtElement,
@@ -95,6 +96,8 @@ function mergePolicy(...policies: (PluginPolicy | null | undefined)[]): PluginPo
 export class PluginHost {
     private fibers = new Map<string, Fiber>();
     private mods = new Map<string, ExtPluginModule>();
+    /** Worker 模式插件（B08）：entry.id → WorkerRpcClient（terminate 时清理） */
+    private workers = new Map<string, WorkerRpcClient>();
     private errors = new Map<string, string>();
     private disposables = new Map<string, number>();
     /** 命令 id → 实际注册者插件 id（B03）。ctx.command 注册时登记，disposer 撤销时释放。 */
@@ -190,6 +193,57 @@ export class PluginHost {
         // ?rev= 是热重载的换版本键：不同 rev → 不同 URL → 浏览器必然拉新模块实例，
         // 不会命中 ESM 模块图里的旧条目（core 只读，宿主侧解决"能加不能减"）。
         const url = `${pluginsRoot()}${entry.id}/${entry.entry}?rev=${entry.rev ?? Date.now()}`;
+
+        // ── Worker 模式（B08）：不可信插件跑在隔离线程，只经 postMessage RPC ──
+        if (entry.mode === "worker") {
+            let rpc: WorkerRpcClient | null = null;
+            try {
+                // Classic worker：插件入口是普通脚本（模块可再用 {type:"module"} 演进）。
+                // 不支持 Worker 的宿主（如某些测试 jsdom 桩）直接失败，走 fiber 回滚。
+                if (typeof Worker === "undefined")
+                    throw new Error("Worker 不可用：宿主环境不支持（in-page 插件可用 mode:'in-page'）");
+                const worker = createPluginWorker(url, entry.workerType ?? "classic");
+                const grantedSet = new Set(granted);
+                // 服务面：worker 主动来取的数据接口，按权限裁剪；绝不把引擎对象传给 worker。
+                const serve = async (req: { method: string; params?: any }): Promise<any> => {
+                    const { method, params } = req;
+                    switch (method) {
+                        case "getNetlist":
+                            return this.api.dumpNetlist?.() ?? this.api.getNetlist?.() ?? null;
+                        case "getMeasurements":
+                            if (!grantedSet.has("sim.observe")) throw new Error(`permission "sim.observe" not granted`);
+                            return this.api.getMeasurements?.(params ?? {}) ?? null;
+                        case "step": {
+                            if (!grantedSet.has("sim.observe")) throw new Error(`permission "sim.observe" not granted`);
+                            if (typeof this.api.step === "function") return this.api.step(params);
+                            const secs = Number(params?.seconds ?? 0.002);
+                            return this.api.runThenMeasure?.(secs) ?? { ok: false, error: "host step unavailable" };
+                        }
+                        case "report":
+                            if (params) console.log(`[worker:${entry.id}]`, ...(Array.isArray(params) ? params : [params]));
+                            return { ok: true };
+                        default:
+                            throw new Error(`unknown worker method "${method}"`);
+                    }
+                };
+                rpc = new WorkerRpcClient(worker, serve);
+                this.workers.set(entry.id, rpc);
+                await rpc.request("activate", { id: entry.id, version: entry.version ?? "0.0.0" }, 15000);
+                fiber.state = "ready";
+                this.errors.delete(entry.id);
+                return; // 不走下方 in-page 的 import 路径
+            } catch (e: any) {
+                this.errors.set(entry.id, String(e?.message ?? e));
+                fiber.dispose();
+                fiber.state = "failed";
+                this.fibers.delete(entry.id);
+                if (rpc) rpc.dispose();
+                throw e;
+            } finally {
+                this.disposables.set(entry.id, 0);
+            }
+        }
+
         let mod: ExtPluginModule;
         try {
             mod = (await import(/* @vite-ignore */ url)) as ExtPluginModule;
@@ -221,6 +275,13 @@ export class PluginHost {
         const fiber = this.fibers.get(id);
         const mod = this.mods.get(id);
         try { await mod?.deactivate?.(); } catch (e) { console.error(`[ExtCircuitJS] ${id}.deactivate failed:`, e); }
+        // Worker 模式：通知 worker 卸载并 terminate（B08）
+        const wrpc = this.workers.get(id);
+        if (wrpc) {
+            try { await wrpc.request("deactivate", {}, 3000); } catch { /* 已终止 */ }
+            wrpc.dispose();
+            this.workers.delete(id);
+        }
         fiber?.dispose();
         this.fibers.delete(id);
         this.mods.delete(id);

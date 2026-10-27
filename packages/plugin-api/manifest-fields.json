@@ -16,10 +16,15 @@
     "enabled",
     "rev",
     "permissions",
-    "claims"
+    "claims",
+    "name",
+    "apiVersion",
+    "workerType",
+    "description"
   ],
   "allowedMode": [
-    "in-page"
+    "in-page",
+    "worker"
   ],
   "retired": {
     "inject": "注入语义已由 permissions 取代，直接删掉"
