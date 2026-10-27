@@ -1,0 +1,12 @@
+{
+  "id": "ext-theme",
+  "name": "UI 外观（深色/浅色）",
+  "version": "0.1.0",
+  "apiVersion": "1.0.0",
+  "entry": "index.js",
+  "mode": "in-page",
+  "enabled": true,
+  "permissions": [],
+  "claims": {},
+  "description": "在【选项】菜单加【UI 外观】项：一键切换整个 UI 的深色/浅色（UI 外壳 + 画布联动，localStorage 记忆）"
+}

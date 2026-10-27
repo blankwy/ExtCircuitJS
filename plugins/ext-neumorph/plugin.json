@@ -1,0 +1,12 @@
+{
+  "id": "ext-neumorph",
+  "name": "新拟态 UI",
+  "version": "0.1.0",
+  "apiVersion": "1.0.0",
+  "entry": "index.js",
+  "mode": "in-page",
+  "enabled": true,
+  "permissions": [],
+  "claims": {},
+  "description": "把 UI 外壳美化成新拟态（Neumorphism）风格：软阴影、圆角、同色系浮雕按钮；不动布局，只改样式，可在【选项】菜单开关"
+}
