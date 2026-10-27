@@ -70,9 +70,8 @@ jobs:
 
   browser:
     # 浏览器契约（真实 Chromium + dev server）：双平台各跑一遍。
-    # 依赖 playwright-core（CI 里现装）与 runner 预装 Chrome（windows-latest 标准路径、
-    # ubuntu-latest 的 /usr/bin/google-chrome）。测试内 EXT_PW_CORE/EXT_CHROME 取默认路径即可
-    # （boot.browser.mjs 等按 env 默认值解析），这里只需保证缺省路径成立。
+    # playwright-core 在 CI 现装并写到 core/ts/node_modules；契约测试的 EXT_PW_CORE 默认值
+    # 指向开发机绝对路径（D:\DevEnv\...），CI 上必须显式覆盖为 repo 内路径，否则 existsSync 全挂。
     strategy:
       fail-fast: false
       matrix:
@@ -81,6 +80,8 @@ jobs:
     defaults:
       run:
         shell: bash
+    env:
+      EXT_PW_CORE: ${{ github.workspace }}/core/ts/node_modules/playwright-core/index.mjs
     steps:
       - uses: actions/checkout@v4
 
