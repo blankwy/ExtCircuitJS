@@ -128,7 +128,13 @@ GitHub Pages 由 `.github/workflows/pages.yml` 负责：`main` 每次推送都�
 | CI（Windows+Ubuntu：doctor/build/lint/scan + Node 契约） | ✅ | `.github/workflows/ci.yml` |
 | 无头求解器 / Worker 沙箱 / 自动布局 | ⬜ 非 v1 目标 | [docs/development-plan.md](docs/development-plan.md) §5.2 |
 
-浏览器里试：
+> **本地打开产物：**产物是 ES module，双击击 dist/index.html 会被浏览器拦（file:// 下 module 加载被 CORS 禁，原版产物同样）。正确姿势：
+> ```bash
+> node tools/ext.mjs build   # 构建一次
+> node tools/ext.mjs serve  # 然后打开 http://127.0.0.1:8080/  （--port 可换口）
+> ```
+
+浏览器里试：浏览器里试：
 
 ```js
 const ext = window.ExtCircuitJS;
