@@ -121,13 +121,28 @@ jobs:
           done
           echo "dev server failed to start"; cat /tmp/dev.log; exit 1
 
-      - name: Run browser contracts (serial, port 5174)
+      - name: Run browser contracts (serial, port 5174, log to artifact)
         run: |
-          fails=0
-          for t in tests/contract/*.browser.mjs tests/contract/*.browser.test.mjs; do
-            echo "=== $t ==="
-            if node "$t"; then echo "PASS $t"; else echo "FAIL $t (exit $?)"; fails=$((fails+1)); fi
-          done
-          echo "TOTAL_FAILS=$fails"
-          test "$fails" -eq 0
+          {
+            echo "EXT_PW_CORE=$EXT_PW_CORE"
+            echo "EXT_CHROME=$EXT_CHROME"
+            pwd
+            ls core/ts/node_modules/playwright-core/package.json
+            fails=0
+            for t in tests/contract/*.browser.mjs tests/contract/*.browser.test.mjs; do
+              echo "=== $t ==="
+              if node "$t"; then echo "PASS $t"; else echo "FAIL $t (exit $?)"; fails=$((fails+1)); fi
+            done
+            echo "TOTAL_FAILS=$fails"
+          } 2>&1 | tee browser-contract.log
+          test "$(grep -c '^FAIL' browser-contract.log)" -eq 0 || (echo "browser contract failures above"; exit 1)
         timeout-minutes: 45
+
+      - name: Upload browser contract log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: browser-contract-log-${{ matrix.os }}
+          path: browser-contract.log
+          retention-days: 7
+        continue-on-error: true
