@@ -141,7 +141,9 @@
       "entry": "index.js",
       "mode": "in-page",
       "enabled": true,
-      "permissions": [],
+      "permissions": [
+        "sim.observe"
+      ],
       "claims": {},
       "description": "新拟态风格美化（软阴影/圆角/同色浮雕），只改样式不动布局，选项菜单可开关"
     }
