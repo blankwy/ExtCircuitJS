@@ -1,0 +1,12 @@
+{
+  "id": "ext-share",
+  "name": "电路分享（URL / 单 HTML）",
+  "version": "0.1.0",
+  "apiVersion": "1.0.0",
+  "entry": "index.js",
+  "mode": "in-page",
+  "enabled": true,
+  "permissions": ["ui.command", "sim.control"],
+  "claims": { "commands": ["ext-share.url", "ext-share.copy", "ext-share.html"] },
+  "description": "把当前电路打包成分享链接（?ctz= 压缩）或自包含单 HTML 下载；对方打开即见电路并可直接仿真"
+}

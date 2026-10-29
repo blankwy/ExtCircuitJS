@@ -161,6 +161,31 @@ html.ext-neumorph ::-webkit-scrollbar-thumb {
   box-shadow: inset 2px 2px 4px var(--nm-dark), inset -2px -2px 4px var(--nm-light);
 }
 
+/* ── 窄屏（≤600px）侧栏开关：必须压在 #painel 之上，否则点不到 ────────
+ * core 里 .triggerLabel 与 .verticalPanel 同为 z-index:1，DOM 顺序让后者盖住前者；
+ * 新拟态给 #painel 加了不透明底色 + 阴影，把手彻底被埋。这里提到 z-index:10 并做同风格外观。 */
+@media only screen and (max-width: 600px) {
+  html.ext-neumorph .triggerLabel {
+    z-index: 10 !important;
+    background: var(--nm-bg) !important;
+    box-shadow: -4px 0 10px -4px var(--nm-dark), inset 1px 0 2px var(--nm-light) !important;
+    color: var(--nm-text) !important;
+    border-radius: 10px 0 0 10px !important;
+    cursor: pointer !important;
+  }
+  html.ext-neumorph .triggerLabel::before { color: var(--nm-text) !important; }
+  html.ext-neumorph .toptriggerlabel {
+    z-index: 10 !important;
+    background: var(--nm-bg) !important;
+    border-radius: 6px !important;
+    box-shadow: var(--nm-raise-sm) !important;
+    color: var(--nm-text) !important;
+    cursor: pointer !important;
+  }
+  /* 展开后的 #painel 不要盖住把手 */
+  html.ext-neumorph #painel { z-index: 5 !important; }
+}
+
 /* ── 插件面板：卡片化（自带内边距，避免 v1 那种"贴边卡片"）──────── */
 html.ext-neumorph .ext-plugin-hello,
 html.ext-neumorph [data-ext-plugin] {

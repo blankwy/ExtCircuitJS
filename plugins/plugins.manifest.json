@@ -146,6 +146,27 @@
       ],
       "claims": {},
       "description": "新拟态风格美化（软阴影/圆角/同色浮雕），只改样式不动布局，选项菜单可开关"
+    },
+    {
+      "id": "ext-share",
+      "name": "电路分享（URL / 单 HTML）",
+      "version": "0.1.0",
+      "apiVersion": "1.0.0",
+      "entry": "index.js",
+      "mode": "in-page",
+      "enabled": true,
+      "permissions": [
+        "ui.command",
+        "sim.control"
+      ],
+      "claims": {
+        "commands": [
+          "ext-share.url",
+          "ext-share.copy",
+          "ext-share.html"
+        ]
+      },
+      "description": "把当前电路打包成分享链接（?ctz= 压缩）或分享页 HTML"
     }
   ]
 }
