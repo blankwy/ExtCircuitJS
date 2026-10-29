@@ -1,0 +1,205 @@
+# Skill 委托文档：ExtCircuitJS 电路助教
+
+> 交接对象：新会话（负责做 skill 并推广）。
+> 交接日期：2026-10-29。前置工作已完成，见"已就绪能力"。
+> 相关文档：[Wiki 首页](https://github.com/blankwy/ExtCircuitJS/wiki) · [插件开发](https://github.com/blankwy/ExtCircuitJS/wiki/插件开发)
+
+---
+
+## 1. 要做什么
+
+做一个 skill，让 AI 助手能**用真实电路仿真回答电路问题**：读网表 → 改参数 → 跑仿真 → 读数值 → 出图。
+
+**核心价值**（别丢掉）：AI 不是"画一个像电路的图"，而是**在真引擎上跑出真数值**。
+555 定时器的占空比、滤波器的截止频率、运放的增益——这些能算出来、能验证，不是编的。
+
+**明确不做**：
+- ❌ 回复里的可交互 canvas（对话界面撑不住，AI 侧收不到交互结果，做了也是断链）
+- ❌ 把 Chrome/playwright 打进 skill（体积大、多数宿主不让起子进程）
+
+**产出形态**：文字解释 + SVG 波形图（AI 自己画）+ 关键数值 + （可选）电路截图 PNG。
+
+---
+
+## 2. 已就绪能力（不用重做）
+
+| 能力 | 状态 | 位置 |
+|---|---|---|
+| **静态产物可被 MCP 驱动** | ✅ 已改造（`0adbe2d`） | `ExtBoot` 暴露 `loadMcpBridge()`，backend 优先用之 |
+| `read_scope` 降采样（防爆 token） | ✅ 默认 240 点、保峰谷 | `ExtMcpBridge.ts` / `tools.ts` |
+| 标准回合示例 | ✅ 可运行 | `examples/circuit-tutor.mjs` |
+| MCP 服务器（stdio） | ✅ | `node tools/ext.mjs mcp` |
+| 11 个工具 | ✅ | 见下表 |
+| 网表读写 + 稳定 id + ops 补丁 | ✅ | `packages/netlist` |
+| 网表→电路编译器（拓扑硬闸） | ✅ | `compile.ts` / `geom.ts` |
+| 373 电路语料 | ✅ | `core/ts/public/circuits/*.txt` |
+
+**实测过的完整回合**（`node examples/circuit-tutor.mjs`）：
+
+```
+[1] 网表: 7 元件 / 5 网
+[2] 改参: e1.resistance 10Ω → 30Ω (applied=1)
+[3] 步进: t=0.010005s, 2001 engine steps
+[4] 测量: V(n1) = -10.4774 V, V(n2) = -10.3258 V, V(n3) = 5 V ...
+[5] 波形渲染: 6 个 SVG → build/tutor
+```
+
+### MCP 工具一览
+
+| 工具 | 用途 | 关键参数 |
+|---|---|---|
+| `circuit.get_netlist` | 读网表（元件/稳定id/连接） | `format=compact` 省 token，`layout` 带坐标 |
+| `circuit.load_netlist` | 载入电路文本/XML/网表 JSON | `text` |
+| `circuit.list_components` | 元件清单 | — |
+| `circuit.set_param` | 改元件参数 | `target`(e1..), `prop`, `value` |
+| `sim.step` | **确定性步进**（读数可复现） | `seconds` |
+| `sim.run` / `sim.stop` | 实时步进（不确定性，教学别用） | — |
+| `sim.reset` | 复位 | — |
+| `sim.read_measurements` | 读电压/电流 | `nets` / `components` |
+| `sim.read_scope` | 读波形 | `maxPoints`（默认 240，0=全量） |
+| `schematic.screenshot` | 电路截图 | `format: png\|svg` |
+
+---
+
+## 3. 双线策略（你定的，已具备条件）
+
+**目标**：绕开 GitHub Pages 在部分网络环境不可达/极慢的问题。
+
+```
+① 先试 GitHub Pages（零安装，最轻）
+     https://blankwy.github.io/ExtCircuitJS/
+     └─ 可达 → 直接连它（MCP backend 的 baseUrl 指过去）
+② 不可达 → 用本地仓库的 dist/
+     node tools/ext.mjs build && node tools/ext.mjs serve --port 8080
+     └─ 已实测：静态产物被 MCP 完整驱动（via builtin）
+③ 都没有 → 起 dev server（最重，仅开发态）
+     node tools/ext.mjs dev --port 5174
+```
+
+**技术支撑**：`backend.ts` 的 `baseUrl` 参数 + `devServer: "off" | "reuse" | "auto"`。
+线 ① 和 ② 都走 `devServer: "off"`（不需要 dev server，静态服务即可）。
+
+**建议的探测逻辑**（写进 skill 的辅助脚本）：
+
+```js
+// 依次试，第一个通的就用
+const candidates = [
+  { base: "https://blankwy.github.io/ExtCircuitJS", label: "GitHub Pages", devServer: "off" },
+  { base: `http://127.0.0.1:${port}`, label: "本地 dist", devServer: "off" },  // 先确保 serve 起了
+  { base: "http://127.0.0.1:5174", label: "dev server", devServer: "reuse" },
+];
+```
+
+> ⚠️ 注意：Pages 站点是 **`/ExtCircuitJS/` 子路径**部署，`baseUrl` 要带前缀。
+> 静态站点已支持子路径（`dist-site.browser.mjs` 两种形态都测过）。
+
+---
+
+## 4. Skill 该包含什么
+
+```
+ext-circuit-tutor/
+├── SKILL.md                 触发条件 + 使用说明（见下）
+├── scripts/
+│   ├── probe.mjs            双线探测：Pages → 本地 dist → dev server
+│   ├── tutor.mjs            标准回合（照抄 examples/circuit-tutor.mjs）
+│   └── scope-svg.mjs        SVG 渲染（照抄 examples/circuit-tutor.mjs 里的 scopeToSvg）
+└── reference/
+    ├── tools.md             11 个工具速查（可裁剪自本文 §2）
+    └── circuits.md          内置语料清单（373 个电路名 + 一句话）
+```
+
+### SKILL.md 要写的关键内容
+
+**触发条件**（写给模型看，要具体）：
+> 用户问电路/电子相关问题，且需要**真实数值或波形**（不只是概念解释）：
+> "这个 RC 滤波器截止频率多少" / "555 占空比怎么调" / "帮我看看这个电路为什么振荡" /
+> "改一下这个电阻会怎样" / "画出输出波形"。
+
+**不该触发的**：纯概念问答（"什么是欧姆定律"）、纯电路图绘制需求（用 SVG 手画即可）。
+
+**工作流**（模型必须照做的顺序）：
+1. `probe.mjs` 确认有可用后端（Pages / 本地 dist / dev）
+2. 若是常见电路（RC/RL/555/运放…），先看 `reference/circuits.md` 有没有现成语料；没有就 `load_netlist` 生成
+3. `get_netlist` 看清元件与网络
+4. 用 `set_param` / ops 改参数（**绝不手写坐标**）
+5. `sim.step` 推进（**必须用 step，不能用 run** —— run 是墙钟驱动，数值不可复现）
+6. `read_measurements` 读数 + `read_scope` 取波形
+7. 用 `scope-svg.mjs` 渲染 SVG 嵌进回复
+8. 结论里给**具体数值 + 单位 + 条件**（t=2ms 时 Vout=3.2V），不要只说"会变大"
+
+**硬性纪律**（写进 SKILL.md，防止模型走歪）：
+- 数值必须来自 `read_measurements`/`read_scope`，**不许估算或编造**
+- 步进一律用 `sim.step`（确定性），不用 `sim.run`
+- 波形点数用默认 240（够画图），不要 `maxPoints=0` 拉全量（会爆 token）
+- 电路改动走 ops/`set_param`，不手写坐标（坐标错 1px = 静默断线）
+
+---
+
+## 5. 推广时该讲的（和不该讲的）
+
+**该讲**（真实优势）：
+- 数值可验证：不是"看起来像"，是真引擎跑出来的
+- 373 个内置电路可直接用（RC/RL/LRC/555/运放/滤波器/数字电路…）
+- AI 改电路是改参数不是画图，出错率低
+- 离线可用（本地 dist 那条线）
+
+**不该讲**：
+- ❌ "在对话里交互式玩电路" —— 做不到
+- ❌ "零安装" —— MCP 那条线要 Node + Chrome（Pages 那条线是人看，不是 AI 驱动）
+
+**要如实说的门槛**：需要 Node ≥22 + 本机 Chrome；`npm install --prefix core/ts`。
+
+---
+
+## 6. 现有仓库位置与命令
+
+```bash
+git clone https://github.com/blankwy/ExtCircuitJS.git
+cd ExtCircuitJS
+npm install --prefix core/ts
+
+# 本地产物（线 ②）
+node tools/ext.mjs build
+node tools/ext.mjs serve --port 8080
+
+# MCP 服务器（给 AI 宿主）
+node tools/ext.mjs mcp
+
+# 标准回合验证（做完 skill 先跑这个）
+node examples/circuit-tutor.mjs
+```
+
+**环境变量**：`EXC_BASE`（后端地址）、`EXT_PW_CORE`（playwright-core）、`EXT_CHROME`（浏览器）。
+
+---
+
+## 7. 已知坑（踩过的，别重踩）
+
+| 坑 | 说明 |
+|---|---|
+| **`sim.run` 不可复现** | 墙钟驱动，同一电路两次跑数值不同。一律用 `sim.step` |
+| **`read_scope` 全量会断连** | 3 scope × 512 点会撑爆 WS 消息。用默认 240，或看 `cappedFromAll` 标记 |
+| **确定性步进的引擎序列** | `analyzeCircuit → preStampAndStampCircuit → runCircuit`，只调 `preStampCircuit` 会在 NaN 检查崩（MCP 内部已封装，自己写时注意） |
+| **坐标陷阱** | 手写 XML 坐标差 1px = 静默开路（不报错、仿真出全 0V）。所以走 ops 不碰坐标 |
+| **Pages 是子路径** | `baseUrl` 要带 `/ExtCircuitJS` 前缀 |
+| **静态产物必须有桥** | 已在 `0adbe2d` 解决（桥打进 bundle）；更早的版本只能 dev 驱动 |
+
+---
+
+## 8. 验收标准（skill 做完了怎么算成）
+
+1. `node scripts/probe.mjs` → 三条线各能正确识别可用/不可用
+2. 问"RC 低通滤波器截止频率是多少" → 模型能建电路、跑出 -3dB 点、出 SVG 幅频曲线
+3. 问"555 定时器改 R2 会怎样" → 模型能改参、给出前后对比数值 + 波形
+4. 所有数值都能在 `read_measurements` 输出里找到对应项（抽查 3 个）
+5. 回复里嵌的 SVG 能正常显示
+
+---
+
+## 9. 可选增强（优先级低）
+
+- **网表 JSON → 电路图**：`compile.ts` 能生成坐标与导线，配合 `schematic.screenshot` 出图
+- **常见电路模板库**：把 373 语料按教学主题分类（滤波器/振荡器/数字/电源…），写进 `reference/circuits.md`
+- **参数扫描**：循环 `set_param + step + measure` 画参数曲线（如 R 从 10Ω 到 1kΩ 的增益变化）
+- **多通道对比**：同一电路改参前后两条曲线叠在一张 SVG
