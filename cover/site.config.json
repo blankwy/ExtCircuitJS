@@ -1,14 +1,15 @@
 {
   "title": "Circuit Simulator",
   "htmlTitle": "CircuitJS",
-  "description": "ExtCircuitJS — 基于 CircuitJS1 的二开：AI 可读写的电路仿真器（网表/编译器/MCP/插件）",
+  "description": "ExtCircuitJS 是AI 可读写、支持插件拓展的电路仿真器（网表/编译器/MCP/插件）— 基于 CircuitJS1 二次开发：",
   "homeurl": "",
   "about": {
     "heading": "关于 ExtCircuitJS",
-    "html": "<p>ExtCircuitJS 是 CircuitJS1 的二开版本：保留上游仿真能力，叠加了网表读写（语义 JSON + ops 补丁）、<strong>网表→电路编译器</strong>（自动布局 + A* 布线）、<strong>MCP 服务</strong>（AI 会话式读写电路）与<strong>插件系统</strong>（生命周期 / 权限 / Worker 隔离）。</p><p>用法：<code>node tools/ext.mjs build && node tools/ext.mjs serve</code> 本地跑起；<code>node tools/ext.mjs mcp</code> 接 MCP 宿主；详情见 README 与 <code>docs/mcp.md</code>。</p>"
+    "html": "<p>ExtCircuitJS 是 CircuitJS1 的二开版本：保留上游仿真能力，叠加了网表读写（语义 JSON + ops 补丁）、<strong>网表→电路编译器</strong>（自动布局 + A* 布线）、<strong>MCP 服务</strong>（AI 会话式读写电路）与<strong>插件系统</strong>（生命周期 / 权限 / Worker 隔离）。</p><p>用法：<code>node tools/ext.mjs build && node tools/ext.mjs serve</code> 本地跑起；<code>node tools/ext.mjs mcp</code> 接 MCP 宿主；详情见 README 与 <code>docs/mcp.md</code>。</p></br>"
   },
   "plugins": {
     "disabled": [
+      "hello",
       "ext-panel",
       "ext-command",
       "ext-event",

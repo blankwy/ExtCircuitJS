@@ -156,8 +156,7 @@
       "mode": "in-page",
       "enabled": true,
       "permissions": [
-        "ui.command",
-        "sim.control"
+        "ui.command"
       ],
       "claims": {
         "commands": [
@@ -167,6 +166,25 @@
         ]
       },
       "description": "把当前电路打包成分享链接（?ctz= 压缩）或分享页 HTML"
+    },
+    {
+      "id": "ext-ai",
+      "name": "AI 接入（MCP / Skill）",
+      "version": "0.1.0",
+      "apiVersion": "1.0.0",
+      "entry": "index.js",
+      "mode": "in-page",
+      "enabled": true,
+      "permissions": [
+        "ui.command"
+      ],
+      "claims": {
+        "commands": [
+          "ext-ai.mcp",
+          "ext-ai.skill"
+        ]
+      },
+      "description": "顶部菜单加 AI：MCP 配置向导 + Skill 安装说明"
     }
   ]
 }

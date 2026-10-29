@@ -6,7 +6,15 @@
   "entry": "index.js",
   "mode": "in-page",
   "enabled": true,
-  "permissions": ["ui.command", "sim.control"],
-  "claims": { "commands": ["ext-share.url", "ext-share.copy", "ext-share.html"] },
+  "permissions": [
+    "ui.command"
+  ],
+  "claims": {
+    "commands": [
+      "ext-share.url",
+      "ext-share.copy",
+      "ext-share.html"
+    ]
+  },
   "description": "把当前电路打包成分享链接（?ctz= 压缩）或自包含单 HTML 下载；对方打开即见电路并可直接仿真"
 }
