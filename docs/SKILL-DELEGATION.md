@@ -17,7 +17,70 @@
 - ❌ 回复里的可交互 canvas（对话界面撑不住，AI 侧收不到交互结果，做了也是断链）
 - ❌ 把 Chrome/playwright 打进 skill（体积大、多数宿主不让起子进程）
 
-**产出形态**：文字解释 + SVG 波形图（AI 自己画）+ 关键数值 + （可选）电路截图 PNG。
+**产出形态**：文字解释 + SVG 波形图（AI 自己画）+ 关键数值 + **（首选）一个能点开就仿真的分享链接**。
+
+---
+
+## 1.5 ⭐ 分享链接：AI 交付的**最轻路径**（优先用它）
+
+用户不满足于"一张图"时，**别急着塞文件、别要求装环境**——给一个 URL 就够：
+
+```
+https://blankwy.github.io/ExtCircuitJS/circuitjs.html?ctz=<压缩电路>
+```
+
+点开即见电路、可点 RUN 仿真、可拖滑块调参。**零安装、零文件传输、不需要 Node。**
+
+### AI 侧怎么生成（纯命令行，不需要浏览器）
+
+```bash
+# 内置语料
+node tools/ext.mjs share --circuit lrc
+
+# 任意电路文本（AI 现造或从网表编译得到的）
+node tools/ext.mjs share --text "r 100 100 300 100 0 1000\nw 100 100 100 300"
+
+# 电路文件
+node tools/ext.mjs share --file my.txt
+
+# 顺便出分享页（1-2KB html）
+node tools/ext.mjs share --circuit lrc --out build/share.html
+```
+
+- **stdout 只有一行 URL**（诊断走 stderr），便于脚本抓取：`URL=$(node tools/ext.mjs share --circuit lrc 2>/dev/null)`
+- 脚本**内置自检**：解压必须与原文逐字节相同，否则报错（防止给用户一个空电路链接）
+- 实测：lrc（441 字节）→ URL 404 字符，打开后自动载入 7 元件并开始仿真
+
+### 长度预算（要主动判断，别给出会失效的链接）
+
+| URL 长度 | 判断 |
+|---|---|
+| < 2000 | 安全，任何渠道都能传 |
+| 2000–8000 | 部分 IM/邮件会截断，**建议改用 `--out` 出分享页** |
+| > 8000 | 脚本会警告；改用分享页或单文件 HTML |
+
+### 完整链路（AI 全自动）
+
+```
+① 造/改电路 → 拿到电路文本
+     · 内置语料：直接 --circuit <名字>
+     · 从网表编译：MCP 的 circuit.load_netlist（带拓扑硬闸）→ dumpCircuit 取文本
+     · 手写/微调：--text "<电路文本>"
+② node tools/ext.mjs share --text "<文本>"     → 得到 URL
+③ 把 URL 给用户（"点开就能跑，可以拖滑块调参数"）
+```
+
+> **分享链接只含电路本身**，不含仿真状态、不含主题设置——对方打开是 t=0 初始态，这通常正是想要的。
+
+### 决策顺序（写进 SKILL.md）
+
+| 用户想要 | 给什么 |
+|---|---|
+| 一句话能答的概念问题 | 文字，别折腾 |
+| 看波形/要真实数值 | MCP 仿真 + SVG 波形 + 数值 |
+| **自己动手试、调参数** | **分享链接**（首选，最轻） |
+| 离线/内网/存档/发文件 | 单文件 HTML（`bundle-single`，1.4MB） |
+| 链接太长发不出去 | 分享页（`--out`，1-2KB，仍依赖原站） |
 
 ---
 
@@ -214,6 +277,12 @@ node tools/ext.mjs serve --port 8080
 # MCP 服务器（给 AI 宿主）
 node tools/ext.mjs mcp
 
+# 分享链接（不需要浏览器/不需要 build）
+node tools/ext.mjs share --circuit lrc
+
+# 单文件离线 HTML
+node tools/ext.mjs bundle-single --out build/circuitjs-single.html
+
 # 标准回合验证（做完 skill 先跑这个）
 node examples/circuit-tutor.mjs
 ```
@@ -240,8 +309,9 @@ node examples/circuit-tutor.mjs
 1. `node scripts/probe.mjs` → 三条线各能正确识别可用/不可用
 2. 问"RC 低通滤波器截止频率是多少" → 模型能建电路、跑出 -3dB 点、出 SVG 幅频曲线
 3. 问"555 定时器改 R2 会怎样" → 模型能改参、给出前后对比数值 + 波形
-4. 所有数值都能在 `read_measurements` 输出里找到对应项（抽查 3 个）
-5. 回复里嵌的 SVG 能正常显示
+4. **问"能让我自己试试吗" → 模型能生成分享链接，且链接打开后电路正确**
+5. 所有数值都能在 `read_measurements` 输出里找到对应项（抽查 3 个）
+6. 回复里嵌的 SVG 能正常显示
 
 ---
 
