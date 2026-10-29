@@ -18,6 +18,8 @@
 //   · iframe 也归"仿真设置"页
 // 插件自己的 AI 面板则作为一个独立页容器插在 Tab 栏之后。
 
+import { chatStream, loadAiConfig, saveAiConfig, clearAiConfig, loadHistory, pushHistory, clearHistory } from "./chat.mjs";
+
 const TAB_AI = "ai";
 const TAB_SIM = "sim";
 
@@ -90,6 +92,15 @@ const CSS = `
   #painel { width: 0 !important; }
   .trigger:checked ~ #painel { width: 88vw !important; }
   .mainToolbar, .canvasWrapper { right: 0 !important; }
+  /* 工具栏按钮绝对定位横排，窄屏放不下 → 允许横向滑动查看后面的按钮
+     （core 在元素上写了 style.overflow=hidden，内联优先级高，这里必须 !important + 指定子属性） */
+  .mainToolbar {
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+    -webkit-overflow-scrolling: touch;
+  }
+  .mainToolbar::-webkit-scrollbar { height: 4px; }
+  .mainToolbar::-webkit-scrollbar-thumb { background: rgba(0,0,0,.25); border-radius: 2px; }
   /* 展开后把手会落到「重置/RUN」按钮区（core 的 right:128px 是按 128px 侧栏算的）。
      垂直下移到 Tab 栏下方，避开按钮行，保持可点。 */
   .triggerLabel { top: 108px !important; height: 42px !important; }
@@ -258,13 +269,6 @@ function toggleSettings() {
     }
 }
 
-const AI_CFG_KEY = "ext.ai.config";
-function loadAiConfig() {
-    try { return JSON.parse(localStorage.getItem(AI_CFG_KEY) || "{}"); } catch { return {}; }
-}
-function saveAiConfig(cfg) {
-    try { localStorage.setItem(AI_CFG_KEY, JSON.stringify(cfg)); } catch { /* 隐私模式 */ }
-}
 
 /** 发送消息（当前：无模型时给出能力提示；有 Key 时走 OpenAI 兼容接口） */
 async function sendMessage() {
@@ -272,6 +276,7 @@ async function sendMessage() {
     if (!text) return;
     inputEl.value = "";
     appendChat("user", text);
+    pushHistory("user", text);
 
     const cfg = loadAiConfig();
     if (!cfg.apiKey || cfg.provider === "none" || cfg.provider === "local-cli") {
@@ -284,36 +289,27 @@ async function sendMessage() {
         return;
     }
 
-    // OpenAI 兼容 chat/completions（Anthropic 若 baseURL 兼容也可用）
-    const baseUrl = (cfg.baseUrl || "https://api.openai.com/v1").replace(/\/+$/, "");
-    const model = cfg.model || "gpt-4o-mini";
-    const thinking = appendChat("assistant", "…");
+    const sys = { role: "system", content:
+        "你是 ExtCircuitJS 的电路助手。回答要简短、给具体数值和单位。" +
+        "涉及电路计算时优先说明依据；不要编造仿真结果。" +
+        "当前电路有 " + (window.ExtCircuitJS?.api?.listComponents?.().length ?? 0) + " 个元件。" };
+    const msgs = [sys, ...loadHistory().slice(-20)];
+
+    // 流式气泡：边收边渲染（SSE 增量）
+    const bubble = appendChat("assistant", "…");
+    abortCtrl = new AbortController();
     try {
-        const res = await fetch(`${baseUrl}/chat/completions`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json", Authorization: `Bearer ${cfg.apiKey}` },
-            body: JSON.stringify({
-                model,
-                messages: [
-                    {
-                        role: "system",
-                        content:
-                            "你是 ExtCircuitJS 的电路助手。回答要简短、给具体数值和单位。" +
-                            "涉及电路计算时优先说明依据；不要编造仿真结果。",
-                    },
-                    { role: "user", content: text },
-                ],
-                temperature: 0.3,
-            }),
+        const full = await chatStream({
+            messages: msgs,
+            signal: abortCtrl.signal,
+            onDelta: (acc) => { bubble.innerHTML = renderInline(acc); chatLog.scrollTop = chatLog.scrollHeight; },
         });
-        if (!res.ok) throw new Error(`HTTP ${res.status}: ${(await res.text()).slice(0, 200)}`);
-        const data = await res.json();
-        const reply = data?.choices?.[0]?.message?.content ?? "(空回复)";
-        thinking.parentElement.remove();
-        appendChat("assistant", reply);
+        bubble.innerHTML = renderInline(full || "(空回复)");
     } catch (e) {
-        thinking.parentElement.remove();
-        appendChat("assistant", `请求失败：${e?.message ?? e}`);
+        bubble.parentElement?.remove();
+        if (e?.name !== "AbortError") appendChat("assistant", `请求失败：${e?.message ?? e}`);
+    } finally {
+        abortCtrl = null;
     }
 }
 
@@ -465,7 +461,9 @@ export async function activate(ctx) {
         setTimeout(() => { hint.style.color = "#94a3b8"; hint.textContent = "配置存在浏览器 localStorage（仅本机）。未配置时可用下方 MCP 工具直接操作电路。"; }, 1800);
     });
     settingsEl.querySelector("#ext-ai-clear").addEventListener("click", () => {
-        localStorage.removeItem(AI_CFG_KEY);
+        clearAiConfig();
+        clearHistory();
+        if (chatLog) chatLog.innerHTML = "";
         for (const id of ["#ext-ai-baseurl", "#ext-ai-key", "#ext-ai-model"]) settingsEl.querySelector(id).value = "";
         settingsEl.querySelector("#ext-ai-hint").textContent = "已清除。";
     });

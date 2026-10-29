@@ -184,10 +184,9 @@ test("B07 plugins-smoke：三示例插件同时启停无泄漏", { timeout: 180_
         assert.equal(A.listenersAnalyze - B.listenersAnalyze, 1, "analyze 订阅应恰好多 1 个");
         assert.equal(A.commands - B.commands, 1, "启动态应比基线多 1 条命令（ext-command）");
         assert.equal(A.byIdSize - B.byIdSize, 1, "byId 应恰好多 1 条命令");
-        // 面板节点数不再按 #painel.children 计：ext-ai-panel 插件把侧栏重构成 Tab 布局，
-        // 插件面板被转发进「仿真设置」页容器。改用 [data-ext-plugin] 标记（ext-panel 的真实痕迹，
-        // 与布局无关）—— 见下方 markers 断言。
-        assert.ok(A.panelChildren >= B.panelChildren, "面板子节点数不应因插件启停而减少");
+        // 面板节点数不再按 #painel.children 计：ext-ai-panel 把侧栏重构成 Tab 布局（tabs/pageAi
+        // 容器本身也是 #painel 的子节点，且 core 动态滑块也在），绝对/相对计数都不是插件面板的
+        // 可靠信号。插件面板的真实痕迹由下方 markers 断言覆盖（[data-ext-plugin] 计数）。
         assert.equal(A.markers, 1, "启动态应有 1 个 [data-ext-plugin] 节点");
         assert.equal(B.markers, 0, "基线不应有 [data-ext-plugin] 节点");
 
@@ -257,7 +256,6 @@ test("B07 plugins-smoke：三示例插件同时启停无泄漏", { timeout: 180_
         assert.equal(ran.snap.byIdSize - B.byIdSize, 1, "activate 后 byId 应比基线多 1");
         // 侧栏被 ext-ai-panel 重构成 Tab 后，#painel.children 不再随插件面板增减（面板进了「仿真设置」页）。
         // 用 markers 断言代替（ext-panel 的真实痕迹，与布局无关）。
-        assert.ok(ran.snap.panelChildren >= B.panelChildren, "activate 后面板子节点数不应减少");
         assert.ok(ran.snap.plugins.every((p) => !DEMO_IDS.includes(p.id) || p.state === "ready"),
             "三插件激活后应全部 ready");
 
@@ -282,7 +280,6 @@ test("B07 plugins-smoke：三示例插件同时启停无泄漏", { timeout: 180_
         assert.equal(F.listenersAnalyze, B.listenersAnalyze, "卸载后 analyze 订阅应回基线");
         assert.equal(F.commands, B.commands, "卸载后命令计数应回基线");
         assert.equal(F.byIdSize, B.byIdSize, "卸载后 byId 应回基线");
-        assert.equal(F.panelChildren, B.panelChildren, "卸载后面板子节点数应回基线");
         assert.equal(F.markers, 0, "卸载后 [data-ext-plugin] 节点应清零");
         assert.deepEqual(
             F.plugins.filter((p) => DEMO_IDS.includes(p.id)).map((p) => p.id),
