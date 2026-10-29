@@ -78,6 +78,10 @@ const CSS = `
 }
 .ext-ai-page--sim iframe { width: 100% !important; }
 .ext-ai-page--ai textarea { font-size: 12px !important; }
+/* iframe 留在 #painel 原位（不移动，避免中断其加载）；仅在「AI 助手」页时隐藏。
+   data-ext-ai-tab 挂在 #painel 上，由 selectTab 更新。 */
+#painel[data-ext-ai-tab="ai"] > iframe { display: none !important; }
+#painel[data-ext-ai-tab="sim"] > iframe { display: block !important; }
 `;
 
 // ── 状态 ────────────────────────────────────────────────────────────
@@ -389,7 +393,11 @@ function partitionExisting() {
     const kids = Array.from(painel.children);
     for (const node of kids) {
         if (node === topbar || node === tabsEl || node === pageAi || node === pageSim) continue;
-        if (bp != null && (node === bp)) {
+        // **不要移动 iframe**：它是 core 按需创建、自己管高度/加载的；
+        // 移动节点会中断其进行中的请求（CI 上表现为 iframe.html net::ERR_ABORTED）。
+        // 保持原位，用 CSS 在「AI 助手」页时隐藏即可（见 CSS 的 #painel > iframe 规则）。
+        if (node.tagName === "IFRAME") continue;
+        if (bp != null && node === bp) {
             topbar.appendChild(node);          // 按钮面板整体进 topbar
         } else {
             pageSim.appendChild(node);
@@ -434,6 +442,8 @@ function selectTab(id) {
     }
     pageAi.hidden = id !== TAB_AI;
     pageSim.hidden = id !== TAB_SIM;
+    // iframe 留在 #painel 原位，用属性驱动 CSS 显隐
+    if (painel) painel.dataset.extAiTab = id;
     // 切到仿真设置时，让 core 重算 iframe 高度（它按 verticalPanel 子节点算）
     if (id === TAB_SIM) {
         try { window.ExtCircuitJS?.app?.ui?.setiFrameHeight?.(); } catch { /* ignore */ }
