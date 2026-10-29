@@ -676,6 +676,7 @@ const table = {
     netlist: () => netlist(rest),
     mcp: () => mcp(rest),
     serve: () => serve(rest),
+    "bundle-single": () => runNode("bundle-single", path.join(here, "ext-bundle-single.mjs"), rest, { cwd: root }),
     help: () => { console.log(fs.readFileSync(fileURLToPath(import.meta.url), "utf8").split("*/")[0]); return 0; },
 };
 
