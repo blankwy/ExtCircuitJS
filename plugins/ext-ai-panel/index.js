@@ -32,31 +32,30 @@ const CSS = `
 }
 .mainToolbar { right: var(--ext-ai-panel-w) !important; }
 .canvasWrapper { right: var(--ext-ai-panel-w) !important; }
-/* 窄屏（core 的移动端布局）保持原样，别撑爆手机 */
-@media only screen and (max-width: 600px) {
-  :root { --ext-ai-panel-w: 100vw; }
-  #painel { width: 0 !important; }
-  .trigger:checked ~ #painel { width: 88vw !important; }
-  .mainToolbar, .canvasWrapper { right: 0 !important; }
-}
-#painel > .ext-ai-topbar {
+
+/* ── 关键：所有 core 节点都在原位（#painel 直接子节点），只用 order 排版 ──
+   order 0 = AI 页容器；1 = Tab 栏；2 = 顶部按钮；3 = 仿真设置相关。
+   实际视觉顺序靠 order 值决定，与 DOM 顺序无关。 */
+#painel > .ext-ai-tabs { order: 1; }
+
+#painel > [data-ext-ai-slot="top"] { order: 0; }
+#painel > .ext-ai-page--ai { order: 3; }
+#painel > [data-ext-ai-slot="sim"] { order: 4; flex: 0 0 auto; }
+/* 顶部按钮行：buttonPanel 是 core 的无名 div，含两个 .topButton */
+#painel > [data-ext-ai-slot="top"] {
   display: flex !important; flex-direction: row !important; flex-wrap: nowrap !important;
   gap: 6px; padding: 8px 8px 6px; flex: 0 0 auto; box-sizing: border-box; width: 100%;
 }
-/* topbar 里包着 core 的 buttonPanel（无名 div，内含两个 .topButton），
-   所以选择器要下钻两层；buttonPanel 自己也要撑满横向。 */
-#painel > .ext-ai-topbar > div {
-  display: flex !important; flex-direction: row !important; flex-wrap: nowrap !important;
-  gap: 6px; flex: 1 1 auto !important; min-width: 0 !important; width: 100% !important;
-}
-#painel > .ext-ai-topbar .topButton {
+#painel > [data-ext-ai-slot="top"] .topButton {
   flex: 1 1 0 !important; min-width: 0 !important; width: auto !important;
   margin: 0 !important; white-space: nowrap !important;
   overflow: hidden; text-overflow: ellipsis;
   font-size: 12px !important; padding: 7px 6px !important;
   display: inline-flex !important; align-items: center; justify-content: center;
 }
-.ext-ai-tabs {
+
+/* Tab 栏 */
+#painel > .ext-ai-tabs {
   display: flex; flex: 0 0 auto; gap: 4px; padding: 0 8px 6px; box-sizing: border-box; width: 100%;
 }
 .ext-ai-tab {
@@ -67,21 +66,35 @@ const CSS = `
 }
 .ext-ai-tab:hover { background: #e3e8ef; }
 .ext-ai-tab[aria-selected="true"] { background: #fff; color: #111827; box-shadow: 0 -2px 6px rgba(0,0,0,.06); }
-.ext-ai-page { flex: 1 1 auto; min-height: 0; overflow-y: auto; overflow-x: hidden; padding: 4px 8px 12px; box-sizing: border-box; }
-.ext-ai-page[hidden] { display: none !important; }
-.ext-ai-page--sim > * { max-width: 100%; }
-/* 加宽后 core 画的滑块 canvas 仍是 166px 固定宽（构造时按 VERTICALPANELWIDTH 定的）——
-   用 CSS 拉伸到容器宽度；canvas 内部坐标按原宽绘制，横向拉伸只是视觉放大，交互偏移仍准确
-   （鼠标事件用 offsetX，浏览器会按 CSS 尺寸换算）。 */
-.ext-ai-page--sim canvas {
-  width: 100% !important; max-width: 100% !important; height: 18px !important;
+
+/* 页容器 */
+#painel > .ext-ai-page { flex: 1 1 auto; min-height: 0; overflow-y: auto; overflow-x: hidden; padding: 4px 8px 12px; box-sizing: border-box; }
+#painel > .ext-ai-page[hidden] { display: none !important; }
+
+/* ── 按当前 Tab 显隐 core 的节点（data-ext-ai-tab 挂在 #painel 上）── */
+#painel[data-ext-ai-tab="ai"] > [data-ext-ai-slot="sim"] { display: none !important; }
+#painel[data-ext-ai-tab="sim"] > .ext-ai-page--ai { display: none !important; }
+
+/* 仿真设置页内的 core 元素跟随容器宽度（滑块 canvas 是定宽 166 画的） */
+#painel[data-ext-ai-tab="sim"] > [data-ext-ai-slot="sim"] { max-width: 100%; box-sizing: border-box; }
+#painel[data-ext-ai-tab="sim"] > canvas[data-ext-ai-slot="sim"] {
+  width: calc(100% - 16px) !important; margin: 0 8px 6px !important; height: 18px !important; display: block;
 }
-.ext-ai-page--sim iframe { width: 100% !important; }
-.ext-ai-page--ai textarea { font-size: 12px !important; }
-/* iframe 留在 #painel 原位（不移动，避免中断其加载）；仅在「AI 助手」页时隐藏。
-   data-ext-ai-tab 挂在 #painel 上，由 selectTab 更新。 */
-#painel[data-ext-ai-tab="ai"] > iframe { display: none !important; }
-#painel[data-ext-ai-tab="sim"] > iframe { display: block !important; }
+#painel[data-ext-ai-tab="sim"] > div[data-ext-ai-slot="sim"].topSpace { padding: 2px 8px 0 !important; }
+#painel[data-ext-ai-tab="sim"] > label[data-ext-ai-slot="sim"] { padding: 2px 8px 0 !important; display: block; }
+#painel[data-ext-ai-tab="sim"] > iframe[data-ext-ai-slot="sim"] { width: calc(100% - 16px) !important; margin: 0 8px !important; }
+
+/* 窄屏：保持 core 的抽屉行为 */
+@media only screen and (max-width: 600px) {
+  :root { --ext-ai-panel-w: 100vw; }
+  #painel { width: 0 !important; }
+  .trigger:checked ~ #painel { width: 88vw !important; }
+  .mainToolbar, .canvasWrapper { right: 0 !important; }
+  /* 展开后把手会落到「重置/RUN」按钮区（core 的 right:128px 是按 128px 侧栏算的）。
+     垂直下移到 Tab 栏下方，避开按钮行，保持可点。 */
+  .triggerLabel { top: 108px !important; height: 42px !important; }
+  .trigger:checked + .triggerLabel { right: 88vw !important; }
+}
 `;
 
 // ── 状态 ────────────────────────────────────────────────────────────
@@ -89,14 +102,9 @@ let styleEl = null;
 let painel = null;
 let origAppendChild = null;
 let origInsertBefore = null;
-let origRemoveChild = null;
-let origRemoveWidget = null;
-let topbar = null;       // 顶部横排容器（含 Reset / RUN）
 let tabsEl = null;
 let pageAi = null;
-let pageSim = null;
 let activeTab = TAB_AI;
-let movedNodes = [];     // 已转发到 sim 页的节点（卸载时还原判断用）
 
 // ── AI 面板 UI（聊天 + 设置 + MCP 状态）──────────────────────────────
 
@@ -317,106 +325,71 @@ function isTopbarNode(node) {
     return bp != null && (node === bp || bp.contains(node));
 }
 
-/** 接管 #painel 的插入：顶部按钮归 topbar，其余归 simulation 页 */
+/** 接管 #painel 的插入：只**打标记**，不搬节点。
+ *
+ *  早期版本把 core 的节点搬进自建容器，代价是：
+ *   · core 的 setiFrameHeight() 按 #painel 子节点算高度，搬走后算错 → 大片空白；
+ *   · 移动正在加载的 iframe 会中断请求（CI 上 net::ERR_ABORTED）；
+ *   · removeWidgetFromVerticalPanel 的 `parentNode === verticalPanel` 判定失效 → 泄漏。
+ *  现在改为「**原位不动，只按页打 data 属性**」，由 CSS 的 order/display 完成布局：
+ *   · 所有节点仍是 #painel 的直接子节点，core 的一切判定与高度计算都不受影响；
+ *   · 新增节点时 appendChild 只负责打标记（isTopbarNode → data-ext-ai-slot=top）。
+ */
 function installRedirects() {
     origAppendChild = painel.appendChild.bind(painel);
-    origInsertBefore = painel.insertBefore.bind(painel);
 
     painel.appendChild = function (node) {
-        if (node === topbar || node === tabsEl || node === pageAi || node === pageSim) {
-            return origAppendChild(node);
-        }
-        if (isTopbarNode(node)) {
-            topbar.appendChild(node);
-            return node;
-        }
-        pageSim.appendChild(node);
-        movedNodes.push(node);
-        return node;
+        const r = origAppendChild(node);
+        try {
+            if (node !== tabsEl && node !== pageAi) {
+                markSlot(node);
+            }
+        } catch { /* 标记失败不影响插入 */ }
+        return r;
     };
 
+    // insertBefore 同样只放行 + 打标记（core 的 addWidgetToVerticalPanel 会用它插到 iframe 前）
+    origInsertBefore = painel.insertBefore.bind(painel);
     painel.insertBefore = function (node, ref) {
-        if (node === topbar || node === tabsEl || node === pageAi || node === pageSim) {
-            return origInsertBefore(node, ref);
-        }
-        if (isTopbarNode(node)) {
-            topbar.insertBefore(node, null);
-            return node;
-        }
-        pageSim.insertBefore(node, null);
-        movedNodes.push(node);
-        return node;
-    };
-
-    // **关键 2**：core 的 removeWidgetFromVerticalPanel 先判定
-    //   `if (w.parentNode === this.verticalPanel) removeChild(...)`
-    // 节点已被转发进 pageSim，判定不成立 → 插件面板卸载时删不掉（泄漏）。
-    // 包装该方法：节点在 pageSim/topbar 里也算"在侧栏里"。
-    const ui = window.ExtCircuitJS?.app?.ui;
-    if (ui && typeof ui.removeWidgetFromVerticalPanel === "function") {
-        origRemoveWidget = ui.removeWidgetFromVerticalPanel.bind(ui);
-        ui.removeWidgetFromVerticalPanel = function (w) {
-            try {
-                if (w != null && (w.parentElement === pageSim || w.parentElement === topbar)) {
-                    w.remove();
-                    const i = movedNodes.indexOf(w);
-                    if (i >= 0) movedNodes.splice(i, 1);
-                    try { ui.setiFrameHeight?.(); } catch { /* ignore */ }
-                    return;
-                }
-            } catch { /* 落到原实现 */ }
-            return origRemoveWidget(w);
-        };
-    }
-
-    // 兜底：也接管 removeChild（core 有直接调 removeChild 的路径）
-    origRemoveChild = painel.removeChild.bind(painel);
-    painel.removeChild = function (node) {
-        if (node.parentElement === pageSim) {
-            pageSim.removeChild(node);
-            const i = movedNodes.indexOf(node);
-            if (i >= 0) movedNodes.splice(i, 1);
-            return node;
-        }
-        if (node.parentElement === topbar) {
-            topbar.removeChild(node);
-            return node;
-        }
-        return origRemoveChild(node);
+        const r = origInsertBefore(node, ref);
+        try {
+            if (node !== tabsEl && node !== pageAi) {
+                markSlot(node);
+            }
+        } catch { /* ignore */ }
+        return r;
     };
 }
 
-/** 把 #painel 现有子节点按类型分派（首次安装时执行一次） */
+/** 给节点打槽位标记：顶部按钮行 or 仿真设置页 */
+function markSlot(node) {
+    if (node == null || node.nodeType !== 1) return;
+    if (isTopbarNode(node)) {
+        node.dataset.extAiSlot = "top";
+    } else if (node.tagName === "IFRAME") {
+        node.dataset.extAiSlot = "sim";   // iframe 属仿真设置页
+    } else {
+        node.dataset.extAiSlot = "sim";
+    }
+}
+
+/** 给 #painel 里已存在的子节点打标记（首次安装时执行一次） */
 function partitionExisting() {
-    const ui = window.ExtCircuitJS?.app?.ui;
-    const bp = ui?.buttonPanel ?? null;
-    const kids = Array.from(painel.children);
-    for (const node of kids) {
-        if (node === topbar || node === tabsEl || node === pageAi || node === pageSim) continue;
-        // **不要移动 iframe**：它是 core 按需创建、自己管高度/加载的；
-        // 移动节点会中断其进行中的请求（CI 上表现为 iframe.html net::ERR_ABORTED）。
-        // 保持原位，用 CSS 在「AI 助手」页时隐藏即可（见 CSS 的 #painel > iframe 规则）。
-        if (node.tagName === "IFRAME") continue;
-        if (bp != null && node === bp) {
-            topbar.appendChild(node);          // 按钮面板整体进 topbar
-        } else {
-            pageSim.appendChild(node);
-            movedNodes.push(node);
-        }
+    for (const node of Array.from(painel.children)) {
+        if (node === tabsEl || node === pageAi) continue;
+        markSlot(node);
     }
 }
 
-/** 建骨架：topbar / tabs / 两个 page */
+/** 建骨架：只插入 Tab 栏与 AI 页容器。
+ *  **不建"仿真设置页"容器**：core 的节点必须留在 #painel 原位（否则高度计算错、iframe 中断），
+ *  所以「仿真设置页」不是一个容器，而是「所有 data-ext-ai-slot=sim 的节点」这个集合，
+ *  由 CSS 的 order 排在 Tab 栏下方、按 data-ext-ai-tab 整体显隐。 */
 function buildSkeleton() {
-    topbar = document.createElement("div");
-    topbar.className = "ext-ai-topbar";
-
     tabsEl = document.createElement("div");
     tabsEl.className = "ext-ai-tabs";
 
     pageAi = buildAiPage();
-    pageSim = document.createElement("div");
-    pageSim.className = "ext-ai-page ext-ai-page--sim";
 
     const mkTab = (id, label) => {
         const b = document.createElement("button");
@@ -429,10 +402,8 @@ function buildSkeleton() {
     };
     tabsEl.append(mkTab(TAB_AI, "AI 助手"), mkTab(TAB_SIM, "仿真设置"));
 
-    origAppendChild(topbar);
     origAppendChild(tabsEl);
     origAppendChild(pageAi);
-    origAppendChild(pageSim);
 }
 
 function selectTab(id) {
@@ -441,7 +412,6 @@ function selectTab(id) {
         b.setAttribute("aria-selected", String(b.dataset.tab === id));
     }
     pageAi.hidden = id !== TAB_AI;
-    pageSim.hidden = id !== TAB_SIM;
     // iframe 留在 #painel 原位，用属性驱动 CSS 显隐
     if (painel) painel.dataset.extAiTab = id;
     // 切到仿真设置时，让 core 重算 iframe 高度（它按 verticalPanel 子节点算）
@@ -507,22 +477,15 @@ export async function activate(ctx) {
 
     ctx.effect(() => {
         if (!wired) return;
-        // 还原接管
+        // 还原接管（节点从未被搬走，无需搬回；只还原被包装的方法与标记）
         if (origAppendChild) painel.appendChild = origAppendChild;
         if (origInsertBefore) painel.insertBefore = origInsertBefore;
-        if (origRemoveChild) painel.removeChild = origRemoveChild;
-        if (origRemoveWidget) {
-            const ui = window.ExtCircuitJS?.app?.ui;
-            if (ui) ui.removeWidgetFromVerticalPanel = origRemoveWidget;
+        for (const n of Array.from(painel.querySelectorAll("[data-ext-ai-slot]"))) {
+            try { delete n.dataset.extAiSlot; } catch { /* ignore */ }
         }
-        // 把转发走的节点放回 #painel（避免 core 持有的引用失效）
-        for (const n of movedNodes) {
-            try { if (n.parentElement === pageSim) origAppendChild(n); } catch { /* ignore */ }
-        }
-        movedNodes = [];
-        topbar?.remove(); tabsEl?.remove(); pageAi?.remove(); pageSim?.remove();
+        tabsEl?.remove(); pageAi?.remove();
         styleEl?.remove(); styleEl = null;
-        painel = null; topbar = tabsEl = pageAi = pageSim = null;
+        painel = null; tabsEl = pageAi = null;
         chatLog = inputEl = sendBtn = settingsEl = mcpStatusEl = null;
         wired = false;
     });

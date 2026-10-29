@@ -274,9 +274,9 @@ try {
     assert.equal(F.listenersAnalyze, A.listenersAnalyze - 1, "analyze 订阅应精确回落 boot-1");
     assert.equal(F.commands, A.commands - 1, "命令数应精确回落 boot-1");
     assert.equal(F.byIdSize, A.byIdSize - 1, "byId 应精确回落 boot-1");
-    // 侧栏被 ext-ai-panel 重构成 Tab 后，插件面板进了「仿真设置」页容器，
-    // #painel.children 不再随插件面板增减 —— 用 markers（插件面板的真实痕迹）断言回落。
-    assert.equal(F.panelChildren, A.panelChildren - 0, "面板子节点不应因卸载示例插件而减少（Tab 布局接管）");
+    // ext-ai-panel 只做 order/显隐、不搬节点：ext-panel 的面板仍是 #painel 直接子节点，
+    // 卸载时被移除 → 子节点数应精确少 1（与原始语义一致）。
+    assert.equal(F.panelChildren, A.panelChildren - 1, "面板子节点应精确回落 boot-1");
     assert.equal(F.markers, 0, "[data-ext-plugin] 节点应清零");
     // 卸载的只有 DEMO_IDS 三个：其余插件（manifest 减去这三个）应当原样还在、且仍 ready
     const leftover = MANIFEST_IDS.filter((id) => !DEMO_IDS.includes(id)).sort();
