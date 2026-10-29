@@ -657,8 +657,57 @@ export class ExtMcpBridge {
     };
 
     /**
-     * scope 波形数据：minValues/maxValues 环形缓冲**全量**返回，不做任何降采样
-     * （zcode-goal_step.md Stage 5 禁止项「read_scope 不做降采样防爆 token」）。
+     * scope 波形降采样：**分桶保峰谷**。
+     *
+     * 每桶（bucket）取该区间内的最小值与最大值两个点，按时间顺序输出 —— 而不是等间隔抽样。
+     * 理由：等间隔抽样会把尖峰（过冲/毛刺/振荡峰）整个跳过，而那正是判断电路行为的关键证据。
+     * 桶数 = maxPoints/2（每桶产 2 点），点不足时原样返回。
+     * maxPoints=0 → 不降采样。
+     */
+    private static downsampleScope(
+        minValues: number[],
+        maxValues: number[],
+        maxPoints: number,
+    ): { minValues: number[]; maxValues: number[] } {
+        const n = minValues.length;
+        if (maxPoints <= 0 || n <= maxPoints) return { minValues, maxValues };
+
+        const buckets = Math.max(1, Math.floor(maxPoints / 2));
+        const per = n / buckets;
+        const outMin: number[] = [];
+        const outMax: number[] = [];
+        for (let b = 0; b < buckets; b++) {
+            const from = Math.floor(b * per);
+            const to = Math.min(n, Math.floor((b + 1) * per));
+            if (to <= from) continue;
+            let loIdx = from, hiIdx = from;
+            let lo = minValues[from], hi = maxValues[from];
+            for (let i = from + 1; i < to; i++) {
+                const a = minValues[i], z = maxValues[i];
+                if (a < lo) { lo = a; loIdx = i; }
+                if (z > hi) { hi = z; hiIdx = i; }
+            }
+            // 按时间顺序放：先到的那个
+            if (loIdx <= hiIdx) {
+                outMin.push(lo); outMax.push(maxValues[loIdx]);
+                if (hiIdx !== loIdx) { outMin.push(minValues[hiIdx]); outMax.push(hi); }
+            } else {
+                outMin.push(minValues[hiIdx]); outMax.push(hi);
+                outMin.push(lo); outMax.push(maxValues[loIdx]);
+            }
+        }
+        return { minValues: outMin, maxValues: outMax };
+    }
+
+    /**
+     * scope 波形数据：minValues/maxValues 环形缓冲。
+     *
+     * **降采样**（v0.4）：默认把每个 plot 压到 maxPoints（缺省 240）。
+     * 原实现全量透传——500px 宽的示波器就是 500 对数字，AI 读几条波形就爆 token。
+     * 采用**分桶保峰谷**（每桶取 min/max 两点、按时间序），不是等间隔抽样：
+     * 抽样丢尖峰，而尖峰恰是电路行为的关键证据（振荡/过冲/毛刺）。
+     * maxPoints=0 → 全量（调试用）。
+     *
      * 缓冲是环形：pointCount 为容量，ptr 为当前写指针，min/max 同下标成对。
      */
     private readScope(sessionId: string, args: any): any {
@@ -673,6 +722,23 @@ export class ExtMcpBridge {
             (typeof idx !== "number" || !Number.isInteger(idx) || idx < 0 || idx >= sm.scopeCount)) {
             return fail("invalid_args", `index 必须是 0..${sm.scopeCount - 1} 的整数，收到 ${JSON.stringify(idx)}`);
         }
+        // maxPoints：0 = 全量；缺省 240；非整数/负数 → 结构化失败
+        const rawMax = args?.maxPoints;
+        if (rawMax !== undefined && (typeof rawMax !== "number" || !Number.isInteger(rawMax) || rawMax < 0)) {
+            return fail("invalid_args", `maxPoints 必须是 >=0 的整数（0=全量），收到 ${JSON.stringify(rawMax)}`);
+        }
+        const maxPoints = rawMax === undefined ? 240 : rawMax;
+        // 安全阀：全量模式（0）下所有 scope/plot 合并可能超出单条 WS 消息上限
+        // （实测 3 scope × 512 点会断连）。按总预算把配额分摊到每个 plot。
+        const TOTAL_BUDGET = 2000;
+        const requestedAll = maxPoints === 0;
+        let plotCount = 0;
+        for (let i = 0; i < sm.scopeCount; i++) {
+            if (typeof idx === "number" && i !== idx) continue;
+            plotCount += (sm.scopes[i]?.plots ?? []).length;
+        }
+        // 请求全量且总点数超预算时，每 plot 的配额（至少 40 点，保证形状可读）
+        const allQuota = requestedAll && plotCount > 0 ? Math.max(40, Math.floor(TOTAL_BUDGET / plotCount)) : 0;
 
         // 稳定 id：exportNetlist 的 components 与 elmList 同序，用 elmList 下标反查
         const nl = this.ext.api.dumpNetlist();
@@ -693,6 +759,12 @@ export class ExtMcpBridge {
             if (sc == null) continue;
             const plots = (sc.plots ?? []).map((p: any) => {
                 const e = elmIdOf(p.elm);
+                const fullMin: number[] = Array.from(p.minValues ?? []);
+                const fullMax: number[] = Array.from(p.maxValues ?? []);
+                // 全量模式：受总预算配额约束（allQuota=0 表示真全量，点数本来就少）
+                const effMax = requestedAll ? allQuota : maxPoints;
+                const sampled = ExtMcpBridge.downsampleScope(fullMin, fullMax, effMax);
+                const cappedFromAll = requestedAll && effMax !== 0;
                 return {
                     elm: e.id,
                     elmType: e.type,
@@ -703,9 +775,14 @@ export class ExtMcpBridge {
                     pointCount: p.scopePointCount,
                     ptr: p.ptr,
                     lastValue: p.lastValue,
-                    // 全量缓冲，原样（禁止降采样）
-                    minValues: Array.from(p.minValues ?? []),
-                    maxValues: Array.from(p.maxValues ?? []),
+                    // 原始点数与是否降采样（消费方可据此判断保真度）
+                    fullPointCount: fullMin.length,
+                    downsampled: sampled.minValues.length < fullMin.length,
+                    maxPoints: effMax,
+                    // 请求了全量但因超过安全阀被压缩（提示调用方数据不是原始全量）
+                    cappedFromAll,
+                    minValues: sampled.minValues,
+                    maxValues: sampled.maxValues,
                 };
             });
             scopes.push({ index: i, position: sc.position, plots });

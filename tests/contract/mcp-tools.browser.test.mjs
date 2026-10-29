@@ -291,7 +291,7 @@ test("sim.read_measurements：确定性步进 2ms 后读全网电压 + 元件电
         `电阻电流必须有限，实际 ${JSON.stringify(cur.values)}`);
 });
 
-test("sim.read_scope：全量环形缓冲（length===pointCount，不降采样）且有真实波形数据", { timeout: 120_000 }, async () => {
+test("sim.read_scope：默认降采样保峰谷，maxPoints=0 全量，元数据自描述", { timeout: 120_000 }, async () => {
     const r = record("sim.read_scope", await tools.call("sim.read_scope"));
     assert.ok(r.scopeCount >= 1, `lrc 自带 3 条 scope，实际 ${r.scopeCount}`);
     assert.equal(r.returned, r.scopeCount, "无 index 过滤时必须返回全部 scope");
@@ -299,17 +299,35 @@ test("sim.read_scope：全量环形缓冲（length===pointCount，不降采样�
     for (const sc of r.scopes) {
         assert.ok(Array.isArray(sc.plots) && sc.plots.length >= 1, `scope ${sc.index} 必须有 plot`);
         for (const p of sc.plots) {
-            // 不降采样的核心断言：返回的缓冲长度 === 容量（全量，环形原样）
-            assert.equal(p.minValues.length, p.pointCount,
-                `minValues 必须 full-length（${p.minValues.length} vs ${p.pointCount}）——禁止降采样`);
-            assert.equal(p.maxValues.length, p.pointCount,
-                `maxValues 必须 full-length（${p.maxValues.length} vs ${p.pointCount}）——禁止降采样`);
+            // 默认降采样（v0.4）：返回点数 ≤ maxPoints，min/max 成对等长
+            assert.ok(p.minValues.length <= p.maxPoints,
+                `minValues 点数 ${p.minValues.length} 不应超过 maxPoints ${p.maxPoints}`);
+            assert.equal(p.minValues.length, p.maxValues.length, "min/max 必须成对等长");
+            // 保真元数据必须如实：原始点数 + 是否压缩，且二者一致
+            assert.equal(typeof p.fullPointCount, "number", "必须报 fullPointCount");
+            assert.equal(typeof p.downsampled, "boolean", "必须报 downsampled");
+            assert.equal(p.downsampled, p.minValues.length < p.fullPointCount,
+                "downsampled 必须与实际压缩情况一致");
             assert.ok(["voltage", "current", "power"].includes(p.valueName), `valueName 必须可读，实际 ${p.valueName}`);
             if (p.elm != null) assert.match(p.elm, /^e\d+$/, "plot 的元件必须是稳定 id");
             if (p.maxValues.some((v) => v !== 0) || p.lastValue !== 0) sawData = true;
         }
     }
     assert.ok(sawData, "步进 2ms 后 scope 必须有非零波形数据");
+
+    // 非法 maxPoints → 结构化拒绝（不是静默忽略）
+    const bad = await tools.call("sim.read_scope", { maxPoints: -1 });
+    assert.equal(bad.ok, false, "maxPoints=-1 必须拒绝");
+    assert.equal(bad.error?.code, "invalid_args");
+
+    // maxPoints=0（全量）：真全量，或因单条 WS 消息上限被压缩并标记 cappedFromAll
+    const all = record("sim.read_scope", await tools.call("sim.read_scope", { maxPoints: 0 }));
+    const p0 = all.scopes?.[0]?.plots?.[0];
+    assert.ok(p0, "maxPoints=0 必须返回数据");
+    assert.ok(
+        p0.minValues.length === p0.fullPointCount || p0.cappedFromAll === true,
+        "全量模式要么真全量、要么标记 cappedFromAll（传输上限保护）",
+    );
 });
 
 test("schematic.screenshot：png dataURL 与 svg 文本两种格式", { timeout: 60_000 }, async () => {

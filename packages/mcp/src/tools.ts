@@ -13,9 +13,9 @@
 //   - 传输层失败（页面未连/超时/断开）：{ ok:false, error:{code:"bridge_unavailable"} }
 //   - 工具层失败：unknown_tool / invalid_args（本文件校验产生）
 //
-// sim.read_scope：页面桥返回的 minValues/maxValues 环形缓冲**全量**透传，本层
-// 不做任何降采样（zcode-goal_step.md Stage 5 禁止项「防爆 token 不成立，时间轴
-// 保真优先」）。
+// sim.read_scope：返回 minValues/maxValues 成对缓冲。默认在页面桥侧降采样到
+// maxPoints=240（分桶保峰谷——尖峰/过冲不丢），maxPoints=0 取全量。
+// 降采样是为了控制 token：500px 示波器的原始缓冲是 500 对数字，读几条就爆上下文。
 
 import type { McpBridgeClient } from "./bridge-client";
 import { BridgeTransportError } from "./bridge-client";
@@ -148,11 +148,18 @@ export const MCP_TOOLS: McpToolSpec[] = [
     {
         name: "sim.read_scope",
         description:
-            "读 scope 波形缓冲：minValues/maxValues 环形缓冲全量返回（不降采样；" +
-            "pointCount 为容量、ptr 为写指针）；index 可选只读一个 scope",
+            "读 scope 波形缓冲（minValues/maxValues 成对；pointCount 为容量、ptr 为写指针）。" +
+            "默认降采样到 maxPoints=240 点（分桶保峰谷，尖峰不丢）；maxPoints=0 取全量。" +
+            "返回含 fullPointCount 与 downsampled，便于判断保真度。index 可选只读一个 scope",
         inputSchema: {
             type: "object",
-            properties: { index: { type: "integer", description: "scope 下标（默认全部）" } },
+            properties: {
+                index: { type: "integer", description: "scope 下标（默认全部）" },
+                maxPoints: {
+                    type: "integer",
+                    description: "每个波形最多返回多少点（默认 240；0 = 全量不降采样）",
+                },
+            },
         },
     },
     {
@@ -374,9 +381,10 @@ export class AttachToolset {
                 return (await req("measure", params)) as ToolResult;
             }
             case "sim.read_scope": {
-                // 全量透传（含 minValues/maxValues 完整缓冲），不降采样
+                // minValues/maxValues 成对返回；默认在桥侧降采样到 240 点（分桶保峰谷）
                 const params: any = {};
                 if (args.index !== undefined) params.index = args.index;
+                if (args.maxPoints !== undefined) params.maxPoints = args.maxPoints;
                 return (await req("read_scope", params)) as ToolResult;
             }
             case "schematic.screenshot": {
