@@ -208,16 +208,21 @@ let origDraw = null;
 
 /** 给 Scrollbar.prototype.draw 打补丁：**整体替换**为新拟态绘制。
  *  上一版只画了底色再调原 draw，原 draw 用 #fff 铺满 + 灰红轨道，覆盖掉了补丁 —— 必须完整接管。
- *  Scrollbar 由 core 的 UIManager 导出（core 只读，运行时改原型不改文件）。 */
+ *
+ *  **不 import "/UIManager.ts"**：那是 Vite dev 专有的 TS 转译路径，静态产物里没有
+ *  这个文件（404），会让 dist-site 契约失败。改为从**实例的构造函数**取原型：
+ *  app.ui.speedBar 是 Scrollbar 实例 → Object.getPrototypeOf(它) 就是 Scrollbar.prototype。
+ *  这样零网络请求、dev 与 dist 行为一致。 */
 async function patchScrollbars() {
     if (drawPatched) return;
     try {
-        const mod = await import(/* @vite-ignore */ "/UIManager.ts");
-        const Scrollbar = mod.Scrollbar;
-        if (!Scrollbar?.prototype?.draw) return;
-        origDraw = Scrollbar.prototype.draw;
+        const ui = window.ExtCircuitJS?.app?.ui;
+        const probe = ui?.speedBar ?? ui?.currentBar ?? ui?.powerBar;
+        const proto = probe != null ? Object.getPrototypeOf(probe) : null;
+        if (!proto || typeof proto.draw !== "function") return;
+        origDraw = proto.draw;
         const BG = "#e0e5ec", DARK = "#b8bdc7", LIGHT = "#ffffff", TXT = "#3d4a5c";
-        Scrollbar.prototype.draw = function () {
+        proto.draw = function () {
             const g = this.g;
             const vpw = this.vpw;
             const sh = 14;                       // Scrollbar.SCROLLHEIGHT
@@ -291,9 +296,11 @@ function redrawAllSliders() {
 function unpatchScrollbars() {
     if (!drawPatched) return;
     try {
-        import(/* @vite-ignore */ "/UIManager.ts").then((mod) => {
-            if (origDraw && mod.Scrollbar?.prototype) mod.Scrollbar.prototype.draw = origDraw;
-        });
+        // 与 patch 对称：从实例原型还原（不发网络请求，dev/dist 一致）
+        const ui = window.ExtCircuitJS?.app?.ui;
+        const probe = ui?.speedBar ?? ui?.currentBar ?? ui?.powerBar;
+        const proto = probe != null ? Object.getPrototypeOf(probe) : null;
+        if (origDraw && proto) proto.draw = origDraw;
     } catch { /* ignore */ }
     drawPatched = false;
     origDraw = null;
