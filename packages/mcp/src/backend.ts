@@ -188,15 +188,34 @@ export async function startAttachBackend(opts: AttachBackendOptions = {}): Promi
         await page.waitForFunction(() => !!(window as any).ExtCircuitJS, null, { timeout: 60_000 });
         await sleep(1200); // 插件宿主 fetch + dynamic import（与契约测试同款等待）
 
+        // 桥的装载策略（双线）：
+        //   1) 优先用页面自带的 loadMcpBridge()（ExtBoot 暴露）——**静态产物也能用**
+        //      （dist/、GitHub Pages 没有 Vite 的 /@fs/ 转译路径，桥已随 bundle 切成 chunk）
+        //   2) 退回到 /@fs/ 直接 import TS 源码 —— dev server（Vite）专有，作为兜底
         const attached = await page.evaluate(async (args: { modUrl: string; wsUrl: string }) => {
-            const mod: any = await import(args.modUrl);
-            const b = mod.getMcpBridge?.() ?? mod.attachMcpBridge((window as any).ExtCircuitJS);
+            const w = window as any;
+            let b: any = null;
+            let via = "";
+            // 1) 页面内建加载器（静态产物优先）
+            if (typeof w.ExtCircuitJS?.loadMcpBridge === "function") {
+                try {
+                    b = await w.ExtCircuitJS.loadMcpBridge();
+                    if (b) via = "builtin";
+                } catch { /* 落到 /@fs/ */ }
+            }
+            // 2) dev server 兜底：直接 import TS 源码
+            if (b == null) {
+                const mod: any = await import(args.modUrl);
+                b = mod.getMcpBridge?.() ?? mod.attachMcpBridge(w.ExtCircuitJS);
+                via = "fs";
+            }
+            if (b == null) return { attached: false, via };
             b.connect(args.wsUrl);
-            return { attached: (window as any).ExtCircuitJS?.mcp === b };
+            return { attached: w.ExtCircuitJS?.mcp === b, via };
         }, { modUrl: BRIDGE_MODULE_URL, wsUrl: bridge.url });
         if (attached.attached !== true) throw new Error("页面桥未挂到 window.ExtCircuitJS.mcp");
         await bridge.waitPage(20_000);
-        log("[ext-mcp] page bridge connected");
+        log(`[ext-mcp] page bridge connected (via ${attached.via})`);
 
         const toolset = new AttachToolset(bridge, { timeoutMs: opts.timeoutMs ?? 60_000 });
         let version: string | null = null;
