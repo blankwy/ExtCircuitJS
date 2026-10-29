@@ -92,14 +92,16 @@ test("B07 plugins-smoke：三示例插件同时启停无泄漏", { timeout: 180_
 
         await page.goto(`${BASE}/circuitjs.html`, { waitUntil: "load", timeout: 60000 });
         await page.waitForFunction(() => !!window.ExtCircuitJS, null, { timeout: 60000 });
-        // 事件驱动等待：hello 自动加载 ready（唯一自动加载的插件；示例插件已按站点配置
-        // 默认禁用，改为显式 activate 后断言——测试意图「三插件同时启停无泄漏」不变）
+        // 等宿主完成首次 load()（此时 enabled 的插件都进入终态：ready 或 failed）。
+        // 不再依赖 hello——示例插件（含 hello）已按 site.config 全部默认禁用，
+        // 测试意图「三插件同时启停无泄漏」由下面的显式 activate 保证。
         await page.waitForFunction(
             () => {
                 const ext = window.ExtCircuitJS;
                 if (!ext?.plugins) return false;
-                const hello = ext.plugins.list().find((p) => p.id === "hello");
-                return hello?.state === "ready";
+                const list = ext.plugins.list();
+                // load() 至少跑过一轮：要么有插件，要么 manifest 被读到（plugins 对象存在即可）
+                return Array.isArray(list) && list.every((p) => p.state === "ready" || p.state === "failed");
             },
             null,
             { timeout: 30000 },
@@ -174,14 +176,18 @@ test("B07 plugins-smoke：三示例插件同时启停无泄漏", { timeout: 180_
             [],
             `deactivate 后 list() 不应再含示例插件: ${JSON.stringify(B.plugins)}`,
         );
-        assert.ok(B.plugins.some((p) => p.id === "hello" && p.state === "ready"),
-            "hello 不受影响，应仍 ready");
+        // 站点启用的插件（ext-theme 等）不受示例插件启停影响
+        assert.ok(B.plugins.some((p) => p.id === "ext-theme" && p.state === "ready"),
+            "ext-theme 不受影响，应仍 ready");
         // 启动态 - 基线 = 三插件各自持有的资源（监听器 +1、命令 +1、面板节点 +1）
         assert.equal(A.listenersTotal - B.listenersTotal, EVENT_SUBS, "启动态应比基线多 ext-event 的全部事件订阅");
         assert.equal(A.listenersAnalyze - B.listenersAnalyze, 1, "analyze 订阅应恰好多 1 个");
         assert.equal(A.commands - B.commands, 1, "启动态应比基线多 1 条命令（ext-command）");
         assert.equal(A.byIdSize - B.byIdSize, 1, "byId 应恰好多 1 条命令");
-        assert.equal(A.panelChildren - B.panelChildren, 1, "启动态应比基线多 1 个面板子节点（ext-panel）");
+        // 面板节点数不再按 #painel.children 计：ext-ai-panel 插件把侧栏重构成 Tab 布局，
+        // 插件面板被转发进「仿真设置」页容器。改用 [data-ext-plugin] 标记（ext-panel 的真实痕迹，
+        // 与布局无关）—— 见下方 markers 断言。
+        assert.ok(A.panelChildren >= B.panelChildren, "面板子节点数不应因插件启停而减少");
         assert.equal(A.markers, 1, "启动态应有 1 个 [data-ext-plugin] 节点");
         assert.equal(B.markers, 0, "基线不应有 [data-ext-plugin] 节点");
 
@@ -249,7 +255,9 @@ test("B07 plugins-smoke：三示例插件同时启停无泄漏", { timeout: 180_
         assert.equal(ran.snap.listenersTotal - B.listenersTotal, EVENT_SUBS, "activate 后监听器应比基线多 ext-event 的全部事件订阅");
         assert.equal(ran.snap.commands - B.commands, 1, "activate 后命令应比基线多 1");
         assert.equal(ran.snap.byIdSize - B.byIdSize, 1, "activate 后 byId 应比基线多 1");
-        assert.equal(ran.snap.panelChildren - B.panelChildren, 1, "activate 后面板子节点应比基线多 1");
+        // 侧栏被 ext-ai-panel 重构成 Tab 后，#painel.children 不再随插件面板增减（面板进了「仿真设置」页）。
+        // 用 markers 断言代替（ext-panel 的真实痕迹，与布局无关）。
+        assert.ok(ran.snap.panelChildren >= B.panelChildren, "activate 后面板子节点数不应减少");
         assert.ok(ran.snap.plugins.every((p) => !DEMO_IDS.includes(p.id) || p.state === "ready"),
             "三插件激活后应全部 ready");
 
@@ -281,8 +289,8 @@ test("B07 plugins-smoke：三示例插件同时启停无泄漏", { timeout: 180_
             [],
             `卸载后 list() 不应再含示例插件: ${JSON.stringify(F.plugins)}`,
         );
-        assert.ok(F.plugins.some((p) => p.id === "hello" && p.state === "ready"),
-            "hello 在整个启停周期后应仍 ready");
+        assert.ok(F.plugins.some((p) => p.id === "ext-theme" && p.state === "ready"),
+            "ext-theme 在整个启停周期后应仍 ready");
 
         // ── 7) console 干净：宿主/插件报错零容忍 ─────────────────────────────────
         // 仅豁免环境级资源加载噪声（dropbox 外链等）：任何插件失败路径宿主都会另外打
