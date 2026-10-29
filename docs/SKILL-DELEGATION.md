@@ -95,6 +95,54 @@ const candidates = [
 
 ---
 
+## 3.5 给用户的**单文件**产物（不走 MCP，纯人看）
+
+如果用户只想「拿到一个电路，打开就能看/点仿真」，**不需要 MCP、不需要 Node 常驻**：
+
+```bash
+node tools/ext.mjs build
+node tools/ext.mjs bundle-single --out build/circuitjs-single.html
+```
+
+产出**约 1.37 MB 单个 .html**，双击即开（`file://` 可运行），界面完整、可拖元件、可点 RUN 仿真、可导入/导出电路。
+
+**已实测**（真实 Chromium + `file://` 协议）：`window.ExtCircuitJS` 注入成功、版本 `5.0.3ts`、画布渲染正常、无致命错误。
+
+**实现要点**（想改就改这个脚本：`tools/ext-bundle-single.mjs`）：
+- bundle 包成 `async () => { ... }` IIFE —— 顶层 await 在函数体内合法，且不再是 module，`file://` 才能执行
+- `import.meta.url` 注入伪对象（指向 `document.baseURI`）—— 否则非 module 环境直接抛错
+- 字体 woff2 内联成 base64、CSS 内联 —— 单文件自洽
+- **坑**：bundle 源码里含 `` $` `` 字面量，`String.replace` 会把替换串里的 `$\`` 展开成"匹配前的内容"，必须用**函数式替换** `replace(a, () => b)`
+
+**已知限制**（脚本文件头也写了，别对外承诺超出范围）：
+| 限制 | 原因 | 影响 |
+|---|---|---|
+| 内置电路列表为空 | 需 fetch `setuplist.txt` + `circuits/`，`file://` 被 CORS 禁 | 用户可手动粘贴电路文本 |
+| 语言包不加载 | 同上（fetch `locale/*.txt`） | 界面显示英文默认文案 |
+| Service Worker 不注册 | `file://` 不支持 | 无离线缓存（单文件本身已离线） |
+| MCP 不可用 | 单文件无 http 服务，WS 桥连不上 | 要 AI 驱动仍须走 ①/②/③ |
+
+> 结论：**单文件 = 给"人"看/玩的产物；MCP = 给"AI"驱动的通道**。两者互补，不是替代。
+
+---
+
+## 3.6 能不能把整套塞进 skill 内置运行？
+
+**可以，但要分清两件事**：
+
+| 想要 | 可行性 | 做法 |
+|---|---|---|
+| 单文件 HTML 内置于 skill | ✅ 完全可以 | 1.37MB 直接打进 skill 的 `assets/`，AI 生成电路文本 → 写入 HTML 的 `#circuit` 或直接给用户文件 |
+| MCP 后端内置运行 | ⚠️ 有条件 | 需要 Node + 本机 Chrome；**不能**把 Chrome 打包进去（体积/许可证/沙箱限制），只能依赖用户已装 |
+
+**推荐组合**：
+1. skill 内置 `circuitjs-single.html`（1.37MB，离线可用，不受墙影响）
+2. 需要 AI 真驱动仿真时，检测用户是否有 Node + Chrome —— 有则用本地仓库的 MCP，没有则退化为「生成电路文本 + 给单文件让用户自己点」
+
+这样「墙 + 延迟 + 没装环境」三种情况都有对应降级路径，不会全盘失败。
+
+---
+
 ## 4. Skill 该包含什么
 
 ```
