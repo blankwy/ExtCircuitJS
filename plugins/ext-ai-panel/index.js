@@ -18,7 +18,7 @@
 //   · iframe 也归"仿真设置"页
 // 插件自己的 AI 面板则作为一个独立页容器插在 Tab 栏之后。
 
-import { chatStream, loadAiConfig, saveAiConfig, clearAiConfig, loadHistory, pushHistory, clearHistory } from "./chat.mjs";
+import { chatStream, loadAiConfig, saveAiConfig, clearAiConfig, loadHistory, pushHistory, clearHistory } from "./chat.js";
 
 const TAB_AI = "ai";
 const TAB_SIM = "sim";

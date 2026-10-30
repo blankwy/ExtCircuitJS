@@ -4,7 +4,9 @@
 //   · 不引 Vercel AI SDK（unpacked 11.6MB，打进产物 +150-300KB gzip，侧栏用不上那么多）
 //   · 手写 OpenAI 兼容 SSE 流式解析（~60 行零依赖）——OpenAI/DeepSeek/ollama/one-api 全是这套协议
 //   · 会话历史存 localStorage（最近 40 条），Key/Provider 配置也是 localStorage
-
+//   · 扩展名用 .js 而非 .mjs：dist-site 的极简静态服务器 MIME 表不认 .mjs（octet-stream
+//     会被 module MIME 检查拒绝），且 core 的 LoadFile 等也无 mjs 依赖
+//
 const HISTORY_KEY = "ext.ai.history";
 const CFG_KEY = "ext.ai.config";
 
@@ -33,7 +35,7 @@ export function clearHistory() {
 }
 
 /**
- * 流式对话。onDelta(text) 逐段回调（增量），返回完整回复。
+ * 流式对话。onDelta(text) 逐段回调（累计文本），返回完整回复。
  * 兼容所有 OpenAI 协议的 provider（用户在设置里填 baseURL）。
  */
 export async function chatStream({ messages, onDelta, signal }) {
