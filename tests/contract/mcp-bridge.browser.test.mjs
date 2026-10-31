@@ -169,6 +169,37 @@ test("浏览器内 echo 一来一回（window.ExtCircuitJS.mcp ↔ 环回服务�
     assert.equal(ping.pong, true);
 });
 
+test("页面内公开 call()：脱离 WS 的分发入口，串行语义一致（issue #9）", { timeout: 60_000 }, async () => {
+    const r = await page.evaluate(async (lrcText) => {
+        const mcp = window.ExtCircuitJS.mcp;
+        const out = {};
+        // 直调：echo / ping / open→load→step→close 全走页面内 call()，不经 WS
+        out.echo = await mcp.call("echo", { via: "in-page" });
+        out.ping = await mcp.call("ping");
+        const opened = await mcp.call("open");
+        out.sessionOk = opened.ok === true && typeof opened.sessionId === "string";
+        out.load = await mcp.call("load", { text: lrcText }, opened.sessionId);
+        out.step = await mcp.call("step", { steps: 1 }, opened.sessionId);
+        out.close = await mcp.call("close", null, opened.sessionId);
+        // 错误语义：未知方法返回 fail 结果，不 reject（否则 chain 永久卡 rejected）
+        out.unknown = await mcp.call("no_such_method");
+        // 串行：20 个并发 call 逐字保序返回（引擎只被串行踩，结果不串线）
+        const rs = await Promise.all(Array.from({ length: 20 }, (_, i) => mcp.call("echo", { i })));
+        out.serial = rs.every((x, i) => x.ok && x.echo.i === i);
+        return out;
+    }, LRC_TEXT);
+    assert.equal(r.echo.ok, true);
+    assert.deepEqual(r.echo.echo, { via: "in-page" });
+    assert.equal(r.ping.pong, true);
+    assert.equal(r.sessionOk, true, `open 失败: ${JSON.stringify(r.sessionOk)}`);
+    assert.equal(r.load.ok, true, `load 失败: ${JSON.stringify(r.load)}`);
+    assert.equal(r.step.ok, true, `step 失败: ${JSON.stringify(r.step)}`);
+    assert.equal(r.close.ok, true);
+    assert.equal(r.unknown.ok, false, "未知方法应返回 fail 结果而不是 reject");
+    assert.equal(r.unknown.error?.code, "unknown_method");
+    assert.equal(r.serial, true, "并发 call 必须按发起次序串行执行");
+});
+
 /** 地网络 id：优先导出网表里 ground:true 的网络；lrc 无 GroundElm 时回落第一个网络（引擎 nodeList[0] 恒为地） */
 async function groundNetId(sid) {
     const net = await bridge.request("export", { sessionId: sid, params: { format: "netlist" }, timeoutMs: 30_000 });

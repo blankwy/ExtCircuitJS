@@ -31,6 +31,11 @@ export const SITE_DEFAULTS = {
     plugins: {
         disabled: [],
     },
+    /** locale 保留名单（构建期剪枝）：产物 locale/ 只保留这些语言的 locale_<lang>.txt。
+     *  空 = 全部保留（与上游原样一致）。en 无需条目——Locale.load 对 en 不 fetch。
+     *  值是文件名里的语言码（如 "zh"、"zh-tw"）；被剪掉的语言在切换菜单里选了会回落英文。
+     *  App/WebView 内嵌用：15 个语言包 ~1.1 MB，自带应用通常只需要一两个。 */
+    locales: [],
 };
 
 const readJson = (file) => {
@@ -56,6 +61,8 @@ export function loadSiteConfig(coverRoot) {
     }
     if (!Array.isArray(plugins.disabled) || plugins.disabled.some((x) => typeof x !== "string"))
         throw new Error(`[site.config] plugins.disabled 必须是字符串数组`);
+    if (!Array.isArray(cfg.locales) || cfg.locales.some((x) => typeof x !== "string"))
+        throw new Error(`[site.config] locales 必须是字符串数组`);
     return cfg;
 }
 

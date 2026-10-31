@@ -73,6 +73,8 @@ GitHub Pages 由 `.github/workflows/pages.yml` 负责：`main` 每次推送都�
 | `homeurl` | 关于页底部的「返回主页」链接，留空则不显示 | `""` |
 | `about.heading` | 关于页自定义内容的小标题 | `""` |
 | `about.html` | 关于页自定义内容（原样插入的 HTML） | `""` |
+| `plugins.disabled` | 构建期禁用自动加载的插件 id 列表（烘进 `<html data-ext-site-disabled>`，`ExtPluginHost` 过滤；显式 activate 不受限） | `[]` |
+| `locales` | 构建期 locale 剪枝：产物只保留这些语言的 `locale_<lang>.txt`（App/WebView 内嵌用；15 个语言包 ~1.1 MB；剪掉的语言切换后回落英文；en 不用写，它不 fetch） | `[]` |
 
 几条规则：
 

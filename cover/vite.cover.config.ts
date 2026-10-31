@@ -239,6 +239,24 @@ function copyAssetsToDist() {
                 const src = path.join(publicDir, name);
                 if (fs.existsSync(src)) fs.cpSync(src, path.join(nested, name), { recursive: true });
             }
+
+            // locale 剪枝（site.config.json 的 locales 非空时，issue #7）：App/WebView
+            // 内嵌只需要自带语言，15 个语言包 ~1.1 MB 全是死重。剪在 finalizeForHosting
+            // 之前，service-worker 清单与摘要会跟着收敛。en 无文件（Locale.load 对 en
+            // 不 fetch），名单即产物里该有的全部；匹配的是 locale_<lang>.txt 的 <lang>。
+            const keepLocales = loadSiteConfig(coverDir).locales;
+            const localeDir = path.join(nested, "locale");
+            if (keepLocales.length > 0 && fs.existsSync(localeDir)) {
+                let pruned = 0;
+                for (const f of fs.readdirSync(localeDir)) {
+                    const m = f.match(/^locale_(.+)\.txt$/);
+                    if (m && !keepLocales.includes(m[1])) {
+                        fs.rmSync(path.join(localeDir, f));
+                        pruned++;
+                    }
+                }
+                console.log(`[ext] locale 剪枝：保留 ${keepLocales.join(", ")}，移除 ${pruned} 个语言包`);
+            }
             const fontSrc = path.join(publicDir, "circuitjs", "font");
             if (fs.existsSync(fontSrc)) fs.cpSync(fontSrc, path.join(nested, "font"), { recursive: true });
             const setup = path.join(publicDir, "setuplist.txt");

@@ -248,6 +248,19 @@ export class ExtMcpBridge {
             });
     }
 
+    /**
+     * 页面内公开分发入口（脱离 WS）：WebView/插件/控制台直接调工具集，
+     * 不需要 Node 侧环回 WS 服务器（issue #9）。串行语义与 WS 帧一致——复用同一条
+     * 请求串行链，且 catch 必须在这里兜住：dispatch 抛错若不打回 resolved，
+     * chain 会永久卡在 rejected，后续所有调用（含 WS 路径）都排不上队。
+     * 错误照 WS 语义包成 { ok:false, error } 结果而不是 reject。
+     */
+    public call(method: string, params?: any, sessionId?: string): Promise<any> {
+        return (this.chain = this.chain
+            .then(() => this.dispatch({ v: 1, method, sessionId, params }))
+            .catch((e) => fail("internal_error", errText(e))));
+    }
+
     private async dispatch(msg: any): Promise<any> {
         const method = msg.method;
         const sessionId = msg.sessionId;
