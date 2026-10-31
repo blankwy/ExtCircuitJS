@@ -97,7 +97,8 @@ export async function ExtBoot(app: any): Promise<ExtRuntime> {
         /**
          * 按需加载 MCP 桥（供 MCP 客户端驱动本页）。
          * 静态产物（dist/、GitHub Pages）没有 Vite 的 /@fs/ 转译路径，桥必须随 bundle 走，
-         * 所以这里用相对动态 import —— Vite 会切成独立 chunk，只有真正调用时才下载。
+         * 所以这里用相对动态 import —— dev 下按需加载；构建产物 codeSplitting:false
+         * （core/ts/vite.config.ts），桥随主 bundle、不切独立 chunk。
          * 返回 bridge 实例；加载失败/环境不支持返回 null（调用方自行降级）。
          */
         loadMcpBridge: async (): Promise<any> => {
