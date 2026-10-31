@@ -263,3 +263,14 @@ dist/           构建产物（gitignore）
 3. 不改类名、不覆盖生成物（`registerElements.ts`）。
 4. 测试只允许 Lead 修改；worker 不许"修测试让它变绿"。
 5. 一次任务一个写作用域，用 worktree 隔离。
+
+## 许可与二次分发（Licensing & redistribution）
+
+本项目基于 [pfalstad/circuitjs1](https://github.com/pfalstad/circuitjs1)（Paul Falstad / Iain Sharp），以 **GPL-2.0** 发布，允许商用。GPL 的义务由**分发**触发，两种常见用法结论相反：
+
+| 用法 | 是否触发 GPL |
+|---|---|
+| 引擎跑在服务端，客户端走网络 API | 通常不构成分发，无额外义务 |
+| `dist` 打包进 App / WebView 内嵌 | 构成分发：需以 GPL 兼容许可发布，并提供对应源码（含本项目与上游的声明） |
+
+二次分发时请保留 `LICENSE` 与 `core/ts/circuitjs/about.html` 里的上游版权声明。

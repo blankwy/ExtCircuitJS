@@ -8,8 +8,11 @@
   <link rel="stylesheet" href="circuitjs/font/fontello.css">
 </head>
 <body>
-  <!-- Include the next line to allow support for dropbox import/export. You will need your own app key. -->
-  <script type="text/javascript" src="https://www.dropbox.com/static/api/2/dropins.js" id="dropboxjs" data-app-key="ckfvh1twq97lcgc"></script>
+  <!-- Dropbox import/export (chooser) is opt-in: this script used to load eagerly here and
+       blocked the page "load" event for ~20 s on networks that can't reach dropbox.com.
+       To re-enable the chooser, inject dropins.js on demand with your own app key
+       (same as core/war/circuitjs.html; window.Dropbox is probed by ImportFromDropbox). -->
+  <!--<script type="text/javascript" src="https://www.dropbox.com/static/api/2/dropins.js" id="dropboxjs" data-app-key="YOUR_KEY"></script>-->
   <script type="module" src="/main.ts"></script>
 </body>
 </html>

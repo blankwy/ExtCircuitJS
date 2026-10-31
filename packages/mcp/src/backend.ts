@@ -43,6 +43,9 @@ export interface AttachBackendOptions {
     chrome?: string;
     /** 单个桥请求超时（ms），默认 60s */
     timeoutMs?: number;
+    /** 同进程浏览器池：复用 browser、每会话独立 context（隔离靠 context 不靠进程）。
+     *  桌面 stdio 一个进程只 attach 一次，用不上；多会话宿主 / 批量脚本开着才有收益。默认关。 */
+    pool?: boolean;
     log?: (line: string) => void;
 }
 
@@ -120,7 +123,82 @@ export function resolveChrome(explicit?: string): string {
     );
 }
 
-const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+// ── 浏览器池（issue #3）──────────────────────────────────────────────────────
+// 同进程复用 headless Chrome，每会话独立 context。headless Chrome 每实例 200–400 MB
+// 常驻内存，所以池必须有上限与空闲 TTL，不能放任增长。
+
+interface PooledBrowser {
+    browser: any;
+    chromePath: string;
+    /** 未释放的 context 租约数 */
+    leases: number;
+    /** leases 归零的时刻（ms）；有租约时无意义 */
+    idleSince: number;
+}
+
+/** 池上限（通常只有一个 chromePath，多实例只出现在混装 Chrome/Edge 的机器上） */
+const POOL_MAX = 2;
+/** 0 租约实例的空闲回收时限 */
+const POOL_IDLE_TTL_MS = 5 * 60_000;
+
+const browserPool: PooledBrowser[] = [];
+let poolReaper: ReturnType<typeof setInterval> | null = null;
+
+function closePooled(entry: PooledBrowser): void {
+    const i = browserPool.indexOf(entry);
+    if (i < 0) return; // 已被回收/断连清理过
+    browserPool.splice(i, 1);
+    try {
+        const closing = entry.browser?.close?.();
+        if (closing?.catch) closing.catch(() => {});
+    } catch { /* best effort */ }
+    if (browserPool.length === 0 && poolReaper != null) {
+        clearInterval(poolReaper);
+        poolReaper = null;
+    }
+}
+
+function ensurePoolReaper(): void {
+    if (poolReaper != null) return;
+    poolReaper = setInterval(() => {
+        const now = Date.now();
+        for (const entry of [...browserPool]) {
+            if (entry.leases === 0 && now - entry.idleSince >= POOL_IDLE_TTL_MS) closePooled(entry);
+        }
+    }, 30_000);
+    poolReaper.unref?.();
+}
+
+/** 取（或起）一个与 chromePath 匹配的池内浏览器；调用方持 1 个租约，随 context 释放归还 */
+async function acquirePooledBrowser(chromium: any, chromePath: string, launchArgs: string[]): Promise<PooledBrowser> {
+    const hit = browserPool.find((e) => e.chromePath === chromePath);
+    if (hit) {
+        hit.leases++;
+        return hit;
+    }
+    const browser = await chromium.launch({ executablePath: chromePath, headless: true, args: launchArgs });
+    const entry: PooledBrowser = { browser, chromePath, leases: 1, idleSince: 0 };
+    browser.on?.("disconnected", () => closePooled(entry)); // 崩溃/被杀时把条目摘掉
+    browserPool.push(entry);
+    ensurePoolReaper();
+    // 超上限只挤闲置实例（有租约的挤不动，宁可暂时超编，等 reaper 收敛）
+    while (browserPool.length > POOL_MAX) {
+        const victim = browserPool.find((e) => e.leases === 0 && e !== entry);
+        if (victim == null) break;
+        closePooled(victim);
+    }
+    return entry;
+}
+
+function releasePooledBrowser(entry: PooledBrowser): void {
+    entry.leases = Math.max(0, entry.leases - 1);
+    if (entry.leases === 0) entry.idleSince = Date.now();
+}
+
+/** 关掉池里所有浏览器（宿主收尾用）。有租约的实例也会被关——这是强制关停语义。 */
+export async function disposeBrowserPool(): Promise<void> {
+    for (const entry of [...browserPool]) closePooled(entry);
+}
 
 /**
  * 启动 attach 后端。失败时确保已分配的资源都被回收（不留孤儿 dev server / 浏览器）。
@@ -133,11 +211,21 @@ export async function startAttachBackend(opts: AttachBackendOptions = {}): Promi
     let dev: DevServerHandle | null = null;
     let bridge: McpBridgeClient | null = null;
     let browser: any = null;
+    let context: any = null;
+    /** 非空 = 浏览器来自池（dispose 只归还租约，不关浏览器） */
+    let pooled: PooledBrowser | null = null;
 
     const disposeAll = async () => {
-        try { await browser?.close?.(); } catch { /* best effort */ }
+        try { await context?.close?.(); } catch { /* best effort */ }
+        if (pooled != null) {
+            releasePooledBrowser(pooled);
+        } else {
+            try { await browser?.close?.(); } catch { /* best effort */ }
+        }
         try { await bridge?.close(); } catch { /* best effort */ }
         try { await dev?.dispose(); } catch { /* best effort */ }
+        context = null;
+        pooled = null;
         browser = null;
         bridge = null;
         dev = null;
@@ -171,12 +259,14 @@ export async function startAttachBackend(opts: AttachBackendOptions = {}): Promi
         const chromium = pw.chromium ?? pw.default?.chromium;
         if (chromium == null) throw new Error(`playwright-core 没有导出 chromium（${pwIndex}）`);
 
-        browser = await chromium.launch({
-            executablePath: chromePath,
-            headless: true,
-            args: ["--no-first-run", "--no-default-browser-check", "--disable-gpu", "--mute-audio"],
-        });
-        const context = await browser.newContext({ viewport: { width: 1280, height: 800 } });
+        const launchArgs = ["--no-first-run", "--no-default-browser-check", "--disable-gpu", "--mute-audio"];
+        if (opts.pool === true) {
+            pooled = await acquirePooledBrowser(chromium, chromePath, launchArgs);
+            browser = pooled.browser;
+        } else {
+            browser = await chromium.launch({ executablePath: chromePath, headless: true, args: launchArgs });
+        }
+        context = await browser.newContext({ viewport: { width: 1280, height: 800 } });
         const page = await context.newPage();
         page.on("dialog", (d: any) => d.dismiss().catch?.(() => {}));
         page.on("pageerror", (e: any) => pageErrors.push(String(e?.message ?? e)));
@@ -186,7 +276,14 @@ export async function startAttachBackend(opts: AttachBackendOptions = {}): Promi
 
         await page.goto(`${baseUrl}/circuitjs.html`, { waitUntil: "load", timeout: 60_000 });
         await page.waitForFunction(() => !!(window as any).ExtCircuitJS, null, { timeout: 60_000 });
-        await sleep(1200); // 插件宿主 fetch + dynamic import（与契约测试同款等待）
+        // 插件宿主 fetch + dynamic import：等页面侧的显式就绪标志（ExtBoot 在 plugins.load()
+        // 之后置 ExtCircuitJS.ready），不再固定 sleep —— 快机器省 1.2 s，慢机器也不会随机失败。
+        // 超时降级继续：插件 fetch 挂住只影响插件元件，不值得让整个 attach 硬失败。
+        try {
+            await page.waitForFunction(() => (window as any).ExtCircuitJS?.ready === true, null, { timeout: 60_000 });
+        } catch {
+            log("[ext-mcp] 插件宿主就绪等待超时，继续（部分插件元件可能缺位）");
+        }
 
         // 桥的装载策略（双线）：
         //   1) 优先用页面自带的 loadMcpBridge()（ExtBoot 暴露）——**静态产物也能用**
@@ -235,6 +332,7 @@ export async function startAttachBackend(opts: AttachBackendOptions = {}): Promi
                 devServerPid: dev?.pid ?? null,
                 chrome: chromePath,
                 browserVersion: version ?? null,
+                browserPooled: pooled != null,
             },
             dispose: disposeAll,
         };

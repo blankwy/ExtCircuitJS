@@ -79,6 +79,9 @@ export async function ExtBoot(app: any): Promise<ExtRuntime> {
         events,
         plugins,
         hooks,
+        // 就绪信号：插件宿主装载完（成功或被吞掉的失败）才置 true。注意 window.ExtCircuitJS
+        // 本体在这之前就已挂出，外部（MCP backend、契约测试）不能拿它当就绪标志，等这里。
+        ready: false,
         // 选中集合 / 元件表的手动同步（插件自己改完电路或选择、或外部脚本直接改完后调用）
         refreshSelection: () => elementEvents.refresh("manual"),
         refreshElements: () => elementEvents.refresh("manual"),
@@ -129,6 +132,7 @@ export async function ExtBoot(app: any): Promise<ExtRuntime> {
     } catch (e) {
         console.error("[ExtCircuitJS] plugin load failed:", e);
     }
+    (window as any).ExtCircuitJS.ready = true;
 
     console.log(`[ExtCircuitJS] booted (core ${api.version}); api on window.ExtCircuitJS`);
     return rt;
